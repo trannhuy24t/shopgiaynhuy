@@ -1,0 +1,138 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\hoc_reactjs\\ShopAPI\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{DB6E7EDA-6BD6-0D3A-85AD-2A9EB6864B8B}|ShopAPI\\ShopAPI.csproj|c:\\hoc_reactjs\\shopapi\\shopapi\\services\\productservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DB6E7EDA-6BD6-0D3A-85AD-2A9EB6864B8B}|ShopAPI\\ShopAPI.csproj|solutionrelative:shopapi\\services\\productservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DB6E7EDA-6BD6-0D3A-85AD-2A9EB6864B8B}|ShopAPI\\ShopAPI.csproj|c:\\hoc_reactjs\\shopapi\\shopapi\\repositories\\productrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DB6E7EDA-6BD6-0D3A-85AD-2A9EB6864B8B}|ShopAPI\\ShopAPI.csproj|solutionrelative:shopapi\\repositories\\productrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DB6E7EDA-6BD6-0D3A-85AD-2A9EB6864B8B}|ShopAPI\\ShopAPI.csproj|c:\\hoc_reactjs\\shopapi\\shopapi\\dtos\\productdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DB6E7EDA-6BD6-0D3A-85AD-2A9EB6864B8B}|ShopAPI\\ShopAPI.csproj|solutionrelative:shopapi\\dtos\\productdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DB6E7EDA-6BD6-0D3A-85AD-2A9EB6864B8B}|ShopAPI\\ShopAPI.csproj|c:\\hoc_reactjs\\shopapi\\shopapi\\dtos\\productsizedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DB6E7EDA-6BD6-0D3A-85AD-2A9EB6864B8B}|ShopAPI\\ShopAPI.csproj|solutionrelative:shopapi\\dtos\\productsizedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DB6E7EDA-6BD6-0D3A-85AD-2A9EB6864B8B}|ShopAPI\\ShopAPI.csproj|c:\\hoc_reactjs\\shopapi\\shopapi\\models\\product.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DB6E7EDA-6BD6-0D3A-85AD-2A9EB6864B8B}|ShopAPI\\ShopAPI.csproj|solutionrelative:shopapi\\models\\product.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DB6E7EDA-6BD6-0D3A-85AD-2A9EB6864B8B}|ShopAPI\\ShopAPI.csproj|c:\\hoc_reactjs\\shopapi\\shopapi\\models\\productsize.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DB6E7EDA-6BD6-0D3A-85AD-2A9EB6864B8B}|ShopAPI\\ShopAPI.csproj|solutionrelative:shopapi\\models\\productsize.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DB6E7EDA-6BD6-0D3A-85AD-2A9EB6864B8B}|ShopAPI\\ShopAPI.csproj|c:\\hoc_reactjs\\shopapi\\shopapi\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DB6E7EDA-6BD6-0D3A-85AD-2A9EB6864B8B}|ShopAPI\\ShopAPI.csproj|solutionrelative:shopapi\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ProductService.cs",
+              "DocumentMoniker": "C:\\hoc_reactjs\\ShopAPI\\ShopAPI\\Services\\ProductService.cs",
+              "RelativeDocumentMoniker": "ShopAPI\\Services\\ProductService.cs",
+              "ToolTip": "C:\\hoc_reactjs\\ShopAPI\\ShopAPI\\Services\\ProductService.cs",
+              "RelativeToolTip": "ShopAPI\\Services\\ProductService.cs",
+              "ViewState": "AgIAACwAAAAAAAAAAAAgwEcAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-07-08T07:26:50.022Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ProductRepository.cs",
+              "DocumentMoniker": "C:\\hoc_reactjs\\ShopAPI\\ShopAPI\\Repositories\\ProductRepository.cs",
+              "RelativeDocumentMoniker": "ShopAPI\\Repositories\\ProductRepository.cs",
+              "ToolTip": "C:\\hoc_reactjs\\ShopAPI\\ShopAPI\\Repositories\\ProductRepository.cs",
+              "RelativeToolTip": "ShopAPI\\Repositories\\ProductRepository.cs",
+              "ViewState": "AgIAAA0AAAAAAAAAAAAQwB8AAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-07-08T07:26:20.273Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ProductDto.cs",
+              "DocumentMoniker": "C:\\hoc_reactjs\\ShopAPI\\ShopAPI\\DTOs\\ProductDto.cs",
+              "RelativeDocumentMoniker": "ShopAPI\\DTOs\\ProductDto.cs",
+              "ToolTip": "C:\\hoc_reactjs\\ShopAPI\\ShopAPI\\DTOs\\ProductDto.cs",
+              "RelativeToolTip": "ShopAPI\\DTOs\\ProductDto.cs",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAowBIAAABAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-07-08T07:25:47.774Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ProductSizeDto.cs",
+              "DocumentMoniker": "C:\\hoc_reactjs\\ShopAPI\\ShopAPI\\DTOs\\ProductSizeDto.cs",
+              "RelativeDocumentMoniker": "ShopAPI\\DTOs\\ProductSizeDto.cs",
+              "ToolTip": "C:\\hoc_reactjs\\ShopAPI\\ShopAPI\\DTOs\\ProductSizeDto.cs",
+              "RelativeToolTip": "ShopAPI\\DTOs\\ProductSizeDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-07-08T07:25:30.932Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "ProductSize.cs",
+              "DocumentMoniker": "C:\\hoc_reactjs\\ShopAPI\\ShopAPI\\Models\\ProductSize.cs",
+              "RelativeDocumentMoniker": "ShopAPI\\Models\\ProductSize.cs",
+              "ToolTip": "C:\\hoc_reactjs\\ShopAPI\\ShopAPI\\Models\\ProductSize.cs",
+              "RelativeToolTip": "ShopAPI\\Models\\ProductSize.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-07-08T07:23:33.282Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Product.cs",
+              "DocumentMoniker": "C:\\hoc_reactjs\\ShopAPI\\ShopAPI\\Models\\Product.cs",
+              "RelativeDocumentMoniker": "ShopAPI\\Models\\Product.cs",
+              "ToolTip": "C:\\hoc_reactjs\\ShopAPI\\ShopAPI\\Models\\Product.cs",
+              "RelativeToolTip": "ShopAPI\\Models\\Product.cs",
+              "ViewState": "AgIAABIAAAAAAAAAAAAIwBgAAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-07-07T06:23:37.824Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\hoc_reactjs\\ShopAPI\\ShopAPI\\Program.cs",
+              "RelativeDocumentMoniker": "ShopAPI\\Program.cs",
+              "ToolTip": "C:\\hoc_reactjs\\ShopAPI\\ShopAPI\\Program.cs",
+              "RelativeToolTip": "ShopAPI\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-07-07T03:30:36.688Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

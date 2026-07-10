@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+/* --- CÁC HIỆU ỨNG MICRO-ANIMATIONS TÙY BIẾN CHO GIAO DIỆN PREMIUM --- */
+
+@layer utilities {
+  /* Hiệu ứng bay bổng nhẹ cho ảnh giày Hero */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0) rotate(-12deg);
+    }
+    50% {
+      transform: translateY(-15px) rotate(-10deg);
+    }
+  }
+
+  /* Hiệu ứng rung nhẹ khi nhập sai thông tin đăng nhập */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+  }
+
+  /* Hiệu ứng trượt vào mượt mà của bộ lọc Drawer Mobile */
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  /* Lớp utility để áp dụng các hiệu ứng */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+
+  .animate-slide-in {
+    animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+/* Định dạng thanh cuộn (Custom Scrollbar) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #020617; /* slate-950 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155; /* slate-700 */
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #f97316; /* orange-500 */
+}
+
+/* Định nghĩa font chữ Inter cao cấp thông qua Google Fonts */
+
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: #020617;
+  overflow-x: hidden;
+}
