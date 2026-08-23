@@ -4,9 +4,9 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ShopAPI.Data;
 using ShopAPI.Interfaces;
+using ShopAPI.Repositories;
 using ShopAPI.Services;
 using System.Text;
-using ShopAPI.Repositories;
 var builder = WebApplication.CreateBuilder(args);
 
 // Database
@@ -44,15 +44,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 });
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
-builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<ICategoryService, CategoryService>();
-builder.Services.AddScoped<ICartRepository, CartRepository>();
-builder.Services.AddScoped<ICartService, CartService>();
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-builder.Services.AddScoped<IDashboardService, DashboardService>();
-builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IBuildingRepository, BuildingRepository>();
+builder.Services.AddScoped<IBuildingService, BuildingService>();
+builder.Services.AddScoped<IRoomRepository, RoomRepository>();
+builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<ITenantRepository, TenantRepository>();
+builder.Services.AddScoped<ITenantService, TenantService>();
+builder.Services.AddScoped<IContractRepository, ContractRepository>();
+builder.Services.AddScoped<IContractService, ContractService>();
+builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IVietQrService, VietQrService>();
+builder.Services.AddScoped<IMaintenanceRequestRepository, MaintenanceRequestRepository>();
+builder.Services.AddScoped<IMaintenanceRequestService, MaintenanceRequestService>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ISystemConfigService, SystemConfigService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -90,6 +102,37 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+// Seed default system config values (unit prices, VietQR bank info) if missing
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    var defaults = new (string Key, string Value, string Description)[]
+    {
+        ("BankBin", builder.Configuration["VietQr:BankBin"] ?? "", "Mã BIN ngân hàng nhận thanh toán (VietQR)"),
+        ("BankAccountNumber", builder.Configuration["VietQr:BankAccountNumber"] ?? "", "Số tài khoản nhận thanh toán (VietQR)"),
+        ("BankAccountName", builder.Configuration["VietQr:BankAccountName"] ?? "", "Tên chủ tài khoản nhận thanh toán (VietQR)"),
+        ("DefaultElectricUnitPrice", "3500", "Đơn giá điện mặc định (đ/kWh)"),
+        ("DefaultWaterUnitPrice", "18000", "Đơn giá nước mặc định (đ/m3)"),
+        ("DefaultServiceFee", "100000", "Phí dịch vụ mặc định mỗi hóa đơn (đ)")
+    };
+
+    foreach (var (key, value, description) in defaults)
+    {
+        if (!context.SystemConfigs.Any(x => x.Key == key))
+        {
+            context.SystemConfigs.Add(new ShopAPI.Models.SystemConfig
+            {
+                Key = key,
+                Value = value,
+                Description = description
+            });
+        }
+    }
+
+    context.SaveChanges();
+}
 
 // Swagger
 if (app.Environment.IsDevelopment())

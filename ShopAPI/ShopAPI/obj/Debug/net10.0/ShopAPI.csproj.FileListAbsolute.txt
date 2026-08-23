@@ -154,7 +154,6 @@ C:\hoc_reactjs\ShopAPI\ShopAPI\obj\Debug\net10.0\staticwebassets.build.json.cach
 C:\hoc_reactjs\ShopAPI\ShopAPI\obj\Debug\net10.0\staticwebassets.development.json
 C:\hoc_reactjs\ShopAPI\ShopAPI\obj\Debug\net10.0\staticwebassets.build.endpoints.json
 C:\hoc_reactjs\ShopAPI\ShopAPI\obj\Debug\net10.0\swae.build.ex.cache
-C:\hoc_reactjs\ShopAPI\ShopAPI\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt
 C:\hoc_reactjs\ShopAPI\ShopAPI\obj\Debug\net10.0\ShopAPI.csproj.Up2Date
 C:\hoc_reactjs\ShopAPI\ShopAPI\obj\Debug\net10.0\ShopAPI.dll
 C:\hoc_reactjs\ShopAPI\ShopAPI\obj\Debug\net10.0\refint\ShopAPI.dll
@@ -162,3 +161,13 @@ C:\hoc_reactjs\ShopAPI\ShopAPI\obj\Debug\net10.0\ShopAPI.pdb
 C:\hoc_reactjs\ShopAPI\ShopAPI\obj\Debug\net10.0\ShopAPI.genruntimeconfig.cache
 C:\hoc_reactjs\ShopAPI\ShopAPI\obj\Debug\net10.0\ref\ShopAPI.dll
 C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\ShopAPI.staticwebassets.runtime.json
+C:\hoc_reactjs\ShopAPI\ShopAPI\obj\Debug\net10.0\ShopAPI.sourcelink.json
+C:\Users\Admin\AppData\Local\Temp\shopapi_buildcheck\appsettings.Development.json
+C:\Users\Admin\AppData\Local\Temp\shopapi_buildcheck\appsettings.json
+C:\Users\Admin\AppData\Local\Temp\shopapi_buildcheck\ShopAPI.staticwebassets.runtime.json
+C:\Users\Admin\AppData\Local\Temp\shopapi_buildcheck\ShopAPI.staticwebassets.endpoints.json
+C:\Users\Admin\AppData\Local\Temp\shopapi_buildcheck\ShopAPI.exe
+C:\Users\Admin\AppData\Local\Temp\shopapi_buildcheck\ShopAPI.deps.json
+C:\Users\Admin\AppData\Local\Temp\shopapi_buildcheck\ShopAPI.runtimeconfig.json
+C:\Users\Admin\AppData\Local\Temp\shopapi_buildcheck\ShopAPI.dll
+C:\Users\Admin\AppData\Local\Temp\shopapi_buildcheck\ShopAPI.pdb

@@ -1,6 +1,215 @@
 @ShopAPI_HostAddress = http://localhost:5141
 
-GET {{ShopAPI_HostAddress}}/weatherforecast/
-Accept: application/json
+### ===== Auth =====
 
-###
+### Đăng ký tài khoản (mặc định Role = "User", Admin sẽ đổi role sau)
+POST {{ShopAPI_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Nguyễn Văn A",
+  "email": "tenant1@rental.com",
+  "password": "Tenant@123"
+}
+
+### Đăng nhập Admin (tài khoản mẫu đã seed: admin@rental.com / Admin@123)
+POST {{ShopAPI_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@rental.com",
+  "password": "Admin@123"
+}
+
+### Đăng nhập Staff (mẫu: staff@rental.com / Staff@123)
+POST {{ShopAPI_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "staff@rental.com",
+  "password": "Staff@123"
+}
+
+### Đăng nhập Tenant (mẫu: tenant1@rental.com / Tenant@123)
+POST {{ShopAPI_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "tenant1@rental.com",
+  "password": "Tenant@123"
+}
+
+### ===== Admin: quản lý user / phân quyền =====
+
+### Admin đổi role user vừa đăng ký (User -> Tenant)
+PUT {{ShopAPI_HostAddress}}/api/user/{{userId}}/role
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "role": "Tenant"
+}
+
+### Admin tạo tài khoản Staff
+POST {{ShopAPI_HostAddress}}/api/user/staff
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "fullName": "Nhân viên mới",
+  "email": "staff2@rental.com",
+  "password": "Staff@123"
+}
+
+### ===== Admin: quản lý tòa nhà / phòng =====
+
+### Tạo tòa nhà
+POST {{ShopAPI_HostAddress}}/api/building
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Nhà trọ ABC",
+  "address": "123 Đường ABC, Quận 1",
+  "ownerId": 1,
+  "description": "Tòa nhà 3 tầng"
+}
+
+### Tạo phòng
+POST {{ShopAPI_HostAddress}}/api/room
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "buildingId": 1,
+  "roomNumber": "103",
+  "area": 20,
+  "price": 3000000,
+  "description": "Phòng có ban công"
+}
+
+### ===== Tenant: xem phòng trống, đăng ký thuê =====
+
+### Xem phòng trống (không cần đăng nhập)
+GET {{ShopAPI_HostAddress}}/api/room/available
+
+### Đăng ký thuê phòng (Tenant)
+POST {{ShopAPI_HostAddress}}/api/contract/request
+Authorization: Bearer {{tenantToken}}
+Content-Type: application/json
+
+{
+  "roomId": 1,
+  "startDate": "2026-09-01",
+  "endDate": "2027-09-01",
+  "tenantProfile": {
+    "fullName": "Nguyễn Văn A",
+    "idCardNumber": "079123456789",
+    "phone": "0901111111",
+    "email": "tenant1@rental.com",
+    "emergencyContact": "0909999999"
+  }
+}
+
+### ===== Admin: duyệt hợp đồng, cấu hình giá =====
+
+### Duyệt hợp đồng (tự tạo hóa đơn cọc, chuyển Status -> ChoCoc)
+PUT {{ShopAPI_HostAddress}}/api/contract/{{contractId}}/approve
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "deposit": 3000000,
+  "monthlyRent": 3000000
+}
+
+### ===== Tenant: xác nhận cọc / thanh toán QR =====
+
+### Lấy mã VietQR để thanh toán hóa đơn cọc
+GET {{ShopAPI_HostAddress}}/api/payment/qr/{{depositInvoiceId}}
+Authorization: Bearer {{tenantToken}}
+
+### ===== Staff: xác nhận thanh toán tiền mặt (cọc hoặc hóa đơn hàng tháng) =====
+
+### Xác nhận đã nhận cọc -> Contract chuyển DangHieuLuc, Room chuyển DaThue
+PUT {{ShopAPI_HostAddress}}/api/payment/confirm-cash
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "invoiceId": 1,
+  "amount": 3000000,
+  "method": "TienMat"
+}
+
+### ===== Staff: nhập chỉ số điện/nước tạo hóa đơn hàng tháng =====
+
+POST {{ShopAPI_HostAddress}}/api/invoice
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "contractId": 1,
+  "month": 9,
+  "year": 2026,
+  "electricOldReading": 100,
+  "electricNewReading": 220,
+  "electricUnitPrice": 3500,
+  "waterOldReading": 10,
+  "waterNewReading": 25,
+  "waterUnitPrice": 18000,
+  "serviceFee": 100000,
+  "dueDate": "2026-10-05"
+}
+
+### ===== Tenant: xem hóa đơn hàng tháng =====
+
+GET {{ShopAPI_HostAddress}}/api/invoice/my
+Authorization: Bearer {{tenantToken}}
+
+### ===== Tenant: gửi yêu cầu bảo trì / sự cố =====
+
+POST {{ShopAPI_HostAddress}}/api/maintenance
+Authorization: Bearer {{tenantToken}}
+Content-Type: application/json
+
+{
+  "roomId": 1,
+  "title": "Hỏng vòi nước",
+  "description": "Vòi nước trong nhà tắm bị rò rỉ",
+  "priority": "Cao"
+}
+
+### ===== Staff: tiếp nhận, phân công xử lý bảo trì =====
+
+PUT {{ShopAPI_HostAddress}}/api/maintenance/{{maintenanceId}}/assign
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "assignedToUserId": 2
+}
+
+### Cập nhật trạng thái xử lý
+PUT {{ShopAPI_HostAddress}}/api/maintenance/{{maintenanceId}}/status
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "status": "HoanThanh",
+  "note": "Đã thay vòi nước mới"
+}
+
+### ===== Staff: nhắc nợ hóa đơn quá hạn =====
+
+POST {{ShopAPI_HostAddress}}/api/notification/remind-overdue
+Authorization: Bearer {{staffToken}}
+
+### ===== Admin: báo cáo doanh thu, thống kê =====
+
+GET {{ShopAPI_HostAddress}}/api/report/dashboard
+Authorization: Bearer {{adminToken}}
+
+### Xem log hoạt động hệ thống
+GET {{ShopAPI_HostAddress}}/api/report/logs?page=1&pageSize=20
+Authorization: Bearer {{adminToken}}
