@@ -1,3 +1,4 @@
+﻿using ShopAPI.Data;
 using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
@@ -12,6 +13,7 @@ namespace ShopAPI.Services
         private readonly IInvoiceService _invoiceService;
         private readonly INotificationService _notificationService;
         private readonly IActivityLogService _activityLogService;
+        private readonly AppDbContext _context;
 
         public ContractService(
             IContractRepository contractRepository,
@@ -19,7 +21,8 @@ namespace ShopAPI.Services
             ITenantService tenantService,
             IInvoiceService invoiceService,
             INotificationService notificationService,
-            IActivityLogService activityLogService)
+            IActivityLogService activityLogService,
+            AppDbContext context)
         {
             _contractRepository = contractRepository;
             _roomRepository = roomRepository;
@@ -27,15 +30,16 @@ namespace ShopAPI.Services
             _invoiceService = invoiceService;
             _notificationService = notificationService;
             _activityLogService = activityLogService;
+            _context = context;
         }
 
         public List<ContractDto> GetAll(string? status)
         {
             var contracts = _contractRepository.GetAll().AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(status))
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ContractStatus>(status, out var contractStatus))
             {
-                contracts = contracts.Where(c => c.Status == status);
+                contracts = contracts.Where(c => c.Status == contractStatus);
             }
 
             return contracts.Select(MapToDto).ToList();
@@ -71,7 +75,7 @@ namespace ShopAPI.Services
         {
             var room = _roomRepository.GetById(dto.RoomId);
 
-            if (room == null || room.Status != "Trong")
+            if (room == null || room.Status != RoomStatus.Trong)
             {
                 return null;
             }
@@ -87,19 +91,19 @@ namespace ShopAPI.Services
                 MonthlyRent = room.Price,
                 Deposit = 0,
                 NumberOfOccupants = dto.NumberOfOccupants > 0 ? dto.NumberOfOccupants : 1,
-                Status = "ChoDuyet",
-                CreatedAt = DateTime.Now
+                Status = ContractStatus.ChoDuyet,
+                CreatedAt = DateTime.UtcNow
             };
 
             _contractRepository.Add(contract);
 
             _notificationService.NotifyRole(
                 "Admin",
-                "Yêu cầu thuê phòng mới",
-                $"Khách thuê {tenant.FullName} vừa đăng ký thuê phòng {room.RoomNumber}. Vào mục Hợp đồng để duyệt.",
+                "YĂªu cáº§u thuĂª phĂ²ng má»›i",
+                $"KhĂ¡ch thuĂª {tenant.FullName} vá»«a Ä‘Äƒng kĂ½ thuĂª phĂ²ng {room.RoomNumber}. VĂ o má»¥c Há»£p Ä‘á»“ng Ä‘á»ƒ duyá»‡t.",
                 "HopDong");
 
-            _activityLogService.Log(userId, "RequestContract", "Contract", contract.Id, $"Đăng ký thuê phòng {room.RoomNumber}");
+            _activityLogService.Log(userId, "RequestContract", "Contract", contract.Id, $"ÄÄƒng kĂ½ thuĂª phĂ²ng {room.RoomNumber}");
 
             return GetById(contract.Id);
         }
@@ -108,43 +112,53 @@ namespace ShopAPI.Services
         {
             var contract = _contractRepository.GetById(contractId);
 
-            if (contract == null || contract.Status != "ChoDuyet")
+            if (contract == null || contract.Status != ContractStatus.ChoDuyet)
             {
                 return false;
             }
 
-            contract.Deposit = dto.Deposit;
-            contract.MonthlyRent = dto.MonthlyRent;
-            contract.NumberOfOccupants = dto.NumberOfOccupants > 0 ? dto.NumberOfOccupants : contract.NumberOfOccupants;
-            contract.ElectricUnitPrice = dto.ElectricUnitPrice;
-            contract.WaterUnitPrice = dto.WaterUnitPrice;
-
-            if (dto.EndDate.HasValue)
+            using var transaction = _context.Database.BeginTransaction();
+            try
             {
-                contract.EndDate = dto.EndDate.Value;
+                contract.Deposit = dto.Deposit;
+                contract.MonthlyRent = dto.MonthlyRent;
+                contract.NumberOfOccupants = dto.NumberOfOccupants > 0 ? dto.NumberOfOccupants : contract.NumberOfOccupants;
+                contract.ElectricUnitPrice = dto.ElectricUnitPrice;
+                contract.WaterUnitPrice = dto.WaterUnitPrice;
+
+                if (dto.EndDate.HasValue)
+                {
+                    contract.EndDate = dto.EndDate.Value;
+                }
+
+                contract.Status = ContractStatus.ChoCoc;
+
+                _contractRepository.Update(contract);
+
+                _invoiceService.CreateDepositInvoice(contract.Id, contract.StartDate, dto.Deposit);
+
+                _activityLogService.Log(approverUserId, "ApproveContract", "Contract", contract.Id, $"Deposit={dto.Deposit}, MonthlyRent={dto.MonthlyRent}");
+
+                transaction.Commit();
+                return true;
             }
-
-            contract.Status = "ChoCoc";
-
-            _contractRepository.Update(contract);
-
-            _invoiceService.CreateDepositInvoice(contract.Id, contract.StartDate, dto.Deposit);
-
-            _activityLogService.Log(approverUserId, "ApproveContract", "Contract", contract.Id, $"Deposit={dto.Deposit}, MonthlyRent={dto.MonthlyRent}");
-
-            return true;
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
 
         public bool Reject(int contractId, RejectContractDto dto, int approverUserId)
         {
             var contract = _contractRepository.GetById(contractId);
 
-            if (contract == null || contract.Status != "ChoDuyet")
+            if (contract == null || contract.Status != ContractStatus.ChoDuyet)
             {
                 return false;
             }
 
-            contract.Status = "TuChoi";
+            contract.Status = ContractStatus.TuChoi;
 
             _contractRepository.Update(contract);
 
@@ -157,19 +171,19 @@ namespace ShopAPI.Services
         {
             var contract = _contractRepository.GetById(contractId);
 
-            if (contract == null || contract.Status != "DangHieuLuc")
+            if (contract == null || contract.Status != ContractStatus.DangHieuLuc)
             {
                 return false;
             }
 
-            contract.Status = "DaKetThuc";
+            contract.Status = ContractStatus.DaKetThuc;
             _contractRepository.Update(contract);
 
             var room = _roomRepository.GetById(contract.RoomId);
 
             if (room != null)
             {
-                room.Status = "Trong";
+                room.Status = RoomStatus.Trong;
                 _roomRepository.Update(room);
             }
 
@@ -182,9 +196,9 @@ namespace ShopAPI.Services
         {
             var contract = _contractRepository.GetById(contractId);
 
-            if (contract == null || contract.Status != "DangHieuLuc")
+            if (contract == null || contract.Status != ContractStatus.DangHieuLuc)
             {
-                return (false, "Hợp đồng không tồn tại hoặc chưa có hiệu lực.");
+                return (false, "Há»£p Ä‘á»“ng khĂ´ng tá»“n táº¡i hoáº·c chÆ°a cĂ³ hiá»‡u lá»±c.");
             }
 
             contract.ElectricUnitPrice = dto.ElectricUnitPrice;
@@ -197,8 +211,8 @@ namespace ShopAPI.Services
                 _notificationService.Create(new CreateNotificationDto
                 {
                     UserId = contract.Tenant.UserId,
-                    Title = "Cập nhật đơn giá điện/nước",
-                    Content = $"Đơn giá điện/nước áp dụng cho phòng {contract.Room?.RoomNumber} từ bây giờ: {dto.ElectricUnitPrice:N0}đ/kWh, {dto.WaterUnitPrice:N0}đ/m³.",
+                    Title = "Cáº­p nháº­t Ä‘Æ¡n giĂ¡ Ä‘iá»‡n/nÆ°á»›c",
+                    Content = $"ÄÆ¡n giĂ¡ Ä‘iá»‡n/nÆ°á»›c Ă¡p dá»¥ng cho phĂ²ng {contract.Room?.RoomNumber} tá»« bĂ¢y giá»: {dto.ElectricUnitPrice:N0}Ä‘/kWh, {dto.WaterUnitPrice:N0}Ä‘/mÂ³.",
                     Type = "HopDong"
                 }, actorUserId);
             }
@@ -219,15 +233,15 @@ namespace ShopAPI.Services
         {
             var contract = _contractRepository.GetById(contractId);
 
-            if (contract == null || contract.Status != "DangHieuLuc")
+            if (contract == null || contract.Status != ContractStatus.DangHieuLuc)
             {
-                return (null, "Hợp đồng không tồn tại hoặc chưa có hiệu lực.");
+                return (null, "Há»£p Ä‘á»“ng khĂ´ng tá»“n táº¡i hoáº·c chÆ°a cĂ³ hiá»‡u lá»±c.");
             }
 
-            // NumberOfOccupants tính cả người thuê chính, nên chỉ khai báo thêm được tối đa NumberOfOccupants - 1 người.
+            // NumberOfOccupants tĂ­nh cáº£ ngÆ°á»i thuĂª chĂ­nh, nĂªn chá»‰ khai bĂ¡o thĂªm Ä‘Æ°á»£c tá»‘i Ä‘a NumberOfOccupants - 1 ngÆ°á»i.
             if (contract.Occupants.Count >= contract.NumberOfOccupants - 1)
             {
-                return (null, "Đã khai báo đủ số người ở theo hợp đồng (NumberOfOccupants). Nếu cần thêm người, hãy sửa lại số người ở trong hợp đồng trước.");
+                return (null, "ÄĂ£ khai bĂ¡o Ä‘á»§ sá»‘ ngÆ°á»i á»Ÿ theo há»£p Ä‘á»“ng (NumberOfOccupants). Náº¿u cáº§n thĂªm ngÆ°á»i, hĂ£y sá»­a láº¡i sá»‘ ngÆ°á»i á»Ÿ trong há»£p Ä‘á»“ng trÆ°á»›c.");
             }
 
             _contractRepository.AddOccupant(new Occupant
@@ -237,10 +251,10 @@ namespace ShopAPI.Services
                 Relationship = dto.Relationship,
                 IdCardNumber = dto.IdCardNumber,
                 Phone = dto.Phone,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             });
 
-            _activityLogService.Log(actorUserId, "AddOccupant", "Contract", contractId, $"Thêm người ở cùng: {dto.FullName} ({dto.Relationship})");
+            _activityLogService.Log(actorUserId, "AddOccupant", "Contract", contractId, $"ThĂªm ngÆ°á»i á»Ÿ cĂ¹ng: {dto.FullName} ({dto.Relationship})");
 
             var occupants = _contractRepository.GetById(contractId)!.Occupants.Select(MapOccupantToDto).ToList();
 
@@ -267,7 +281,7 @@ namespace ShopAPI.Services
 
             if (occupant == null)
             {
-                return (null, "Không tìm thấy người ở cùng.");
+                return (null, "KhĂ´ng tĂ¬m tháº¥y ngÆ°á»i á»Ÿ cĂ¹ng.");
             }
 
             occupant.FullName = dto.FullName;
@@ -277,7 +291,7 @@ namespace ShopAPI.Services
 
             _contractRepository.UpdateOccupant(occupant);
 
-            _activityLogService.Log(actorUserId, "UpdateOccupant", "Contract", occupant.ContractId, $"Sửa người ở cùng #{occupant.Id}: {dto.FullName} ({dto.Relationship})");
+            _activityLogService.Log(actorUserId, "UpdateOccupant", "Contract", occupant.ContractId, $"Sá»­a ngÆ°á»i á»Ÿ cĂ¹ng #{occupant.Id}: {dto.FullName} ({dto.Relationship})");
 
             return (MapOccupantToDto(occupant), null);
         }
@@ -295,7 +309,7 @@ namespace ShopAPI.Services
 
             _contractRepository.RemoveOccupant(occupant);
 
-            _activityLogService.Log(actorUserId, "RemoveOccupant", "Contract", contractId, $"Xóa người ở cùng: {occupant.FullName}");
+            _activityLogService.Log(actorUserId, "RemoveOccupant", "Contract", contractId, $"XĂ³a ngÆ°á»i á»Ÿ cĂ¹ng: {occupant.FullName}");
 
             return true;
         }
@@ -330,7 +344,7 @@ namespace ShopAPI.Services
                 NumberOfOccupants = contract.NumberOfOccupants,
                 ElectricUnitPrice = contract.ElectricUnitPrice,
                 WaterUnitPrice = contract.WaterUnitPrice,
-                Status = contract.Status,
+                Status = contract.Status.ToString(),
                 CreatedAt = contract.CreatedAt,
                 Occupants = contract.Occupants.Select(MapOccupantToDto).ToList()
             };

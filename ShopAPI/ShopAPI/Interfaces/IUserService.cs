@@ -13,5 +13,7 @@ namespace ShopAPI.Interfaces
         UserDto? CreateTenantAccount(CreateTenantAccountDto dto);
 
         bool UpdateRole(int id, UpdateUserRoleDto dto);
+
+        UserDto? UpdateProfile(int userId, UpdateProfileDto dto);
     }
 }

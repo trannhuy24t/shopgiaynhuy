@@ -1,4 +1,4 @@
-using ShopAPI.DTOs;
+﻿using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
 
@@ -27,9 +27,9 @@ namespace ShopAPI.Services
         {
             var invoices = _invoiceRepository.GetAll().AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(status))
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<InvoiceStatus>(status, out var invoiceStatus))
             {
-                invoices = invoices.Where(i => i.Status == status);
+                invoices = invoices.Where(i => i.Status == invoiceStatus);
             }
 
             if (contractId.HasValue)
@@ -72,19 +72,19 @@ namespace ShopAPI.Services
         {
             var contract = _contractRepository.GetById(dto.ContractId);
 
-            if (contract == null || contract.Status != "DangHieuLuc")
+            if (contract == null || contract.Status != ContractStatus.DangHieuLuc)
             {
-                return (null, "Hợp đồng không tồn tại hoặc chưa có hiệu lực.");
+                return (null, "Há»£p Ä‘á»“ng khĂ´ng tá»“n táº¡i hoáº·c chÆ°a cĂ³ hiá»‡u lá»±c.");
             }
 
             if (dto.ElectricNewReading < dto.ElectricOldReading)
             {
-                return (null, "Số điện mới phải lớn hơn hoặc bằng số điện cũ.");
+                return (null, "Sá»‘ Ä‘iá»‡n má»›i pháº£i lá»›n hÆ¡n hoáº·c báº±ng sá»‘ Ä‘iá»‡n cÅ©.");
             }
 
             if (dto.WaterNewReading < dto.WaterOldReading)
             {
-                return (null, "Số nước mới phải lớn hơn hoặc bằng số nước cũ.");
+                return (null, "Sá»‘ nÆ°á»›c má»›i pháº£i lá»›n hÆ¡n hoáº·c báº±ng sá»‘ nÆ°á»›c cÅ©.");
             }
 
             var electricUsage = dto.ElectricNewReading - dto.ElectricOldReading;
@@ -105,31 +105,31 @@ namespace ShopAPI.Services
                 WaterNewReading = dto.WaterNewReading,
                 WaterUsage = waterUsage,
                 WaterUnitPrice = waterRate,
-                Type = "HangThang",
-                Status = "ChuaThanhToan",
+                Type = InvoiceType.HangThang,
+                Status = InvoiceStatus.ChuaThanhToan,
                 DueDate = dto.DueDate,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             };
 
-            invoice.Items.Add(new InvoiceItem { ItemName = "Tiền phòng", Amount = contract.MonthlyRent });
-            invoice.Items.Add(new InvoiceItem { ItemName = "Tiền điện", Amount = electricUsage * electricRate });
-            invoice.Items.Add(new InvoiceItem { ItemName = "Tiền nước", Amount = waterUsage * waterRate });
+            invoice.Items.Add(new InvoiceItem { ItemName = "Tiá»n phĂ²ng", Amount = contract.MonthlyRent });
+            invoice.Items.Add(new InvoiceItem { ItemName = "Tiá»n Ä‘iá»‡n", Amount = electricUsage * electricRate });
+            invoice.Items.Add(new InvoiceItem { ItemName = "Tiá»n nÆ°á»›c", Amount = waterUsage * waterRate });
 
-            // Tiền dịch vụ = đơn giá dịch vụ (theo phòng, hoặc Staff tự nhập) x số người đang ở
+            // Tiá»n dá»‹ch vá»¥ = Ä‘Æ¡n giĂ¡ dá»‹ch vá»¥ (theo phĂ²ng, hoáº·c Staff tá»± nháº­p) x sá»‘ ngÆ°á»i Ä‘ang á»Ÿ
             var occupantCount = Math.Max(1, contract.NumberOfOccupants);
             var serviceFeeRate = dto.ServiceFee ?? contract.Room?.ServiceFee ?? 0;
             var serviceFeeTotal = serviceFeeRate * occupantCount;
 
             if (serviceFeeTotal > 0)
             {
-                invoice.Items.Add(new InvoiceItem { ItemName = $"Phí dịch vụ ({serviceFeeRate:N0}đ x {occupantCount} người)", Amount = serviceFeeTotal });
+                invoice.Items.Add(new InvoiceItem { ItemName = $"PhĂ­ dá»‹ch vá»¥ ({serviceFeeRate:N0}Ä‘ x {occupantCount} ngÆ°á»i)", Amount = serviceFeeTotal });
             }
 
             invoice.TotalAmount = invoice.Items.Sum(i => i.Amount);
 
             _invoiceRepository.Add(invoice);
 
-            _activityLogService.Log(staffUserId, "CreateInvoice", "Invoice", invoice.Id, $"Hợp đồng #{contract.Id}, tháng {dto.Month}/{dto.Year}");
+            _activityLogService.Log(staffUserId, "CreateInvoice", "Invoice", invoice.Id, $"Há»£p Ä‘á»“ng #{contract.Id}, thĂ¡ng {dto.Month}/{dto.Year}");
 
             return (GetById(invoice.Id), null);
         }
@@ -144,13 +144,13 @@ namespace ShopAPI.Services
                 ElectricUsage = 0,
                 WaterUsage = 0,
                 TotalAmount = depositAmount,
-                Type = "Coc",
-                Status = "ChuaThanhToan",
-                DueDate = DateTime.Now.AddDays(3),
-                CreatedAt = DateTime.Now
+                Type = InvoiceType.Coc,
+                Status = InvoiceStatus.ChuaThanhToan,
+                DueDate = DateTime.UtcNow.AddDays(3),
+                CreatedAt = DateTime.UtcNow
             };
 
-            invoice.Items.Add(new InvoiceItem { ItemName = "Tiền cọc", Amount = depositAmount });
+            invoice.Items.Add(new InvoiceItem { ItemName = "Tiá»n cá»c", Amount = depositAmount });
 
             _invoiceRepository.Add(invoice);
 
@@ -176,8 +176,8 @@ namespace ShopAPI.Services
                 WaterUsage = invoice.WaterUsage,
                 WaterUnitPrice = invoice.WaterUnitPrice,
                 TotalAmount = invoice.TotalAmount,
-                Type = invoice.Type,
-                Status = invoice.Status,
+                Type = invoice.Type.ToString(),
+                Status = invoice.Status.ToString(),
                 DueDate = invoice.DueDate,
                 CreatedAt = invoice.CreatedAt,
                 Items = invoice.Items.Select(i => new InvoiceItemDto { ItemName = i.ItemName, Amount = i.Amount }).ToList()

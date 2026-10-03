@@ -14,6 +14,7 @@ export interface AuthContextType {
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
+  updateUser: (partial: Partial<AuthUser>) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

@@ -1,0 +1,78 @@
+<mxfile host="Electron" modified="2026-09-15T07:46:25.000Z" agent="Mozilla/5.0" version="21.6.8" type="device">
+  <diagram id="UC_HoaDon_ThanhToan" name="UC Chi Tiết - Hóa Đơn &amp; Thanh Toán">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- System Boundary -->
+        <mxCell id="sys_boundary" value="Phân hệ Hóa đơn &amp; Thanh toán (ShopAPI)" style="shape=rect;html=1;verticalAlign=top;whiteSpace=wrap;align=center;fontStyle=1;fontSize=15;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="230" y="40" width="700" height="660" as="geometry" />
+        </mxCell>
+
+        <!-- Actors -->
+        <mxCell id="act_admin" value="Admin / Staff" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="70" y="240" width="40" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="act_tenant" value="Khách thuê (Tenant)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="990" y="320" width="40" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Left Column UCs (Admin / Staff) -->
+        <mxCell id="uc_inv_create" value="Tạo hóa đơn hàng tháng&#xa;(nhập số công tơ điện/nước)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="90" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_inv_list" value="Xem tất cả hóa đơn (lọc status)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="165" width="200" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_inv_detail" value="Xem chi tiết hóa đơn (chỉ số cũ-mới)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="235" width="200" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_inv_overdue" value="Quét &amp; Nhắc hóa đơn quá hạn" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="310" width="200" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_pay_confirm" value="Xác nhận thanh toán&#xa;(Tiền mặt / Chuyển khoản / QR)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="410" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Center Column UCs (Shared / Payment QR) -->
+        <mxCell id="uc_pay_qr" value="Sinh mã QR thanh toán (VietQR)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="485" y="410" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Right Column UCs (Tenant) -->
+        <mxCell id="uc_inv_my" value="Xem hóa đơn của tôi (/my)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="710" y="235" width="190" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_pay_history" value="Xem lịch sử thanh toán hóa đơn" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="710" y="410" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Associations: Admin / Staff -->
+        <mxCell id="e_a1" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="act_admin" target="uc_inv_create"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_a2" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="act_admin" target="uc_inv_list"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_a3" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="act_admin" target="uc_inv_detail"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_a4" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="act_admin" target="uc_inv_overdue"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_a5" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="act_admin" target="uc_pay_confirm"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Associations: Tenant -->
+        <mxCell id="e_t1" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="act_tenant" target="uc_inv_my"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_t2" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="act_tenant" target="uc_pay_qr"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_t3" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="act_tenant" target="uc_pay_history"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Includes -->
+        <mxCell id="inc_1" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;endSize=12;dashed=1;html=1;strokeColor=#000000;" edge="1" parent="1" source="uc_inv_create" target="uc_inv_detail"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="inc_2" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;endSize=12;dashed=1;html=1;strokeColor=#000000;" edge="1" parent="1" source="uc_pay_qr" target="uc_inv_my"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Notes -->
+        <mxCell id="note_calc" value="Công thức Hóa đơn hàng tháng:&#xa;• Tiền điện = (chỉ số mới - chỉ số cũ) × Đơn giá điện (từ HĐ)&#xa;• Tiền nước = (chỉ số mới - chỉ số cũ) × Đơn giá nước (từ HĐ)&#xa;• Tiền dịch vụ = Đơn giá dịch vụ × Số người ở&#xa;• Tổng = Tiền phòng + Tiền điện + Tiền nước + Tiền dịch vụ" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#000000;fontSize=11;size=15;" vertex="1" parent="1">
+          <mxGeometry x="260" y="520" width="370" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="note_type" value="Loại hóa đơn:&#xa;• Coc: tự tạo khi Admin duyệt HĐ&#xa;• HangThang: Staff nhập số công tơ" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#000000;fontSize=11;size=15;" vertex="1" parent="1">
+          <mxGeometry x="660" y="520" width="240" height="70" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

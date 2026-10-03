@@ -1,4 +1,4 @@
-using ShopAPI.DTOs;
+﻿using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
 
@@ -46,7 +46,7 @@ namespace ShopAPI.Services
                     Phone = dto.Phone,
                     Email = dto.Email,
                     EmergencyContact = dto.EmergencyContact,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow
                 };
 
                 _tenantRepository.Add(tenant);

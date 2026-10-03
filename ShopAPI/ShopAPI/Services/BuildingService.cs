@@ -1,4 +1,4 @@
-using ShopAPI.DTOs;
+﻿using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
 
@@ -35,7 +35,7 @@ namespace ShopAPI.Services
                 Address = dto.Address,
                 OwnerId = dto.OwnerId,
                 Description = dto.Description,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             };
 
             _buildingRepository.Add(building);

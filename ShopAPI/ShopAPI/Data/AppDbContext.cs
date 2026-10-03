@@ -27,6 +27,14 @@ namespace ShopAPI.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // Store enums as their string names to match existing DB values
+            modelBuilder.Entity<Room>().Property(r => r.Status).HasConversion<string>();
+            modelBuilder.Entity<Contract>().Property(c => c.Status).HasConversion<string>();
+            modelBuilder.Entity<Invoice>().Property(i => i.Type).HasConversion<string>();
+            modelBuilder.Entity<Invoice>().Property(i => i.Status).HasConversion<string>();
+            modelBuilder.Entity<MaintenanceRequest>().Property(m => m.Priority).HasConversion<string>();
+            modelBuilder.Entity<MaintenanceRequest>().Property(m => m.Status).HasConversion<string>();
+
             modelBuilder.Entity<SystemConfig>()
                 .HasIndex(x => x.Key)
                 .IsUnique();

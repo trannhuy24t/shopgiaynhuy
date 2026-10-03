@@ -24,6 +24,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       localStorage.setItem("token", res.data.token);
+      if (res.data.refreshToken) {
+        localStorage.setItem("refreshToken", res.data.refreshToken);
+      }
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
       setUser(res.data.user);
@@ -45,15 +48,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
     setUser(null);
+  };
+
+  const updateUser = (partial: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...partial };
+      localStorage.setItem("user", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const isAuthenticated = !!user;
   const isAdmin = user?.role === "Admin";
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, isAuthenticated, isAdmin }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, isAuthenticated, isAdmin, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

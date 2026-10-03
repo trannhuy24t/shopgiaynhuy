@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ShopAPI.Models;
 
 namespace ShopAPI.DTOs
 {
@@ -8,12 +9,13 @@ namespace ShopAPI.DTOs
         public int RoomId { get; set; }
 
         [Required]
+        [MaxLength(200)]
         public string Title { get; set; } = string.Empty;
 
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
 
-        public string Priority { get; set; } = "TrungBinh"; // Thap | TrungBinh | Cao
+        public string Priority { get; set; } = nameof(MaintenancePriority.TrungBinh);
     }
 
     public class CreateMaintenanceRequestWithImageDto
@@ -22,11 +24,12 @@ namespace ShopAPI.DTOs
         public int RoomId { get; set; }
 
         [Required]
+        [MaxLength(200)]
         public string Title { get; set; } = string.Empty;
 
         public string? Description { get; set; }
 
-        public string Priority { get; set; } = "TrungBinh";
+        public string Priority { get; set; } = nameof(MaintenancePriority.TrungBinh);
 
         public IFormFile? Image { get; set; }
     }
@@ -37,10 +40,19 @@ namespace ShopAPI.DTOs
         public int AssignedToUserId { get; set; }
     }
 
-    public class UpdateMaintenanceStatusDto
+    public class UpdateMaintenanceStatusDto : IValidatableObject
     {
         [Required]
-        public string Status { get; set; } = string.Empty; // DangXuLy | HoanThanh | DaHuy
+        public string Status { get; set; } = string.Empty;
+
         public string? Note { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (!Enum.TryParse<MaintenanceStatus>(Status, out _))
+                yield return new ValidationResult(
+                    $"Trạng thái không hợp lệ. Các giá trị hợp lệ: {string.Join(", ", Enum.GetNames<MaintenanceStatus>())}",
+                    [nameof(Status)]);
+        }
     }
 }

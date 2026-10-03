@@ -1,3 +1,4 @@
+﻿using ShopAPI.Data;
 using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
@@ -12,6 +13,7 @@ namespace ShopAPI.Services
         private readonly IRoomRepository _roomRepository;
         private readonly IVietQrService _vietQrService;
         private readonly IActivityLogService _activityLogService;
+        private readonly AppDbContext _context;
 
         public PaymentService(
             IPaymentRepository paymentRepository,
@@ -19,7 +21,8 @@ namespace ShopAPI.Services
             IContractRepository contractRepository,
             IRoomRepository roomRepository,
             IVietQrService vietQrService,
-            IActivityLogService activityLogService)
+            IActivityLogService activityLogService,
+            AppDbContext context)
         {
             _paymentRepository = paymentRepository;
             _invoiceRepository = invoiceRepository;
@@ -27,6 +30,7 @@ namespace ShopAPI.Services
             _roomRepository = roomRepository;
             _vietQrService = vietQrService;
             _activityLogService = activityLogService;
+            _context = context;
         }
 
         public QrPaymentResponseDto? GetQrForInvoice(int invoiceId, int userId)
@@ -59,47 +63,57 @@ namespace ShopAPI.Services
         {
             var invoice = _invoiceRepository.GetById(dto.InvoiceId);
 
-            if (invoice == null || invoice.Status != "ChuaThanhToan")
+            if (invoice == null || invoice.Status != InvoiceStatus.ChuaThanhToan)
             {
                 return false;
             }
 
-            var payment = new Payment
+            using var transaction = _context.Database.BeginTransaction();
+            try
             {
-                InvoiceId = invoice.Id,
-                Amount = dto.Amount,
-                Method = dto.Method,
-                TransactionRef = dto.TransactionRef,
-                PaymentDate = DateTime.Now
-            };
-
-            _paymentRepository.Add(payment);
-
-            invoice.Status = "DaThanhToan";
-            _invoiceRepository.Update(invoice);
-
-            if (invoice.Type == "Coc")
-            {
-                var contract = _contractRepository.GetById(invoice.ContractId);
-
-                if (contract != null && contract.Status == "ChoCoc")
+                var payment = new Payment
                 {
-                    contract.Status = "DangHieuLuc";
-                    _contractRepository.Update(contract);
+                    InvoiceId = invoice.Id,
+                    Amount = dto.Amount,
+                    Method = dto.Method,
+                    TransactionRef = dto.TransactionRef,
+                    PaymentDate = DateTime.UtcNow
+                };
 
-                    var room = _roomRepository.GetById(contract.RoomId);
+                _paymentRepository.Add(payment);
 
-                    if (room != null)
+                invoice.Status = InvoiceStatus.DaThanhToan;
+                _invoiceRepository.Update(invoice);
+
+                if (invoice.Type == InvoiceType.Coc)
+                {
+                    var contract = _contractRepository.GetById(invoice.ContractId);
+
+                    if (contract != null && contract.Status == ContractStatus.ChoCoc)
                     {
-                        room.Status = "DaThue";
-                        _roomRepository.Update(room);
+                        contract.Status = ContractStatus.DangHieuLuc;
+                        _contractRepository.Update(contract);
+
+                        var room = _roomRepository.GetById(contract.RoomId);
+
+                        if (room != null)
+                        {
+                            room.Status = RoomStatus.DaThue;
+                            _roomRepository.Update(room);
+                        }
                     }
                 }
+
+                _activityLogService.Log(confirmedByUserId, "ConfirmPayment", "Invoice", invoice.Id, $"Amount={dto.Amount}, Method={dto.Method}");
+
+                transaction.Commit();
+                return true;
             }
-
-            _activityLogService.Log(confirmedByUserId, "ConfirmPayment", "Invoice", invoice.Id, $"Amount={dto.Amount}, Method={dto.Method}");
-
-            return true;
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
 
         private static PaymentDto MapToDto(Payment payment)

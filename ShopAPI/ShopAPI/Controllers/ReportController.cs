@@ -17,18 +17,16 @@ namespace ShopAPI.Controllers
         }
 
         [HttpGet("dashboard")]
-        public IActionResult GetDashboard()
+        public async Task<IActionResult> GetDashboard()
         {
-            var result = _reportService.GetDashboard();
-
+            var result = await _reportService.GetDashboardAsync();
             return Ok(result);
         }
 
         [HttpGet("logs")]
-        public IActionResult GetLogs([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        public async Task<IActionResult> GetLogs([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var result = _reportService.GetLogs(page, pageSize);
-
+            var result = await _reportService.GetLogsAsync(page, pageSize);
             return Ok(result);
         }
     }

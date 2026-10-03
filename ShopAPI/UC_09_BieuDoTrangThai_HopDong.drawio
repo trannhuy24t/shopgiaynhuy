@@ -1,0 +1,58 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0">
+  <diagram id="BDTT_TrangThai_HopDong" name="Biểu đồ Trạng thái - Hợp đồng">
+    <mxGraphModel dx="1406" dy="746" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="650" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontStyle=1;fontSize=16;" value="Biểu đồ Trạng thái Hợp đồng (Contract Statechart)" vertex="1">
+          <mxGeometry height="30" width="400" x="320" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="st_start" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="40" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="st_choduyet" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=12;" value="ChoDuyet&#xa;(Chờ Admin duyệt)" vertex="1">
+          <mxGeometry height="60" width="160" x="220" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="st_chococ" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=12;" value="ChoCoc&#xa;(Chờ cọc / Sinh HD cọc)" vertex="1">
+          <mxGeometry height="60" width="170" x="500" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="st_hieuluc" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=12;" value="DangHieuLuc&#xa;(Đang có hiệu lực)" vertex="1">
+          <mxGeometry height="60" width="160" x="790" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="st_tuchoi" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=12;" value="TuChoi&#xa;(Từ chối / Hủy)" vertex="1">
+          <mxGeometry height="60" width="160" x="320" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="st_ketthuc" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=12;" value="DaKetThuc&#xa;(Đã kết thúc / Thanh lý)" vertex="1">
+          <mxGeometry height="60" width="160" x="690" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="st_end" parent="1" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="545" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="tr_init" edge="1" parent="1" source="st_start" style="endArrow=classic;html=1;strokeColor=#000000;fontSize=11;labelBackgroundColor=#ffffff;" target="st_choduyet" value="Khách gửi yêu cầu đặt phòng">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tr_app" edge="1" parent="1" source="st_choduyet" style="endArrow=classic;html=1;strokeColor=#000000;fontSize=11;labelBackgroundColor=#ffffff;" target="st_chococ" value="Admin duyệt HĐ&#xa;(PUT /approve)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tr_rej" edge="1" parent="1" source="st_choduyet" style="endArrow=classic;html=1;strokeColor=#000000;fontSize=11;labelBackgroundColor=#ffffff;" target="st_tuchoi" value="Admin từ chối">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tr_pay" edge="1" parent="1" source="st_chococ" style="endArrow=classic;html=1;strokeColor=#000000;fontSize=11;labelBackgroundColor=#ffffff;" target="st_hieuluc" value="Xác nhận thu tiền cọc&#xa;(PUT /confirm-cash)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tr_exp_coc" edge="1" parent="1" source="st_chococ" style="endArrow=classic;html=1;strokeColor=#000000;fontSize=11;labelBackgroundColor=#ffffff;" target="st_tuchoi" value="Quá hạn đóng cọc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tr_term" edge="1" parent="1" source="st_hieuluc" style="endArrow=classic;html=1;strokeColor=#000000;fontSize=11;labelBackgroundColor=#ffffff;" target="st_ketthuc" value="Thanh lý / Hết hạn HĐ&#xa;(PUT /terminate)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tr_end1" edge="1" parent="1" source="st_tuchoi" style="endArrow=classic;html=1;strokeColor=#000000;" target="st_end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tr_end2" edge="1" parent="1" source="st_ketthuc" style="endArrow=classic;html=1;strokeColor=#000000;" target="st_end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

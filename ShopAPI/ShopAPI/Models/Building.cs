@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace ShopAPI.Models
 {
@@ -20,7 +20,7 @@ namespace ShopAPI.Models
 
         public string? Description { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public List<Room> Rooms { get; set; } = new();
     }

@@ -7,7 +7,7 @@ import { useAuth } from '../../context/useAuth';
 import StatusBadge from '../../components/Common/StatusBadge';
 import type { RoomDto } from '../../types/room';
 import type { PublicRatesDto } from '../../types/systemConfig';
-import { ArrowLeft, Building2, Ruler, KeyRound, Zap } from 'lucide-react';
+import { ArrowLeft, Building2, Ruler, Phone, Zap, MessageCircle, PhoneCall, X } from 'lucide-react';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -22,6 +22,7 @@ const RoomDetailPage = () => {
   const [error, setError] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [publicRates, setPublicRates] = useState<PublicRatesDto | null>(null);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   useEffect(() => {
     const loadRoom = async () => {
@@ -180,18 +181,66 @@ const RoomDetailPage = () => {
 
           <div className="pt-4 border-t border-slate-900">
             <button
-              onClick={handleRequestContract}
+              onClick={() => setShowContactModal(true)}
               disabled={room.status !== 'Trong'}
               className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed active:scale-98 text-white font-bold py-4 rounded-2xl shadow-lg shadow-orange-500/20 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
             >
-              <KeyRound size={18} />
-              {room.status === 'Trong' ? 'Đăng ký thuê phòng này' : 'Phòng hiện không còn trống'}
+              <Phone size={18} />
+              {room.status === 'Trong' ? 'Liên hệ với chủ trọ' : 'Phòng hiện không còn trống'}
             </button>
           </div>
         </div>
       </div>
+      {showContactModal && <ContactModal phone={room.ownerPhone ?? null} onClose={() => setShowContactModal(false)} />}
     </div>
   );
 };
+
+const ContactModal = ({ phone, onClose }: { phone: string | null; onClose: () => void }) => (
+  <div
+    className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+    onClick={onClose}
+  >
+    <div
+      className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-bold text-white">Liên hệ chủ trọ</h3>
+        <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors cursor-pointer">
+          <X size={20} />
+        </button>
+      </div>
+
+      {phone ? (
+        <>
+          <p className="text-sm text-slate-400">
+            Số điện thoại: <span className="text-white font-semibold">{phone}</span>
+          </p>
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <a
+              href={`sms:${phone}`}
+              className="flex flex-col items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-orange-500/50 text-white font-semibold py-5 rounded-2xl transition-all"
+            >
+              <MessageCircle size={26} className="text-orange-400" />
+              <span className="text-sm">Nhắn tin</span>
+            </a>
+            <a
+              href={`tel:${phone}`}
+              className="flex flex-col items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-5 rounded-2xl transition-all shadow-lg shadow-orange-500/30"
+            >
+              <PhoneCall size={26} />
+              <span className="text-sm">Gọi điện</span>
+            </a>
+          </div>
+        </>
+      ) : (
+        <p className="text-sm text-slate-400 text-center py-4">
+          Chủ trọ chưa cập nhật số điện thoại liên hệ.
+        </p>
+      )}
+    </div>
+  </div>
+);
 
 export default RoomDetailPage;

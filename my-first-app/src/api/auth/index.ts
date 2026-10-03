@@ -15,6 +15,14 @@ export interface RegisterPayload {
 export interface LoginResponse {
     message: string;
     token: string;
+    refreshToken?: string;
+    user: AuthUser;
+}
+
+export interface RefreshTokenResponse {
+    message: string;
+    token: string;
+    refreshToken: string;
     user: AuthUser;
 }
 
@@ -24,4 +32,8 @@ export const login = (data: LoginPayload) => {
 
 export const register = (data: RegisterPayload) => {
     return api.post<{ message: string }>("/Auth/register", data);
+};
+
+export const refreshTokenApi = (accessToken: string, refreshToken: string) => {
+    return api.post<RefreshTokenResponse>("/Auth/refresh-token", { accessToken, refreshToken });
 };

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
+using System.Security.Claims;
 
 namespace ShopAPI.Controllers
 {
@@ -62,6 +63,24 @@ namespace ShopAPI.Controllers
             }
 
             return Ok(user);
+        }
+
+        [HttpPut("profile")]
+        [Authorize]
+        public IActionResult UpdateProfile(UpdateProfileDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Unauthorized();
+
+            var result = _userService.UpdateProfile(userId, dto);
+            if (result == null)
+                return NotFound(new { message = "Không tìm thấy người dùng." });
+
+            return Ok(result);
         }
 
         [HttpPut("{id}/role")]

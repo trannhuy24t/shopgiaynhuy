@@ -46,28 +46,21 @@ namespace ShopAPI.Controllers
 
             if (dto.Image != null && dto.Image.Length > 0)
             {
-                var folderPath = Path.Combine(
-                    Directory.GetCurrentDirectory(),
-                    "wwwroot",
-                    "images",
-                    "maintenance"
-                );
+                var ext = Path.GetExtension(dto.Image.FileName).ToLowerInvariant();
+                string[] allowedExts = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
 
-                if (!Directory.Exists(folderPath))
-                {
-                    Directory.CreateDirectory(folderPath);
-                }
+                if (!allowedExts.Contains(ext))
+                    return BadRequest(new { message = $"Chỉ chấp nhận ảnh: {string.Join(", ", allowedExts)}" });
 
-                var fileName = Guid.NewGuid().ToString()
-                    + Path.GetExtension(dto.Image.FileName);
+                if (dto.Image.Length > 5 * 1024 * 1024)
+                    return BadRequest(new { message = "Ảnh không được vượt quá 5MB." });
 
-                var filePath = Path.Combine(folderPath, fileName);
+                var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "maintenance");
+                Directory.CreateDirectory(folderPath);
 
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    dto.Image.CopyTo(stream);
-                }
-
+                var fileName = Guid.NewGuid() + ext;
+                using var stream = new FileStream(Path.Combine(folderPath, fileName), FileMode.Create);
+                dto.Image.CopyTo(stream);
                 imageUrl = "/images/maintenance/" + fileName;
             }
 

@@ -23,6 +23,7 @@ import BuildingManagerPage from './features/admin/buildings/BuildingManagerPage'
 
 // Rental pages (nhóm Auth/Tenant profile)
 import TenantProfilePage from './features/tenant/TenantProfilePage';
+import AccountPage from './features/account/AccountPage';
 
 // Rental pages (nhóm Contract)
 import MyContractsPage from './features/contract/MyContractsPage';
@@ -254,6 +255,14 @@ function App() {
               />
 
               {/* Bất kỳ user đã đăng nhập nào */}
+              <Route
+                path="/tai-khoan"
+                element={
+                  <PrivateRoute>
+                    <AccountPage />
+                  </PrivateRoute>
+                }
+              />
               <Route
                 path="/thong-bao"
                 element={

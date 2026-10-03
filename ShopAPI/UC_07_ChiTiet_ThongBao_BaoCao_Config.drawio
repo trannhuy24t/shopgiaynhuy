@@ -1,0 +1,88 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0">
+  <diagram id="UC_ThongBao_BaoCao_Config" name="UC Chi Tiết - Thông Báo, Báo Cáo &amp; Cấu hình">
+    <mxGraphModel dx="1406" dy="746" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="sys_boundary" parent="1" style="shape=rect;html=1;verticalAlign=top;whiteSpace=wrap;align=center;fontStyle=1;fontSize=15;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;rounded=1;" value="Phân hệ Thông báo, Báo cáo &amp; Cấu hình (ShopAPI)" vertex="1">
+          <mxGeometry height="660" width="700" x="230" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="act_admin" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="Admin (Chủ trọ)" vertex="1">
+          <mxGeometry height="80" width="40" x="70" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="act_staff" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="Nhân viên (Staff)" vertex="1">
+          <mxGeometry height="80" width="40" x="990" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="act_tenant" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="Khách thuê (Tenant)" vertex="1">
+          <mxGeometry height="80" width="40" x="990" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_rpt_dash" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" value="Xem Dashboard tổng quan KPI" vertex="1">
+          <mxGeometry height="48" width="200" x="260" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_rpt_log" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" value="Xem nhật ký hoạt động hệ thống" vertex="1">
+          <mxGeometry height="48" width="200" x="260" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_cfg_view" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" value="Xem cấu hình hệ thống" vertex="1">
+          <mxGeometry height="48" width="200" x="260" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_cfg_edit" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" value="Cập nhật cấu hình đơn giá mặc định" vertex="1">
+          <mxGeometry height="48" width="200" x="260" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_notif_send" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" value="Gửi thông báo thủ công tới user" vertex="1">
+          <mxGeometry height="48" width="200" x="260" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_remind_overdue" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" value="Nhắc hóa đơn quá hạn tự động" vertex="1">
+          <mxGeometry height="48" width="190" x="485" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_remind_invoice" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" value="Nhắc hóa đơn sắp đến hạn (3 ngày)" vertex="1">
+          <mxGeometry height="48" width="190" x="485" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_remind_contract" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" value="Nhắc hợp đồng sắp hết hạn (7 ngày)" vertex="1">
+          <mxGeometry height="48" width="190" x="485" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_notif_my" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" value="Xem danh sách thông báo của tôi" vertex="1">
+          <mxGeometry height="48" width="190" x="630" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_notif_read" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" value="Đánh dấu đã đọc thông báo" vertex="1">
+          <mxGeometry height="48" width="190" x="560" y="256" as="geometry" />
+        </mxCell>
+        <mxCell id="e_a1" edge="1" parent="1" source="act_admin" style="endArrow=none;html=1;strokeColor=#000000;" target="uc_rpt_dash">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_a2" edge="1" parent="1" source="act_admin" style="endArrow=none;html=1;strokeColor=#000000;" target="uc_rpt_log">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_a3" edge="1" parent="1" source="act_admin" style="endArrow=none;html=1;strokeColor=#000000;" target="uc_cfg_view">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_a4" edge="1" parent="1" source="act_admin" style="endArrow=none;html=1;strokeColor=#000000;" target="uc_cfg_edit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_a5" edge="1" parent="1" source="act_admin" style="endArrow=none;html=1;strokeColor=#000000;" target="uc_notif_send">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s1" edge="1" parent="1" source="act_staff" style="endArrow=none;html=1;strokeColor=#000000;" target="uc_notif_my">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s2" edge="1" parent="1" source="act_staff" style="endArrow=none;html=1;strokeColor=#000000;" target="uc_remind_overdue">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_t1" edge="1" parent="1" source="act_tenant" style="endArrow=none;html=1;strokeColor=#000000;" target="uc_notif_my">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_t2" edge="1" parent="1" source="act_tenant" style="endArrow=none;html=1;strokeColor=#000000;" target="uc_notif_read">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="inc_1" edge="1" parent="1" source="uc_notif_read" style="endArrow=open;endSize=12;dashed=1;html=1;strokeColor=#000000;" target="uc_notif_my" value="&lt;&lt;include&gt;&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="note_dash" parent="1" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#000000;fontSize=11;size=15;" value="Dashboard bao gồm:&#xa;• Tổng số phòng, tỷ lệ lấp đầy (occupancyRate)&#xa;• Doanh thu tháng này &amp; 6 tháng gần nhất&#xa;• Số HĐ chờ duyệt, yêu cầu bảo trì chưa xử lý" vertex="1">
+          <mxGeometry height="90" width="210" x="260" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="note_cfg" parent="1" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffffff;strokeColor=#000000;fontSize=11;size=15;" value="Cấu hình hệ thống mặc định:&#xa;DefaultElectricUnitPrice (3500),&#xa;DefaultWaterUnitPrice (18000),&#xa;DefaultServiceFee (100000), VietQR BankInfo" vertex="1">
+          <mxGeometry height="90" width="210" x="260" y="580" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -20,6 +20,7 @@ namespace ShopAPI.DTOs
         public int Id { get; set; }
         public int BuildingId { get; set; }
         public string? BuildingName { get; set; }
+        public string? OwnerPhone { get; set; }
         public string RoomNumber { get; set; } = string.Empty;
         public decimal Area { get; set; }
         public decimal Price { get; set; }

@@ -1,13 +1,37 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using ShopAPI.Data;
 using ShopAPI.Interfaces;
+using ShopAPI.Middleware;
 using ShopAPI.Repositories;
 using ShopAPI.Services;
 using System.Text;
+using System.Threading.RateLimiting;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("logs/shopapi-.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 30)
+    .Enrich.FromLogContext()
+    .CreateBootstrapLogger();
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Giới hạn kích thước request tối đa 100MB (đủ cho video upload)
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 100 * 1024 * 1024; // 100MB
+});
+
+builder.Host.UseSerilog((context, services, config) => config
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/shopapi-.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 30));
 
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -15,15 +39,59 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Controllers
 builder.Services.AddControllers();
+
+// Chuẩn hóa response lỗi validation thành { "message": "..." } (nhất quán với API)
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var firstError = context.ModelState.Values
+            .SelectMany(v => v.Errors)
+            .Select(e => e.ErrorMessage)
+            .FirstOrDefault() ?? "Dữ liệu gửi lên không hợp lệ.";
+
+        return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(new { message = firstError });
+    };
+});
+
+
+// CORS — đọc từ appsettings.json thay vì hardcode
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? ["http://localhost:5173"];
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
+
+// Rate Limiting — chống brute force login (5 request/phút per IP)
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("login", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 5;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, _) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            message = "Bạn đã thử quá nhiều lần. Vui lòng đợi 1 phút rồi thử lại."
+        });
+    };
+});
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
 {
@@ -65,13 +133,17 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ISystemConfigService, SystemConfigService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+
+// Background Service — tự động nhắc nhở hóa đơn/hợp đồng mỗi ngày lúc 8h sáng
+builder.Services.AddHostedService<DailyReminderService>();
+
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Shop API",
+        Title = "TroHub API",
         Version = "v1"
     });
 
@@ -134,18 +206,30 @@ using (var scope = app.Services.CreateScope())
     context.SaveChanges();
 }
 
-// Swagger
+// --- Middleware Pipeline ---
+// 1. Global exception handler (phải đứng đầu để bắt lỗi của mọi middleware sau)
+app.UseMiddleware<ExceptionHandlerMiddleware>();
+
+// 2. Static files, HTTPS redirect
+app.UseStaticFiles();
+app.UseHttpsRedirection();
+
+// 3. CORS
+app.UseCors("ReactApp");
+
+// 4. Rate limiting
+app.UseRateLimiter();
+
+// 5. Auth
+app.UseAuthentication();
+app.UseAuthorization();
+
+// Swagger — chỉ Dev
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseStaticFiles();
-app.UseHttpsRedirection();
-app.UseCors("ReactApp");
-app.UseAuthentication();
-
-app.UseAuthorization();
 
 app.MapControllers();
 

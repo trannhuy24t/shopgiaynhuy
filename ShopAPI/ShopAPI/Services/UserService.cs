@@ -1,4 +1,4 @@
-using ShopAPI.Data;
+﻿using ShopAPI.Data;
 using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
@@ -53,13 +53,13 @@ namespace ShopAPI.Services
                 Email = dto.Email,
                 Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 Role = "Staff",
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             };
 
             _context.Users.Add(user);
             _context.SaveChanges();
 
-            _activityLogService.Log(null, "CreateStaff", "User", user.Id, $"Tạo tài khoản nhân viên {user.Email}");
+            _activityLogService.Log(null, "CreateStaff", "User", user.Id, $"Táº¡o tĂ i khoáº£n nhĂ¢n viĂªn {user.Email}");
 
             return MapToDto(user);
         }
@@ -79,13 +79,13 @@ namespace ShopAPI.Services
                 Email = dto.Email,
                 Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 Role = "Tenant",
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             };
 
             _context.Users.Add(user);
             _context.SaveChanges();
 
-            _activityLogService.Log(null, "CreateTenantAccount", "User", user.Id, $"Tạo tài khoản khách thuê {user.Email}");
+            _activityLogService.Log(null, "CreateTenantAccount", "User", user.Id, $"Táº¡o tĂ i khoáº£n khĂ¡ch thuĂª {user.Email}");
 
             return MapToDto(user);
         }
@@ -102,9 +102,22 @@ namespace ShopAPI.Services
             user.Role = dto.Role;
             _context.SaveChanges();
 
-            _activityLogService.Log(null, "UpdateUserRole", "User", user.Id, $"Đổi vai trò thành {dto.Role}");
+            _activityLogService.Log(null, "UpdateUserRole", "User", user.Id, $"Äá»•i vai trĂ² thĂ nh {dto.Role}");
 
             return true;
+        }
+
+        public UserDto? UpdateProfile(int userId, UpdateProfileDto dto)
+        {
+            var user = _context.Users.Find(userId);
+
+            if (user == null) return null;
+
+            user.FullName = dto.FullName;
+            user.PhoneNumber = dto.PhoneNumber;
+            _context.SaveChanges();
+
+            return MapToDto(user);
         }
 
         private static UserDto MapToDto(User user)
@@ -115,6 +128,7 @@ namespace ShopAPI.Services
                 FullName = user.FullName,
                 Email = user.Email,
                 Role = user.Role,
+                PhoneNumber = user.PhoneNumber,
                 CreatedAt = user.CreatedAt
             };
         }

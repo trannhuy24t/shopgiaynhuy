@@ -1,4 +1,4 @@
-using ShopAPI.Data;
+﻿using ShopAPI.Data;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
 
@@ -22,7 +22,7 @@ namespace ShopAPI.Services
                 EntityName = entityName,
                 EntityId = entityId,
                 Detail = detail,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             });
 
             _context.SaveChanges();

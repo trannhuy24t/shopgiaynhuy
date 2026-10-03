@@ -171,3 +171,12 @@ C:\Users\Admin\AppData\Local\Temp\shopapi_buildcheck\ShopAPI.deps.json
 C:\Users\Admin\AppData\Local\Temp\shopapi_buildcheck\ShopAPI.runtimeconfig.json
 C:\Users\Admin\AppData\Local\Temp\shopapi_buildcheck\ShopAPI.dll
 C:\Users\Admin\AppData\Local\Temp\shopapi_buildcheck\ShopAPI.pdb
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\Serilog.dll
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\Serilog.AspNetCore.dll
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\Serilog.Extensions.Hosting.dll
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\Serilog.Extensions.Logging.dll
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\Serilog.Formatting.Compact.dll
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\Serilog.Settings.Configuration.dll
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\Serilog.Sinks.Console.dll
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\Serilog.Sinks.Debug.dll
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\Serilog.Sinks.File.dll

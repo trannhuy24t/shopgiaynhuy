@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ShopAPI.Models
@@ -29,14 +29,12 @@ namespace ShopAPI.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
 
-        // Coc | HangThang
-        public string Type { get; set; } = "HangThang";
+        public InvoiceType Type { get; set; } = InvoiceType.HangThang;
 
-        // ChuaThanhToan | DaThanhToan | QuaHan
-        public string Status { get; set; } = "ChuaThanhToan";
+        public InvoiceStatus Status { get; set; } = InvoiceStatus.ChuaThanhToan;
 
         public DateTime DueDate { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public List<InvoiceItem> Items { get; set; } = new();
         public List<Payment> Payments { get; set; } = new();

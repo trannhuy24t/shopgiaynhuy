@@ -1,0 +1,61 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0">
+  <diagram id="ClassDiagram" name="Biểu đồ Lớp - Class Diagram">
+    <mxGraphModel dx="1406" dy="746" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cls_users" parent="1" style="swipeable=0;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;align=left;verticalAlign=top;spacingLeft=5;spacingTop=5;shape=mxgraph.bootstrap.rrect;fontStyle=1;" value="users&#xa;--&#xa;+ id: BigInt&#xa;+ full_name: String&#xa;+ email: String&#xa;+ password_hash: String&#xa;+ role: String&#xa;+ status: String&#xa;--&#xa;+ createUser()&#xa;+ loginUser()&#xa;+ updateUser()&#xa;+ deleteUser()&#xa;+ getAllUsers()" vertex="1">
+          <mxGeometry height="210" width="220" x="720" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_tenants" parent="1" style="swipeable=0;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;align=left;verticalAlign=top;spacingLeft=5;spacingTop=5;shape=mxgraph.bootstrap.rrect;fontStyle=1;" value="tenants&#xa;--&#xa;+ id: BigInt&#xa;+ user_id: BigInt&#xa;+ identity_card: String&#xa;+ phone: String&#xa;+ emergency_contact: String&#xa;--&#xa;+ createTenant()&#xa;+ updateTenant()&#xa;+ getTenantDetail()" vertex="1">
+          <mxGeometry height="170" width="220" x="720" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_buildings" parent="1" style="swipeable=0;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;align=left;verticalAlign=top;spacingLeft=5;spacingTop=5;shape=mxgraph.bootstrap.rrect;fontStyle=1;" value="buildings&#xa;--&#xa;+ id: BigInt&#xa;+ name: String&#xa;+ address: String&#xa;+ description: String&#xa;+ is_active: Boolean&#xa;--&#xa;+ createBuilding()&#xa;+ updateBuilding()&#xa;+ getBuildingDetail()&#xa;+ getAllBuildings()" vertex="1">
+          <mxGeometry height="190" width="220" x="80" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_rooms" parent="1" style="swipeable=0;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;align=left;verticalAlign=top;spacingLeft=5;spacingTop=5;shape=mxgraph.bootstrap.rrect;fontStyle=1;" value="rooms&#xa;--&#xa;+ id: BigInt&#xa;+ building_id: BigInt&#xa;+ room_number: String&#xa;+ price: Number&#xa;+ area: Number&#xa;+ status: String&#xa;--&#xa;+ createRoom()&#xa;+ updateRoom()&#xa;+ getRoomDetail()&#xa;+ getAvailableRooms()" vertex="1">
+          <mxGeometry height="190" width="220" x="80" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_contracts" parent="1" style="swipeable=0;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;align=left;verticalAlign=top;spacingLeft=5;spacingTop=5;shape=mxgraph.bootstrap.rrect;fontStyle=1;" value="contracts&#xa;--&#xa;+ id: BigInt&#xa;+ room_id: BigInt&#xa;+ tenant_id: BigInt&#xa;+ start_date: Date&#xa;+ end_date: Date&#xa;+ deposit_amount: Number&#xa;+ status: String&#xa;--&#xa;+ createContract()&#xa;+ approveContract()&#xa;+ updateContractStatus()&#xa;+ getContractDetail()" vertex="1">
+          <mxGeometry height="210" width="220" x="400" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_invoices" parent="1" style="swipeable=0;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;align=left;verticalAlign=top;spacingLeft=5;spacingTop=5;shape=mxgraph.bootstrap.rrect;fontStyle=1;" value="invoices&#xa;--&#xa;+ id: BigInt&#xa;+ contract_id: BigInt&#xa;+ invoice_type: String&#xa;+ total_amount: Number&#xa;+ month: Number&#xa;+ year: Number&#xa;+ status: String&#xa;--&#xa;+ createInvoice()&#xa;+ updateInvoiceStatus()&#xa;+ getInvoiceDetail()&#xa;+ getAllInvoices()" vertex="1">
+          <mxGeometry height="210" width="220" x="400" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_payments" parent="1" style="swipeable=0;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;align=left;verticalAlign=top;spacingLeft=5;spacingTop=5;shape=mxgraph.bootstrap.rrect;fontStyle=1;" value="payments&#xa;--&#xa;+ id: BigInt&#xa;+ invoice_id: BigInt&#xa;+ amount: Number&#xa;+ payment_method: String&#xa;+ payment_date: Date&#xa;+ status: String&#xa;--&#xa;+ generateQR()&#xa;+ confirmCashPayment()&#xa;+ getPaymentHistory()" vertex="1">
+          <mxGeometry height="190" width="220" x="80" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_maintenance" parent="1" style="swipeable=0;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;align=left;verticalAlign=top;spacingLeft=5;spacingTop=5;shape=mxgraph.bootstrap.rrect;fontStyle=1;" value="maintenance_requests&#xa;--&#xa;+ id: BigInt&#xa;+ room_id: BigInt&#xa;+ tenant_id: BigInt&#xa;+ title: String&#xa;+ priority: String&#xa;+ status: String&#xa;--&#xa;+ createRequest()&#xa;+ assignStaff()&#xa;+ updateStatus()&#xa;+ getRequestsByRoom()" vertex="1">
+          <mxGeometry height="210" width="220" x="400" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_notifications" parent="1" style="swipeable=0;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;align=left;verticalAlign=top;spacingLeft=5;spacingTop=5;shape=mxgraph.bootstrap.rrect;fontStyle=1;" value="notifications&#xa;--&#xa;+ id: BigInt&#xa;+ user_id: BigInt&#xa;+ title: String&#xa;+ message: String&#xa;+ type: String&#xa;+ is_read: Boolean&#xa;--&#xa;+ sendNotification()&#xa;+ markAsRead()&#xa;+ getMyNotifications()" vertex="1">
+          <mxGeometry height="190" width="220" x="720" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_u_t" edge="1" parent="1" source="cls_users" style="endArrow=none;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;" target="cls_tenants" value="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_b_r" edge="1" parent="1" source="cls_buildings" style="endArrow=none;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;" target="cls_rooms" value="1          0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_r_c" edge="1" parent="1" source="cls_rooms" style="endArrow=none;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;" target="cls_contracts" value="1          0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_t_c" edge="1" parent="1" source="cls_contracts" style="endArrow=none;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;" target="cls_tenants" value="0..*          1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_c_i" edge="1" parent="1" source="cls_contracts" style="endArrow=none;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;" target="cls_invoices" value="1          0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_i_p" edge="1" parent="1" source="cls_invoices" style="endArrow=none;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;" target="cls_payments" value="1          0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_r_m" edge="1" parent="1" source="cls_rooms" style="endArrow=none;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;" target="cls_maintenance" value="1          0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_u_n" edge="1" parent="1" source="cls_users" style="endArrow=none;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;" target="cls_notifications" value="1          0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

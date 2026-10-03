@@ -1,0 +1,119 @@
+<mxfile host="Electron" modified="2026-09-29T11:55:30.000Z" agent="Mozilla/5.0" version="21.6.8" type="device">
+  <diagram id="BDTT_DangNhap" name="Biểu đồ Tuần tự - Đăng nhập &amp; JWT">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Lifelines Header Objects -->
+        <mxCell id="ll_actor" value="User / Client" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="80" y="40" width="35" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ll_controller" value="AuthController&#xa;(:Controller)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="40" width="140" height="600" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ll_service" value="AuthService&#xa;(:Service)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="40" width="140" height="600" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ll_db" value="DbContext / SQL DB&#xa;(:Database)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="720" y="40" width="140" height="600" as="geometry" />
+        </mxCell>
+
+        <!-- Actor Lifeline Line -->
+        <mxCell id="line_actor" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="97" y="115" as="sourcePoint" />
+            <mxPoint x="97" y="640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Activation Bars -->
+        <mxCell id="act_ctrl" value="" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="325" y="150" width="10" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="act_srv" value="" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="555" y="190" width="10" height="350" as="geometry" />
+        </mxCell>
+        <mxCell id="act_db" value="" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="785" y="240" width="10" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Messages -->
+        <!-- Message 1: Client -> Controller -->
+        <mxCell id="m1" value="1: POST /api/auth/login (email, password)" style="endArrow=classic;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="97" y="150" as="sourcePoint" />
+            <mxPoint x="325" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Message 2: Controller -> Service -->
+        <mxCell id="m2" value="2: LoginAsync(loginDto)" style="endArrow=classic;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="335" y="190" as="sourcePoint" />
+            <mxPoint x="555" y="190" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Message 3: Service -> DbContext -->
+        <mxCell id="m3" value="3: Users.FirstOrDefaultAsync(x =&gt; x.Email)" style="endArrow=classic;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="565" y="240" as="sourcePoint" />
+            <mxPoint x="785" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Return 3: DbContext -> Service -->
+        <mxCell id="r3" value="4: Trả về User Entity (kèm PasswordHash)" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="785" y="320" as="sourcePoint" />
+            <mxPoint x="565" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Self Call: Verify Password & Create Token -->
+        <mxCell id="m4" value="5: BCrypt.Verify(password, hash)" style="endArrow=classic;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;edgeStyle=orthogonalEdgeStyle;curved=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="565" y="350" as="sourcePoint" />
+            <mxPoint x="565" y="380" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="615" y="350" />
+              <mxPoint x="615" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m5" value="6: GenerateJwtToken(user)" style="endArrow=classic;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;edgeStyle=orthogonalEdgeStyle;curved=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="565" y="420" as="sourcePoint" />
+            <mxPoint x="565" y="450" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="615" y="420" />
+              <mxPoint x="615" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Return 2: Service -> Controller -->
+        <mxCell id="r2" value="7: AuthResponseDto (Token, UserDto)" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="555" y="520" as="sourcePoint" />
+            <mxPoint x="335" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Return 1: Controller -> Client -->
+        <mxCell id="r1" value="8: HTTP 200 OK { token, user: { id, role } }" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="325" y="570" as="sourcePoint" />
+            <mxPoint x="97" y="570" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

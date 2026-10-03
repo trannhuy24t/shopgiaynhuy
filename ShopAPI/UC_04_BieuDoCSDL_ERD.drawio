@@ -1,0 +1,61 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0">
+  <diagram id="ERD_Diagram" name="Biểu đồ Cơ Sở Dữ Liệu - ERD">
+    <mxGraphModel dx="1406" dy="746" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="tbl_users" parent="1" style="shape=rect;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontStyle=1;fontSize=11;" value="USERS&#xa;---------------------------------------------&#xa;_id                  Int                 PK&#xa;fullName        String&#xa;email              String&#xa;passwordHash String&#xa;role                 String&#xa;createdAt        Date" vertex="1">
+          <mxGeometry height="150" width="200" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tbl_tenants" parent="1" style="shape=rect;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontStyle=1;fontSize=11;" value="TENANTS&#xa;---------------------------------------------&#xa;_id                  Int                 PK&#xa;userId             Int                 FK&#xa;identityCard   String&#xa;phone             String&#xa;emergency      String" vertex="1">
+          <mxGeometry height="130" width="200" x="40" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="tbl_buildings" parent="1" style="shape=rect;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontStyle=1;fontSize=11;" value="BUILDINGS&#xa;---------------------------------------------&#xa;_id                  Int                 PK&#xa;name               String&#xa;address           String&#xa;description     String&#xa;isActive          Boolean" vertex="1">
+          <mxGeometry height="130" width="200" x="40" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="tbl_rooms" parent="1" style="shape=rect;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontStyle=1;fontSize=11;" value="ROOMS&#xa;---------------------------------------------&#xa;_id                  Int                 PK&#xa;buildingId      Int                 FK&#xa;roomNumber  String&#xa;price               Number&#xa;area                Number&#xa;maxOccupants Int&#xa;status             String" vertex="1">
+          <mxGeometry height="160" width="200" x="300" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="tbl_contracts" parent="1" style="shape=rect;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontStyle=1;fontSize=11;" value="CONTRACTS&#xa;---------------------------------------------&#xa;_id                  Int                 PK&#xa;roomId            Int                 FK&#xa;tenantId          Int                 FK&#xa;startDate        Date&#xa;endDate          Date&#xa;depositAmount Number&#xa;electricUnit     Number&#xa;waterUnit        Number&#xa;status             String" vertex="1">
+          <mxGeometry height="190" width="200" x="300" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="tbl_invoices" parent="1" style="shape=rect;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontStyle=1;fontSize=11;" value="INVOICES&#xa;---------------------------------------------&#xa;_id                  Int                 PK&#xa;contractId       Int                 FK&#xa;type                 String&#xa;totalAmount    Number&#xa;electricOld      Number&#xa;electricNew    Number&#xa;waterOld          Number&#xa;waterNew        Number&#xa;status             String" vertex="1">
+          <mxGeometry height="190" width="200" x="570" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="tbl_payments" parent="1" style="shape=rect;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontStyle=1;fontSize=11;" value="PAYMENTS&#xa;---------------------------------------------&#xa;_id                  Int                 PK&#xa;invoiceId        Int                 FK&#xa;amount           Number&#xa;method           String&#xa;paymentDate  Date&#xa;note                String" vertex="1">
+          <mxGeometry height="150" width="200" x="830" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="tbl_maintenance" parent="1" style="shape=rect;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontStyle=1;fontSize=11;" value="MAINTENANCE_REQUESTS&#xa;---------------------------------------------&#xa;_id                  Int                 PK&#xa;roomId            Int                 FK&#xa;tenantId          Int                 FK&#xa;assignedStaffId Int                 FK&#xa;title                 String&#xa;description     String&#xa;priority           String&#xa;status             String" vertex="1">
+          <mxGeometry height="180" width="200" x="570" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="tbl_notifications" parent="1" style="shape=rect;html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontStyle=1;fontSize=11;" value="NOTIFICATIONS&#xa;---------------------------------------------&#xa;_id                  Int                 PK&#xa;userId             Int                 FK&#xa;title                 String&#xa;message          String&#xa;type                 String&#xa;isRead             Boolean&#xa;createdAt        Date" vertex="1">
+          <mxGeometry height="160" width="200" x="850" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_u_t" edge="1" parent="1" source="tbl_users" style="endArrow=classic;html=1;strokeColor=#000000;" target="tbl_tenants">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_b_r" edge="1" parent="1" source="tbl_buildings" style="endArrow=classic;html=1;strokeColor=#000000;" target="tbl_rooms">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_r_c" edge="1" parent="1" source="tbl_rooms" style="endArrow=classic;html=1;strokeColor=#000000;" target="tbl_contracts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_t_c" edge="1" parent="1" source="tbl_tenants" style="endArrow=classic;html=1;strokeColor=#000000;" target="tbl_contracts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_c_i" edge="1" parent="1" source="tbl_contracts" style="endArrow=classic;html=1;strokeColor=#000000;" target="tbl_invoices">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_i_p" edge="1" parent="1" source="tbl_invoices" style="endArrow=classic;html=1;strokeColor=#000000;" target="tbl_payments">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_r_m" edge="1" parent="1" source="tbl_rooms" style="endArrow=classic;html=1;strokeColor=#000000;" target="tbl_maintenance">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_u_n" edge="1" parent="1" source="tbl_users" style="endArrow=classic;html=1;strokeColor=#000000;" target="tbl_notifications">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

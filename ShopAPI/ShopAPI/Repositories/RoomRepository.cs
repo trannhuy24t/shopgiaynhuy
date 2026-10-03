@@ -17,7 +17,7 @@ namespace ShopAPI.Repositories
         public List<Room> GetAll()
         {
             return _context.Rooms
-                .Include(x => x.Building)
+                .Include(x => x.Building).ThenInclude(b => b.Owner)
                 .Include(x => x.Media)
                 .ToList();
         }
@@ -25,7 +25,7 @@ namespace ShopAPI.Repositories
         public Room? GetById(int id)
         {
             return _context.Rooms
-                .Include(x => x.Building)
+                .Include(x => x.Building).ThenInclude(b => b.Owner)
                 .Include(x => x.Media)
                 .FirstOrDefault(x => x.Id == id);
         }

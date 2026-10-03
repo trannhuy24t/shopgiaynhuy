@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ShopAPI.Data;
 using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
+using ShopAPI.Models;
 
 namespace ShopAPI.Services
 {
@@ -14,20 +15,20 @@ namespace ShopAPI.Services
             _context = context;
         }
 
-        public ReportDashboardDto GetDashboard()
+        public async Task<ReportDashboardDto> GetDashboardAsync()
         {
-            var totalRooms = _context.Rooms.Count();
-            var occupiedRooms = _context.Rooms.Count(r => r.Status == "DaThue");
-            var vacantRooms = _context.Rooms.Count(r => r.Status == "Trong");
-            var maintenanceRooms = _context.Rooms.Count(r => r.Status == "DangSua");
+            var totalRooms = await _context.Rooms.CountAsync();
+            var occupiedRooms = await _context.Rooms.CountAsync(r => r.Status == RoomStatus.DaThue);
+            var vacantRooms = await _context.Rooms.CountAsync(r => r.Status == RoomStatus.Trong);
+            var maintenanceRooms = await _context.Rooms.CountAsync(r => r.Status == RoomStatus.DangSua);
 
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var rangeStart = new DateTime(now.Year, now.Month, 1).AddMonths(-5);
 
-            var recentPayments = _context.Payments
+            var recentPayments = await _context.Payments
                 .Where(p => p.PaymentDate >= rangeStart)
                 .Select(p => new { p.PaymentDate, p.Amount })
-                .ToList();
+                .ToListAsync();
 
             var revenueByMonth = new List<MonthlyRevenueDto>();
 
@@ -42,7 +43,9 @@ namespace ShopAPI.Services
                 revenueByMonth.Add(new MonthlyRevenueDto { Month = bucket.Month, Year = bucket.Year, Total = total });
             }
 
-            var overdueInvoices = _context.Invoices.Where(i => i.Status == "QuaHan").ToList();
+            var overdueQuery = _context.Invoices.Where(i => i.Status == InvoiceStatus.QuaHan);
+            var overdueCount = await overdueQuery.CountAsync();
+            var overdueAmount = await overdueQuery.SumAsync(i => (decimal?)i.TotalAmount) ?? 0m;
 
             return new ReportDashboardDto
             {
@@ -52,20 +55,20 @@ namespace ShopAPI.Services
                 MaintenanceRooms = maintenanceRooms,
                 OccupancyRate = totalRooms == 0 ? 0 : Math.Round(occupiedRooms * 100m / totalRooms, 2),
 
-                TotalTenants = _context.Tenants.Count(),
+                TotalTenants = await _context.Tenants.CountAsync(),
 
                 TotalRevenueThisMonth = revenueByMonth.Last().Total,
                 RevenueByMonth = revenueByMonth,
 
-                OverdueInvoiceCount = overdueInvoices.Count,
-                OverdueAmount = overdueInvoices.Sum(i => i.TotalAmount),
+                OverdueInvoiceCount = overdueCount,
+                OverdueAmount = overdueAmount,
 
-                PendingContracts = _context.Contracts.Count(c => c.Status == "ChoDuyet"),
-                PendingMaintenanceRequests = _context.MaintenanceRequests.Count(m => m.Status == "Moi" || m.Status == "DaPhanCong")
+                PendingContracts = await _context.Contracts.CountAsync(c => c.Status == ContractStatus.ChoDuyet),
+                PendingMaintenanceRequests = await _context.MaintenanceRequests.CountAsync(m => m.Status == MaintenanceStatus.Moi || m.Status == MaintenanceStatus.DaPhanCong)
             };
         }
 
-        public PagedResultDto<ActivityLogDto> GetLogs(int page, int pageSize)
+        public async Task<PagedResultDto<ActivityLogDto>> GetLogsAsync(int page, int pageSize)
         {
             if (page < 1) page = 1;
             if (pageSize < 1) pageSize = 20;
@@ -74,9 +77,9 @@ namespace ShopAPI.Services
                 .Include(x => x.User)
                 .OrderByDescending(x => x.Id);
 
-            var totalItems = query.Count();
+            var totalItems = await query.CountAsync();
 
-            var items = query
+            var items = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(x => new ActivityLogDto
@@ -90,7 +93,7 @@ namespace ShopAPI.Services
                     Detail = x.Detail,
                     CreatedAt = x.CreatedAt
                 })
-                .ToList();
+                .ToListAsync();
 
             return new PagedResultDto<ActivityLogDto>
             {

@@ -1,0 +1,81 @@
+<mxfile host="Electron" modified="2026-09-29T11:56:15.000Z" agent="Mozilla/5.0" version="21.6.8" type="device">
+  <diagram id="BDTT_ThanhToanVietQR" name="Biểu đồ Tuần tự - Thanh toán VietQR">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="750" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Lifelines -->
+        <mxCell id="ll_tenant" value="Tenant (Khách)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="40" width="35" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ll_staff" value="Staff / Admin" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="190" y="40" width="35" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ll_ctrl" value="PaymentController&#xa;(:Controller)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="40" width="140" height="650" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ll_srv" value="PaymentService&#xa;(:Service)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="40" width="140" height="650" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ll_db" value="DbContext / SQL DB&#xa;(:Database)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="40" width="120" height="650" as="geometry" />
+        </mxCell>
+
+        <!-- Dashed Lines -->
+        <mxCell id="line_t" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"><mxPoint x="77" y="115" as="sourcePoint" /><mxPoint x="77" y="690" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="line_s" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"><mxPoint x="207" y="115" as="sourcePoint" /><mxPoint x="207" y="690" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <!-- Activations -->
+        <mxCell id="act_ctrl_1" value="" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="425" y="140" width="10" height="150" as="geometry" /></mxCell>
+        <mxCell id="act_srv_1" value="" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="665" y="170" width="10" height="90" as="geometry" /></mxCell>
+
+        <mxCell id="act_ctrl_2" value="" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="425" y="360" width="10" height="270" as="geometry" /></mxCell>
+        <mxCell id="act_srv_2" value="" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="665" y="390" width="10" height="210" as="geometry" /></mxCell>
+        <mxCell id="act_db_1" value="" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="895" y="420" width="10" height="150" as="geometry" /></mxCell>
+
+        <!-- Phase 1: Get VietQR Payload -->
+        <mxCell id="m1" value="1: GET /api/payment/qr/{invoiceId}" style="endArrow=classic;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="77" y="140" as="sourcePoint" /><mxPoint x="425" y="140" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2: GenerateVietQRPayloadAsync(invoiceId)" style="endArrow=classic;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="435" y="170" as="sourcePoint" /><mxPoint x="665" y="170" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="r2" value="3: Chuỗi VietQR Payload (Chuẩn EMVCo / NAPAS 247)" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="665" y="220" as="sourcePoint" /><mxPoint x="435" y="220" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="r1" value="4: 200 OK { qrPayload, bankBin, accountNumber, amount }" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="425" y="260" as="sourcePoint" /><mxPoint x="77" y="260" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <!-- Phase 2: Confirm Cash/QR Payment -->
+        <mxCell id="m3" value="5: PUT /api/payment/confirm-cash (invoiceId, note)" style="endArrow=classic;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="207" y="360" as="sourcePoint" /><mxPoint x="425" y="360" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="6: ConfirmPaymentAsync(invoiceId)" style="endArrow=classic;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="435" y="390" as="sourcePoint" /><mxPoint x="665" y="390" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="7: Update Invoice (Status=DaThanhToan) &amp; Contract (Status=DangHieuLuc), Room (Status=DaThue)" style="endArrow=classic;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="675" y="420" as="sourcePoint" /><mxPoint x="895" y="420" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="r5" value="8: Ghi nhận CSDL thành công" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="895" y="520" as="sourcePoint" /><mxPoint x="675" y="520" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="r4" value="9: Trả về kết quả xác nhận" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="665" y="570" as="sourcePoint" /><mxPoint x="435" y="570" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="r3_res" value="10: 200 OK { message: &quot;Xác nhận thanh toán thành công!&quot; }" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="425" y="610" as="sourcePoint" /><mxPoint x="207" y="610" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

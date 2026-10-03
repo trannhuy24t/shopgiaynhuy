@@ -1,4 +1,4 @@
-using ShopAPI.DTOs;
+﻿using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
 
@@ -26,9 +26,9 @@ namespace ShopAPI.Services
                 rooms = rooms.Where(r => r.BuildingId == buildingId.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(status))
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<RoomStatus>(status, out var roomStatus))
             {
-                rooms = rooms.Where(r => r.Status == status);
+                rooms = rooms.Where(r => r.Status == roomStatus);
             }
 
             return rooms.Select(MapToDto).ToList();
@@ -36,7 +36,7 @@ namespace ShopAPI.Services
 
         public List<RoomDto> GetAvailable(int? buildingId)
         {
-            return GetAll(buildingId, "Trong");
+            return GetAll(buildingId, nameof(RoomStatus.Trong));
         }
 
         public RoomDto? GetById(int id)
@@ -57,8 +57,8 @@ namespace ShopAPI.Services
                 ServiceFee = dto.ServiceFee,
                 Description = dto.Description,
                 ImageUrl = dto.ImageUrl,
-                Status = "Trong",
-                CreatedAt = DateTime.Now
+                Status = RoomStatus.Trong,
+                CreatedAt = DateTime.UtcNow
             };
 
             _roomRepository.Add(room);
@@ -96,7 +96,12 @@ namespace ShopAPI.Services
                 return false;
             }
 
-            room.Status = dto.Status;
+            if (!Enum.TryParse<RoomStatus>(dto.Status, out var newStatus))
+            {
+                return false;
+            }
+
+            room.Status = newStatus;
             _roomRepository.Update(room);
 
             _activityLogService.Log(null, "UpdateRoomStatus", "Room", room.Id, $"Status = {dto.Status}");
@@ -137,11 +142,11 @@ namespace ShopAPI.Services
                     Url = item.Url,
                     Type = item.Type,
                     SortOrder = nextSortOrder++,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow
                 });
             }
 
-            // Nếu phòng chưa có ảnh đại diện, lấy ảnh đầu tiên vừa thêm làm ảnh đại diện
+            // Náº¿u phĂ²ng chÆ°a cĂ³ áº£nh Ä‘áº¡i diá»‡n, láº¥y áº£nh Ä‘áº§u tiĂªn vá»«a thĂªm lĂ m áº£nh Ä‘áº¡i diá»‡n
             if (string.IsNullOrEmpty(room.ImageUrl))
             {
                 var firstImage = items.FirstOrDefault(i => i.Type == "Image");
@@ -223,11 +228,12 @@ namespace ShopAPI.Services
                 Id = room.Id,
                 BuildingId = room.BuildingId,
                 BuildingName = room.Building?.Name,
+                OwnerPhone = room.Building?.Owner?.PhoneNumber,
                 RoomNumber = room.RoomNumber,
                 Area = room.Area,
                 Price = room.Price,
                 ServiceFee = room.ServiceFee,
-                Status = room.Status,
+                Status = room.Status.ToString(),
                 Description = room.Description,
                 ImageUrl = room.ImageUrl,
                 CreatedAt = room.CreatedAt,

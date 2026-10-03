@@ -5,7 +5,6 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-
     const token = localStorage.getItem("token");
 
     if (token) {
@@ -15,14 +14,91 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
+    failedQueue.forEach((prom) => {
+        if (error) {
+            prom.reject(error);
+        } else if (token) {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
 api.interceptors.response.use(
     (response) => response,
-    (error: AxiosError) => {
-        if (error.response?.status === 401) {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            if (window.location.pathname !== "/login") {
-                window.location.href = "/login";
+    async (error: AxiosError) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && originalRequest && !(originalRequest as any)._retry) {
+            // Đã thử ở trang login hoặc endpoint refresh-token -> điều hướng về login ngay
+            if (originalRequest.url?.includes("/Auth/login") || originalRequest.url?.includes("/Auth/refresh-token")) {
+                localStorage.removeItem("token");
+                localStorage.removeItem("refreshToken");
+                localStorage.removeItem("user");
+                if (window.location.pathname !== "/login") {
+                    window.location.href = "/login";
+                }
+                return Promise.reject(error);
+            }
+
+            (originalRequest as any)._retry = true;
+
+            const refreshToken = localStorage.getItem("refreshToken");
+            const accessToken = localStorage.getItem("token");
+
+            if (!refreshToken || !accessToken) {
+                localStorage.removeItem("token");
+                localStorage.removeItem("refreshToken");
+                localStorage.removeItem("user");
+                if (window.location.pathname !== "/login") {
+                    window.location.href = "/login";
+                }
+                return Promise.reject(error);
+            }
+
+            if (isRefreshing) {
+                return new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                })
+                    .then((newToken) => {
+                        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                        return api(originalRequest);
+                    })
+                    .catch((err) => Promise.reject(err));
+            }
+
+            isRefreshing = true;
+
+            try {
+                const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/Auth/refresh-token`, {
+                    accessToken,
+                    refreshToken,
+                });
+
+                const { token: newAccessToken, refreshToken: newRefreshToken } = response.data;
+                localStorage.setItem("token", newAccessToken);
+                localStorage.setItem("refreshToken", newRefreshToken);
+
+                api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
+                originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+                processQueue(null, newAccessToken);
+                return api(originalRequest);
+            } catch (refreshErr) {
+                processQueue(refreshErr, null);
+                localStorage.removeItem("token");
+                localStorage.removeItem("refreshToken");
+                localStorage.removeItem("user");
+                if (window.location.pathname !== "/login") {
+                    window.location.href = "/login";
+                }
+                return Promise.reject(refreshErr);
+            } finally {
+                isRefreshing = false;
             }
         }
 

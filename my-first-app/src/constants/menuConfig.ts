@@ -10,6 +10,7 @@ import {
   BarChart3,
   FileClock,
   UserCircle,
+  UserCog,
 } from 'lucide-react';
 import type { Role } from '../types/auth';
 
@@ -40,6 +41,7 @@ export const tenantMenu: MenuItem[] = [
   { label: 'Hóa đơn của tôi', path: '/hoa-don-cua-toi', icon: Receipt, roles: ['Tenant'] },
   { label: 'Yêu cầu bảo trì', path: '/yeu-cau-cua-toi', icon: Wrench, roles: ['Tenant'] },
   { label: 'Hồ sơ cá nhân', path: '/ho-so', icon: UserCircle, roles: ['Tenant'] },
+  { label: 'Tài khoản', path: '/tai-khoan', icon: UserCog, roles: ['Admin', 'Staff', 'Tenant', 'User'] },
 ];
 
 export function getMenuForRole(menu: MenuItem[], role: Role | undefined): MenuItem[] {

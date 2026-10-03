@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace ShopAPI.Models
 {
@@ -30,6 +30,6 @@ namespace ShopAPI.Models
         public int? CreatedByUserId { get; set; }
         public User? CreatedByUser { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

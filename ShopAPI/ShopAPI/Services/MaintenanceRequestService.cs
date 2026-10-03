@@ -1,4 +1,4 @@
-using ShopAPI.DTOs;
+﻿using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
 
@@ -30,9 +30,9 @@ namespace ShopAPI.Services
         {
             var requests = _requestRepository.GetAll().AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(status))
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<MaintenanceStatus>(status, out var maintenanceStatus))
             {
-                requests = requests.Where(r => r.Status == status);
+                requests = requests.Where(r => r.Status == maintenanceStatus);
             }
 
             return requests.Select(MapToDto).ToList();
@@ -74,12 +74,14 @@ namespace ShopAPI.Services
             }
 
             var hasActiveContract = _contractRepository.GetByTenantId(tenant.Id)
-                .Any(c => c.RoomId == dto.RoomId && c.Status == "DangHieuLuc");
+                .Any(c => c.RoomId == dto.RoomId && c.Status == ContractStatus.DangHieuLuc);
 
             if (!hasActiveContract)
             {
                 return null;
             }
+
+            Enum.TryParse<MaintenancePriority>(dto.Priority, out var priority);
 
             var request = new MaintenanceRequest
             {
@@ -88,18 +90,18 @@ namespace ShopAPI.Services
                 Title = dto.Title,
                 Description = dto.Description,
                 ImageUrl = dto.ImageUrl,
-                Priority = dto.Priority,
-                Status = "Moi",
-                CreatedAt = DateTime.Now
+                Priority = priority,
+                Status = MaintenanceStatus.Moi,
+                CreatedAt = DateTime.UtcNow
             };
 
             _requestRepository.Add(request);
 
             var result = GetById(request.Id);
 
-            var content = $"Khách thuê {tenant.FullName} báo sự cố tại phòng {result?.RoomNumber}: {dto.Title}";
-            _notificationService.NotifyRole("Admin", "Yêu cầu bảo trì mới", content, "BaoTri");
-            _notificationService.NotifyRole("Staff", "Yêu cầu bảo trì mới", content, "BaoTri");
+            var content = $"KhĂ¡ch thuĂª {tenant.FullName} bĂ¡o sá»± cá»‘ táº¡i phĂ²ng {result?.RoomNumber}: {dto.Title}";
+            _notificationService.NotifyRole("Admin", "YĂªu cáº§u báº£o trĂ¬ má»›i", content, "BaoTri");
+            _notificationService.NotifyRole("Staff", "YĂªu cáº§u báº£o trĂ¬ má»›i", content, "BaoTri");
 
             _activityLogService.Log(userId, "CreateMaintenanceRequest", "MaintenanceRequest", request.Id, dto.Title);
 
@@ -110,13 +112,13 @@ namespace ShopAPI.Services
         {
             var request = _requestRepository.GetById(id);
 
-            if (request == null || request.Status is not ("Moi" or "DaPhanCong"))
+            if (request == null || request.Status is not (MaintenanceStatus.Moi or MaintenanceStatus.DaPhanCong))
             {
                 return false;
             }
 
             request.AssignedToUserId = dto.AssignedToUserId;
-            request.Status = "DaPhanCong";
+            request.Status = MaintenanceStatus.DaPhanCong;
 
             _requestRepository.Update(request);
 
@@ -134,12 +136,17 @@ namespace ShopAPI.Services
                 return false;
             }
 
-            request.Status = dto.Status;
+            if (!Enum.TryParse<MaintenanceStatus>(dto.Status, out var newStatus))
+            {
+                return false;
+            }
+
+            request.Status = newStatus;
             request.Note = dto.Note;
 
-            if (dto.Status is "HoanThanh" or "DaHuy")
+            if (newStatus is MaintenanceStatus.HoanThanh or MaintenanceStatus.DaHuy)
             {
-                request.ResolvedAt = DateTime.Now;
+                request.ResolvedAt = DateTime.UtcNow;
             }
 
             _requestRepository.Update(request);
@@ -161,8 +168,8 @@ namespace ShopAPI.Services
                 Title = request.Title,
                 Description = request.Description,
                 ImageUrl = request.ImageUrl,
-                Priority = request.Priority,
-                Status = request.Status,
+                Priority = request.Priority.ToString(),
+                Status = request.Status.ToString(),
                 AssignedToUserId = request.AssignedToUserId,
                 AssignedToUserName = request.AssignedToUser?.FullName,
                 CreatedAt = request.CreatedAt,

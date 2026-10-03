@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace ShopAPI.Models
 {
@@ -20,16 +20,14 @@ namespace ShopAPI.Models
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
 
-        // Thap | TrungBinh | Cao
-        public string Priority { get; set; } = "TrungBinh";
+        public MaintenancePriority Priority { get; set; } = MaintenancePriority.TrungBinh;
 
-        // Moi | DaPhanCong | DangXuLy | HoanThanh | DaHuy
-        public string Status { get; set; } = "Moi";
+        public MaintenanceStatus Status { get; set; } = MaintenanceStatus.Moi;
 
         public int? AssignedToUserId { get; set; }
         public User? AssignedToUser { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ResolvedAt { get; set; }
 
         public string? Note { get; set; }

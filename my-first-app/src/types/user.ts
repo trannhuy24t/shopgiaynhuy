@@ -5,6 +5,7 @@ export interface UserDto {
   fullName: string;
   email: string;
   role: Role;
+  phoneNumber?: string | null;
   createdAt: string;
 }
 
@@ -22,4 +23,9 @@ export interface CreateTenantAccountPayload {
 
 export interface UpdateUserRolePayload {
   role: Role;
+}
+
+export interface UpdateProfilePayload {
+  fullName: string;
+  phoneNumber?: string | null;
 }

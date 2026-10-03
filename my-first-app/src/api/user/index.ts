@@ -1,5 +1,5 @@
 import api from "../client";
-import type { UserDto, CreateStaffPayload, CreateTenantAccountPayload, UpdateUserRolePayload } from "../../types/user";
+import type { UserDto, CreateStaffPayload, CreateTenantAccountPayload, UpdateUserRolePayload, UpdateProfilePayload } from "../../types/user";
 import type { ApiMessageResponse } from "../../types/common";
 
 // Admin — danh sách người dùng, lọc theo role
@@ -25,4 +25,9 @@ export const createTenantAccount = (data: CreateTenantAccountPayload) => {
 // Admin — đổi role người dùng (VD: User -> Tenant/Staff)
 export const updateUserRole = (id: number, data: UpdateUserRolePayload) => {
     return api.put<ApiMessageResponse>(`/User/${id}/role`, data);
+};
+
+// Mọi user đã đăng nhập — cập nhật thông tin cá nhân
+export const updateProfile = (data: UpdateProfilePayload) => {
+    return api.put<UserDto>("/User/profile", data);
 };

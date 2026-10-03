@@ -1,0 +1,104 @@
+<mxfile host="Electron" modified="2026-09-15T07:20:40.000Z" agent="Mozilla/5.0" version="21.6.8" type="device">
+  <diagram id="DacTa_Usecase" name="Đặc tả Use Case - Tạo Hợp Đồng">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Main Outer Table Container -->
+        <mxCell id="table_main" value="" style="childLayout=tableLayout;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#ffffff;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="820" height="680" as="geometry" />
+        </mxCell>
+
+        <!-- Row 1: Tên Use Case -->
+        <mxCell id="row1" value="" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;top=0;left=0;bottom=0;right=0;dropTarget=0;collapsible=0;recursiveResize=0;expand=0;fillColor=none;strokeColor=inherit;" vertex="1" parent="table_main">
+          <mxGeometry width="820" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r1_c1" value="Tên Use Case" style="connectable=0;whiteSpace=wrap;html=1;fontStyle=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row1">
+          <mxGeometry width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r1_c2" value="Tạo và Duyệt Hợp đồng Thuê nhà (ShopAPI)" style="connectable=0;whiteSpace=wrap;html=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;" vertex="1" parent="row1">
+          <mxGeometry x="180" width="640" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Row 2: Tác nhân -->
+        <mxCell id="row2" value="" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;top=0;left=0;bottom=0;right=0;dropTarget=0;collapsible=0;recursiveResize=0;expand=0;fillColor=none;strokeColor=inherit;" vertex="1" parent="table_main">
+          <mxGeometry y="40" width="820" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r2_c1" value="Tác nhân" style="connectable=0;whiteSpace=wrap;html=1;fontStyle=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row2">
+          <mxGeometry width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r2_c2" value="Admin (Chủ trọ), Khách thuê (Tenant), Nhân viên (Staff)" style="connectable=0;whiteSpace=wrap;html=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row2">
+          <mxGeometry x="180" width="640" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Row 3: Mục đích -->
+        <mxCell id="row3" value="" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;top=0;left=0;bottom=0;right=0;dropTarget=0;collapsible=0;recursiveResize=0;expand=0;fillColor=none;strokeColor=inherit;" vertex="1" parent="table_main">
+          <mxGeometry y="80" width="820" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r3_c1" value="Mục đích" style="connectable=0;whiteSpace=wrap;html=1;fontStyle=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row3">
+          <mxGeometry width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r3_c2" value="Tạo hợp đồng thuê phòng mới, tự động phát hành hóa đơn tiền cọc và xác nhận tiền cọc để kích hoạt hợp đồng." style="connectable=0;whiteSpace=wrap;html=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row3">
+          <mxGeometry x="180" width="640" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Row 4: Tiền điều kiện -->
+        <mxCell id="row4" value="" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;top=0;left=0;bottom=0;right=0;dropTarget=0;collapsible=0;recursiveResize=0;expand=0;fillColor=none;strokeColor=inherit;" vertex="1" parent="table_main">
+          <mxGeometry y="120" width="820" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r4_c1" value="Tiền điều kiện" style="connectable=0;whiteSpace=wrap;html=1;fontStyle=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row4">
+          <mxGeometry width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r4_c2" value="Người dùng đã đăng nhập thành công vào hệ thống. Phòng thuê đang ở trạng thái &quot;Trong&quot;." style="connectable=0;whiteSpace=wrap;html=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row4">
+          <mxGeometry x="180" width="640" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Row 5: Dòng sự kiện chính -->
+        <mxCell id="row5" value="" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;top=0;left=0;bottom=0;right=0;dropTarget=0;collapsible=0;recursiveResize=0;expand=0;fillColor=none;strokeColor=inherit;" vertex="1" parent="table_main">
+          <mxGeometry y="160" width="820" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="r5_c1" value="Dòng sự kiện chính" style="connectable=0;whiteSpace=wrap;html=1;fontStyle=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row5">
+          <mxGeometry width="180" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="r5_c2" value="Bước 1: Khách thuê truy cập danh sách phòng trống và chọn phòng cần thuê.&#xa;Bước 2: Khách thuê gửi yêu cầu thuê phòng (POST /contract/request, đính kèm số người ở).&#xa;Bước 3: Hệ thống ghi nhận yêu cầu hợp đồng ở trạng thái &quot;ChoDuyet&quot;.&#xa;Bước 4: Admin xem danh sách yêu cầu và nhấn &quot;Duyệt hợp đồng&quot; (PUT /contract/{id}/approve).&#xa;Bước 5: Admin chốt đơn giá điện (ElectricUnitPrice) và đơn giá nước (WaterUnitPrice).&#xa;Bước 6: Hệ thống chuyển Hợp đồng sang &quot;ChoCoc&quot; và tự động khởi tạo Hóa đơn cọc (Type=&quot;Coc&quot;).&#xa;Bước 7: Khách thuê truy cập mã QR VietQR (GET /payment/qr/{invoiceId}) để chuyển khoản tiền cọc.&#xa;Bước 8: Staff/Admin xác nhận đã thu tiền cọc (PUT /payment/confirm-cash).&#xa;Bước 9: Hệ thống chuyển Hợp đồng sang &quot;DangHieuLuc&quot; và cập nhật trạng thái Phòng sang &quot;DaThue&quot;.&#xa;Bước 10: Hệ thống thông báo thành công và cập nhật lại danh sách hợp đồng." style="connectable=0;whiteSpace=wrap;html=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row5">
+          <mxGeometry x="180" width="640" height="240" as="geometry" />
+        </mxCell>
+
+        <!-- Row 6: Dòng sự kiện phụ -->
+        <mxCell id="row6" value="" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;top=0;left=0;bottom=0;right=0;dropTarget=0;collapsible=0;recursiveResize=0;expand=0;fillColor=none;strokeColor=inherit;" vertex="1" parent="table_main">
+          <mxGeometry y="400" width="820" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="r6_c1" value="Dòng sự kiện phụ" style="connectable=0;whiteSpace=wrap;html=1;fontStyle=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row6">
+          <mxGeometry width="180" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="r6_c2" value="1. Từ bước 4: Admin từ chối yêu cầu → Hợp đồng chuyển sang &quot;TuChoi&quot;, hệ thống gửi thông báo lý do.&#xa;2. Từ bước 7: Khách thuê không thanh toán cọc trong thời hạn quy định → Hóa đơn quá hạn, Hợp đồng bị hủy tự động.&#xa;3. Từ bước 6: Dữ liệu đơn giá không hợp lệ → Hệ thống thông báo lỗi và yêu cầu Admin nhập lại." style="connectable=0;whiteSpace=wrap;html=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row6">
+          <mxGeometry x="180" width="640" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Row 7: Hậu điều kiện -->
+        <mxCell id="row7" value="" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;top=0;left=0;bottom=0;right=0;dropTarget=0;collapsible=0;recursiveResize=0;expand=0;fillColor=none;strokeColor=inherit;" vertex="1" parent="table_main">
+          <mxGeometry y="520" width="820" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="r7_c1" value="Hậu điều kiện" style="connectable=0;whiteSpace=wrap;html=1;fontStyle=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row7">
+          <mxGeometry width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="r7_c2" value="Hợp đồng thuê mới được lưu thành công trong CSDL với trạng thái &quot;DangHieuLuc&quot;. Phòng chuyển sang &quot;DaThue&quot;. Hóa đơn cọc được ghi nhận &quot;DaThanhToan&quot;." style="connectable=0;whiteSpace=wrap;html=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row7">
+          <mxGeometry x="180" width="640" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Row 8: Điều kiện thoát -->
+        <mxCell id="row8" value="" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;top=0;left=0;bottom=0;right=0;dropTarget=0;collapsible=0;recursiveResize=0;expand=0;fillColor=none;strokeColor=inherit;" vertex="1" parent="table_main">
+          <mxGeometry y="600" width="820" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="r8_c1" value="Điều kiện thoát" style="connectable=0;whiteSpace=wrap;html=1;fontStyle=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row8">
+          <mxGeometry width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="r8_c2" value="- Khi thao tác kích hoạt hợp đồng hoàn tất thành công.&#xa;- Khi Admin từ chối yêu cầu hoặc Khách thuê chọn Hủy quy trình." style="connectable=0;whiteSpace=wrap;html=1;fontSize=12;align=left;spacingLeft=8;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="row8">
+          <mxGeometry x="180" width="640" height="80" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

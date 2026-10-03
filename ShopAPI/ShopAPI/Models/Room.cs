@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ShopAPI.Models
@@ -21,18 +21,17 @@ namespace ShopAPI.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal Price { get; set; }
 
-        // Phí dịch vụ tính theo đầu người/tháng (internet, rác, gửi xe...).
-        // Khi tạo hóa đơn: Tiền dịch vụ = ServiceFee x số người đang ở thực tế của hợp đồng.
+        // PhĂ­ dá»‹ch vá»¥ tĂ­nh theo Ä‘áº§u ngÆ°á»i/thĂ¡ng (internet, rĂ¡c, gá»­i xe...).
+        // Khi táº¡o hĂ³a Ä‘Æ¡n: Tiá»n dá»‹ch vá»¥ = ServiceFee x sá»‘ ngÆ°á»i Ä‘ang á»Ÿ thá»±c táº¿ cá»§a há»£p Ä‘á»“ng.
         [Column(TypeName = "decimal(18,2)")]
         public decimal ServiceFee { get; set; }
 
-        // Trong | DaThue | DangSua
-        public string Status { get; set; } = "Trong";
+        public RoomStatus Status { get; set; } = RoomStatus.Trong;
 
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public List<Contract> Contracts { get; set; } = new();
         public List<MaintenanceRequest> MaintenanceRequests { get; set; } = new();

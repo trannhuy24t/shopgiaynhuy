@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ShopAPI.DTOs
 {
-    public class RequestContractDto
+    public class RequestContractDto : IValidatableObject
     {
         [Required]
         public int RoomId { get; set; }
@@ -18,5 +18,14 @@ namespace ShopAPI.DTOs
 
         [Required]
         public UpsertTenantProfileDto TenantProfile { get; set; } = new();
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (EndDate <= StartDate)
+                yield return new ValidationResult("Ngày kết thúc phải sau ngày bắt đầu.", [nameof(EndDate)]);
+
+            if (StartDate.Date < DateTime.Today)
+                yield return new ValidationResult("Ngày bắt đầu không được trong quá khứ.", [nameof(StartDate)]);
+        }
     }
 }

@@ -39,7 +39,7 @@ namespace ShopAPI.Repositories
 
         public Contract? GetActiveByRoomId(int roomId)
         {
-            return Query().FirstOrDefault(x => x.RoomId == roomId && x.Status == "DangHieuLuc");
+            return Query().FirstOrDefault(x => x.RoomId == roomId && x.Status == ContractStatus.DangHieuLuc);
         }
 
         public void Add(Contract contract)

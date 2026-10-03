@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace ShopAPI.Models
 {
@@ -16,7 +16,11 @@ namespace ShopAPI.Models
         [MinLength(6)]
         public string Password { get; set; } = string.Empty;
         [Required]
-        public string Role { get; set; } = "User"; // Default role is "
+        public string Role { get; set; } = "User"; // Default role is "User"
+        [MaxLength(20)]
+        public string? PhoneNumber { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

@@ -123,72 +123,62 @@ namespace ShopAPI.Controllers
             return Ok(_roomService.GetById(id));
         }
 
-        private static string? SaveImage(IFormFile? image)
+        private const long MaxImageSize = 5 * 1024 * 1024;   // 5MB
+        private const long MaxVideoSize = 50 * 1024 * 1024;  // 50MB
+
+        private static readonly string[] AllowedImageExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+        private static readonly string[] AllowedVideoExtensions = [".mp4", ".webm", ".ogg", ".mov", ".avi", ".mkv", ".m4v"];
+
+        private static (string? Url, string? Error) SaveImageSafe(IFormFile? image)
         {
-            if (image == null || image.Length == 0)
-            {
-                return null;
-            }
+            if (image == null || image.Length == 0) return (null, null);
 
-            var folderPath = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot",
-                "images",
-                "rooms"
-            );
+            var ext = Path.GetExtension(image.FileName).ToLowerInvariant();
+            if (!AllowedImageExtensions.Contains(ext))
+                return (null, $"Chỉ chấp nhận ảnh: {string.Join(", ", AllowedImageExtensions)}");
 
-            if (!Directory.Exists(folderPath))
-            {
-                Directory.CreateDirectory(folderPath);
-            }
+            if (image.Length > MaxImageSize)
+                return (null, "Ảnh không được vượt quá 5MB.");
 
-            var fileName = Guid.NewGuid().ToString()
-                + Path.GetExtension(image.FileName);
+            var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "rooms");
+            Directory.CreateDirectory(folderPath);
 
-            var filePath = Path.Combine(folderPath, fileName);
+            var fileName = Guid.NewGuid() + ext;
+            using var stream = new FileStream(Path.Combine(folderPath, fileName), FileMode.Create);
+            image.CopyTo(stream);
 
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                image.CopyTo(stream);
-            }
-
-            return "/images/rooms/" + fileName;
+            return ("/images/rooms/" + fileName, null);
         }
 
-        private static readonly string[] VideoExtensions = { ".mp4", ".webm", ".ogg", ".mov", ".avi", ".mkv", ".m4v" };
+        private static string? SaveImage(IFormFile? image) => SaveImageSafe(image).Url;
 
-        private static RoomMediaInputDto SaveMedia(IFormFile file)
+        private static readonly string[] VideoExtensions = [.. AllowedVideoExtensions];
+
+        private static (RoomMediaInputDto? Media, string? Error) SaveMediaSafe(IFormFile file)
         {
-            var extension = Path.GetExtension(file.FileName);
-            var isVideo = VideoExtensions.Contains(extension.ToLowerInvariant());
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            var isVideo = AllowedVideoExtensions.Contains(ext);
+            var isImage = AllowedImageExtensions.Contains(ext);
+
+            if (!isVideo && !isImage)
+                return (null, $"Định dạng không hỗ trợ: {ext}");
+
+            var sizeLimit = isVideo ? MaxVideoSize : MaxImageSize;
+            if (file.Length > sizeLimit)
+                return (null, isVideo ? "Video không được vượt quá 50MB." : "Ảnh không được vượt quá 5MB.");
+
             var subFolder = isVideo ? "videos" : "images";
+            var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", subFolder, "rooms");
+            Directory.CreateDirectory(folderPath);
 
-            var folderPath = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot",
-                subFolder,
-                "rooms"
-            );
+            var fileName = Guid.NewGuid() + ext;
+            using var stream = new FileStream(Path.Combine(folderPath, fileName), FileMode.Create);
+            file.CopyTo(stream);
 
-            if (!Directory.Exists(folderPath))
-            {
-                Directory.CreateDirectory(folderPath);
-            }
-
-            var fileName = Guid.NewGuid().ToString() + extension;
-            var filePath = Path.Combine(folderPath, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                file.CopyTo(stream);
-            }
-
-            return new RoomMediaInputDto
-            {
-                Url = $"/{subFolder}/rooms/{fileName}",
-                Type = isVideo ? "Video" : "Image"
-            };
+            return (new RoomMediaInputDto { Url = $"/{subFolder}/rooms/{fileName}", Type = isVideo ? "Video" : "Image" }, null);
         }
+
+        private static RoomMediaInputDto SaveMedia(IFormFile file) => SaveMediaSafe(file).Media!;
 
         // Thêm nhiều ảnh/video vào thư viện của phòng (multipart/form-data, field "files" lặp lại nhiều lần)
         [Authorize(Roles = "Admin")]
@@ -200,7 +190,13 @@ namespace ShopAPI.Controllers
                 return BadRequest(new { message = "Chưa chọn file nào." });
             }
 
-            var items = files.Where(f => f.Length > 0).Select(SaveMedia).ToList();
+            var items = new List<RoomMediaInputDto>();
+            foreach (var file in files.Where(f => f.Length > 0))
+            {
+                var (mediaItem, error) = SaveMediaSafe(file);
+                if (error != null) return BadRequest(new { message = error });
+                items.Add(mediaItem!);
+            }
 
             var media = _roomService.AddMedia(id, items);
 
