@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { getUsers, createStaff, createTenantAccount, updateUserRole } from '../../../api/user';
+import { getUsers, createStaff, createTenantAccount, updateUserRole, deleteUser } from '../../../api/user';
 import { getApiErrorMessage } from '../../../api/client';
 import type { UserDto } from '../../../types/user';
 import type { Role } from '../../../types/auth';
-import { Plus, X, Users as UsersIcon, UserPlus } from 'lucide-react';
+import { Plus, X, Users as UsersIcon, UserPlus, Pencil, Trash2 } from 'lucide-react';
 
 const roleOptions: Role[] = ['Admin', 'Staff', 'Tenant', 'User'];
 
@@ -37,6 +37,10 @@ const UserManagerPage = () => {
   const [staffForm, setStaffForm] = useState({ fullName: '', email: '', password: '' });
   const [staffSaving, setStaffSaving] = useState(false);
   const [staffError, setStaffError] = useState('');
+
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState<UserDto | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const [isCreateTenantOpen, setIsCreateTenantOpen] = useState(false);
   const [tenantForm, setTenantForm] = useState({ fullName: '', email: '', password: '' });
@@ -81,6 +85,21 @@ const UserManagerPage = () => {
       setRoleError(getApiErrorMessage(err, 'Không thể đổi role người dùng này.'));
     } finally {
       setRoleSaving(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteConfirmUser) return;
+    setDeleteError('');
+    try {
+      setDeleteLoading(true);
+      await deleteUser(deleteConfirmUser.id);
+      setDeleteConfirmUser(null);
+      await loadUsers();
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, 'Không thể xóa người dùng này.'));
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -161,9 +180,8 @@ const UserManagerPage = () => {
       <div className="flex flex-wrap gap-2 bg-slate-900/40 p-4 rounded-2xl border border-slate-850">
         <button
           onClick={() => setFilterRole('all')}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-            filterRole === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
-          }`}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${filterRole === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
+            }`}
         >
           Tất cả
         </button>
@@ -171,9 +189,8 @@ const UserManagerPage = () => {
           <button
             key={r}
             onClick={() => setFilterRole(r)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-              filterRole === r ? 'bg-orange-500 text-white' : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
-            }`}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${filterRole === r ? 'bg-orange-500 text-white' : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
+              }`}
           >
             {r}
           </button>
@@ -223,13 +240,23 @@ const UserManagerPage = () => {
                       </span>
                     </td>
                     <td className="p-5 font-medium text-slate-500">{formatDate(u.createdAt)}</td>
-                    <td className="p-5 text-center">
-                      <button
-                        onClick={() => openRoleModal(u)}
-                        className="bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
-                      >
-                        Đổi role
-                      </button>
+                    <td className="p-5">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => openRoleModal(u)}
+                          title="Sửa role"
+                          className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
+                        >
+                          <Pencil size={11} /> Sửa
+                        </button>
+                        <button
+                          onClick={() => { setDeleteConfirmUser(u); setDeleteError(''); }}
+                          title="Xóa người dùng"
+                          className="flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 text-red-400 hover:text-red-300 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
+                        >
+                          <Trash2 size={11} /> Xóa
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -277,6 +304,54 @@ const UserManagerPage = () => {
                 {roleSaving ? 'Đang lưu...' : 'Xác nhận đổi role'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL XÁC NHẬN XÓA */}
+      {deleteConfirmUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !deleteLoading && setDeleteConfirmUser(null)} />
+          <div className="relative bg-slate-900 border border-red-500/20 rounded-3xl w-full max-w-sm p-6 sm:p-8 shadow-2xl">
+            <button onClick={() => setDeleteConfirmUser(null)} className="absolute top-4 right-4 p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white cursor-pointer">
+              <X size={20} />
+            </button>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+                <Trash2 size={18} className="text-red-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg text-white">Xóa người dùng</h3>
+                <p className="text-xs text-slate-500">Hành động này không thể hoàn tác</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-300 mb-1">
+              Bạn có chắc muốn xóa tài khoản <span className="font-bold text-white">{deleteConfirmUser.fullName}</span>?
+            </p>
+            <p className="text-xs text-slate-500 mb-6">{deleteConfirmUser.email}</p>
+
+            {deleteError && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmUser(null)}
+                disabled={deleteLoading}
+                className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-2xl text-xs transition-colors cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                disabled={deleteLoading}
+                className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-red-500/50 text-white font-bold py-3 rounded-2xl text-xs transition-colors cursor-pointer"
+              >
+                {deleteLoading ? 'Đang xóa...' : 'Xác nhận xóa'}
+              </button>
+            </div>
           </div>
         </div>
       )}

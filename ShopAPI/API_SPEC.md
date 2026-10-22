@@ -13,17 +13,19 @@ Backend ASP.NET Core Web API (.NET 10), kiến trúc **Controller → Service �
 | `Admin` | Chủ trọ — quản lý toàn hệ thống |
 | `Staff` | Nhân viên quản lý |
 | `Tenant` | Khách thuê |
-| `User` | Role mặc định khi tự đăng ký qua `/api/auth/register` (Admin phải đổi sang `Tenant`/`Staff` bằng `PUT /api/user/{id}/role` thì mới dùng được các endpoint theo role) |
+| `User` | Role cũ còn trong dữ liệu; được chuyển sang `Tenant` khi đăng nhập thành công |
 
 ### Xác thực
 
-Hầu hết endpoint (trừ `POST /api/auth/*` và `GET /api/room/available`, `GET /api/room/{id}`) yêu cầu header:
+Hầu hết endpoint (trừ `POST /api/auth/*`, `GET /api/room/available`, `GET /api/room/{id}` và
+`GET /api/systemconfig/public-rates`) yêu cầu header:
 
 ```
 Authorization: Bearer {token}
 ```
 
-Token lấy từ response của `POST /api/auth/login`, hết hạn theo `Jwt:ExpireMinutes` trong `appsettings.json` (mặc định 60 phút).
+Token lấy từ response của `POST /api/auth/login`, có thể làm mới bằng `POST /api/auth/refresh-token`.
+Access token hết hạn theo `Jwt:ExpireMinutes` trong `appsettings.json` (mặc định 60 phút).
 
 ### Định dạng response chung
 
@@ -62,7 +64,8 @@ Token lấy từ response của `POST /api/auth/login`, hết hạn theo `Jwt:Ex
 Tenant: GET /room/available → POST /contract/request (ChoDuyet, kèm NumberOfOccupants)
 Admin:  PUT /contract/{id}/approve (ChoCoc) — chốt ElectricUnitPrice/WaterUnitPrice vào hợp đồng,
         tự tạo Invoice Type=Coc
-Tenant: GET /payment/qr/{invoiceId} (quét QR chuyển khoản)
+Tenant: GET /payment/qr/{invoiceId} (quét QR nếu đã cấu hình ngân hàng) → POST /payment/submit-transfer
+Staff:  PUT /payment/{paymentId}/confirm-transfer hoặc /reject-transfer (xác nhận thủ công)
 Staff:  PUT /payment/confirm-cash (Invoice→DaThanhToan, Contract→DangHieuLuc, Room→DaThue)
 Tenant: POST /contract/{id}/occupants (khai báo thêm người ở cùng, nếu có)
 Staff:  POST /invoice (chỉ nhập số công tơ điện/nước đầu-cuối; đơn giá lấy từ Contract,
@@ -80,7 +83,7 @@ Admin:  GET /report/dashboard, GET /report/logs
 ## 2. Auth — `/api/auth`
 
 ### `POST /api/auth/register`
-Công khai. Tạo tài khoản mới, luôn gán `Role = "User"`.
+Công khai. Tạo tài khoản mới với role `Tenant`.
 
 Request:
 ```json
@@ -101,34 +104,56 @@ Response 200:
 {
   "message": "Đăng nhập thành công!",
   "token": "eyJhbGciOi...",
+  "refreshToken": "...",
   "user": { "id": 1, "fullName": "Nguyễn Văn A", "email": "a@mail.com", "role": "Tenant" }
 }
 ```
 Response 400: sai email hoặc mật khẩu.
 
+### `POST /api/auth/refresh-token`
+Công khai. Đổi refresh token còn hiệu lực lấy cặp access/refresh token mới. Request gồm
+`accessToken` và `refreshToken`; response có `token`, `refreshToken`, `user`.
+
+### `POST /api/auth/change-password` — mọi user đã đăng nhập
+Đổi mật khẩu hiện tại. Request dùng `currentPassword` và `newPassword`;
+response 200 có `message`. Email khôi phục chưa được cấu hình nên không có API đặt lại mật khẩu.
+
 ---
 
-## 3. User — `/api/user` (Admin)
+## 3. User — `/api/user`
 
 ### `GET /api/user?role={role}`
-Danh sách user, lọc theo `role` (optional). Trả `UserDto[]`.
+Admin. Danh sách user, lọc theo `role` (optional). Trả `UserDto[]`.
 
-### `GET /api/user/{id}`
+### `GET /api/user/staff-options` — Admin/Staff
+Danh sách nhân viên để phân công bảo trì. Chỉ trả `{ id, fullName }`, không trả email hoặc số
+điện thoại.
+
+### `GET /api/user/{id}` — Admin
 Trả `UserDto`. 404 nếu không có.
 
 ### `POST /api/user/staff`
-Tạo tài khoản Staff.
+Admin. Tạo tài khoản Staff.
 
 Request: `{ "fullName": "...", "email": "...", "password": "..." }`
 Response 200: `UserDto`. 400 nếu email trùng.
 
+### `POST /api/user/tenant` — Admin
+Tạo tài khoản khách thuê với role `Tenant`.
+
 ### `PUT /api/user/{id}/role`
-Đổi role (`Admin`/`Staff`/`Tenant`/`User`).
+Admin. Đổi role (`Admin`/`Staff`/`Tenant`/`User`).
 
 Request: `{ "role": "Tenant" }`
 Response 200: `{ "message": "Cập nhật vai trò thành công." }`
 
-**`UserDto`**: `{ id, fullName, email, role, createdAt }`
+### `PUT /api/user/profile` — mọi user đã đăng nhập
+Cập nhật tên và số điện thoại tài khoản hiện tại; user ID lấy từ token.
+
+Request: `{ "fullName": "Nguyễn Văn A", "phoneNumber": "0901111111" }`
+Response 200: `UserDto`.
+
+**`UserDto`**: `{ id, fullName, email, role, phoneNumber, createdAt }`
 
 ---
 
@@ -250,6 +275,10 @@ Response 400: phòng không tồn tại / không còn trống.
 ### `GET /api/contract/my` — Tenant
 Danh sách hợp đồng của chính mình.
 
+### `PUT /api/contract/{id}/cancel` — Tenant
+Hủy yêu cầu thuê đang chờ duyệt của chính người dùng. Request không có body.
+400 nếu hợp đồng không thuộc người dùng hoặc đã qua trạng thái chờ duyệt.
+
 ### `GET /api/contract?status={status}` — Admin/Staff
 
 ### `GET /api/contract/{id}` — mọi role đã đăng nhập
@@ -275,8 +304,16 @@ Response 200: `{ "message": "Duyệt hợp đồng thành công, chờ khách th
 ### `PUT /api/contract/{id}/reject` — Admin
 Request: `{ "reason": "..." }` (optional, chỉ ghi vào `ActivityLog`). Chỉ áp dụng khi `Status = ChoDuyet` → `TuChoi`.
 
+### `PUT /api/contract/{id}/set-unit-price` — Admin
+Gán đơn giá điện/nước cho hợp đồng đang hiệu lực, dùng để bổ sung dữ liệu còn thiếu ở hợp đồng cũ.
+Request: `{ "electricUnitPrice": 3500, "waterUnitPrice": 35000 }`. Gửi thông báo cho khách thuê.
+
 ### `PUT /api/contract/{id}/terminate` — Admin/Staff
 Kết thúc hợp đồng đang `DangHieuLuc` → `DaKetThuc`, trả `Room.Status` về `Trong`.
+
+### `PUT /api/contract/{id}/extend` — Admin
+Gia hạn hợp đồng đang hiệu lực bằng ngày kết thúc mới.
+Request: `{ "endDate": "2027-12-01" }`. Ngày mới phải sau ngày kết thúc hiện tại; thành công sẽ gửi thông báo cho khách thuê.
 
 ### Người ở cùng (Occupant)
 
@@ -322,7 +359,7 @@ Request:
 ```
 (`electricUnitPrice`, `waterUnitPrice`, `serviceFee` — tất cả optional, chỉ dùng khi muốn ghi đè giá trị mặc định từ hợp đồng/phòng.)
 
-Response 200: `InvoiceDto`. Response 400: `{ "message": "..." }` — hợp đồng không tồn tại/chưa hiệu lực, hoặc số công tơ mới nhỏ hơn số cũ.
+Response 200: `InvoiceDto`. Response 400: `{ "message": "..." }` — hợp đồng không tồn tại/chưa hiệu lực, số công tơ mới nhỏ hơn số cũ, hoặc hóa đơn tháng/năm đó đã được tạo cho hợp đồng.
 
 ### `GET /api/invoice/my` — Tenant
 Tất cả hóa đơn thuộc các hợp đồng của mình.
@@ -341,8 +378,20 @@ Tất cả hóa đơn thuộc các hợp đồng của mình.
 ### `GET /api/payment/qr/{invoiceId}` — Tenant
 Sinh mã **VietQR** (chuẩn EMVCo/NAPAS 247, dựng nội bộ — không gọi API ngoài) cho hóa đơn của chính mình. Frontend tự render `payload` thành ảnh QR (ví dụ dùng thư viện `qrcode`).
 
-Response 200: `{ "invoiceId": 1, "amount": 3000000, "payload": "00020101021238570010A00000072701..." }`
-404 nếu hóa đơn không tồn tại / không thuộc về user.
+Response 200: `{ "invoiceId": 1, "amount": 3000000, "payload": "00020101021238570010A00000072701...", "isAvailable": true, "message": null }`.
+Nếu ngân hàng chưa cấu hình đủ, vẫn trả 200 với `isAvailable: false`, `payload: ""` và hướng dẫn liên hệ ban quản lý để nhận thông tin chuyển khoản. 404 nếu hóa đơn không tồn tại / không thuộc về user.
+
+### `POST /api/payment/submit-transfer` — Tenant
+Gửi mã tham chiếu giao dịch để chờ nhân viên xác nhận thủ công. Request:
+`{ "invoiceId": 1, "amount": 3000000, "transactionRef": "FT..." }`.
+Số tiền phải bằng tổng hóa đơn; mỗi hóa đơn chỉ có một giao dịch đang chờ xác nhận.
+
+### `PUT /api/payment/{paymentId}/confirm-transfer` — Staff/Admin
+Xác nhận giao dịch đang chờ; số tiền được kiểm tra lại với tổng hóa đơn. Hóa đơn chuyển sang
+`DaThanhToan`, giao dịch sang `DaXacNhan`.
+
+### `PUT /api/payment/{paymentId}/reject-transfer` — Staff/Admin
+Từ chối giao dịch đang chờ; trạng thái giao dịch chuyển sang `TuChoi`, hóa đơn giữ nguyên chưa thanh toán.
 
 ### `GET /api/payment/invoice/{invoiceId}` — Admin/Staff hoặc chủ hóa đơn
 Lịch sử thanh toán của 1 hóa đơn. Trả `PaymentDto[]`.
@@ -354,7 +403,7 @@ Request: `{ "invoiceId": 1, "amount": 3000000, "method": "TienMat", "transaction
 Response 200: `{ "message": "Xác nhận thanh toán thành công." }`
 400 nếu hóa đơn không tồn tại hoặc đã thanh toán rồi.
 
-**`PaymentDto`**: `{ id, invoiceId, amount, paymentDate, method, transactionRef }`
+**`PaymentDto`**: `{ id, invoiceId, amount, paymentDate, method, transactionRef, status }` (`status`: `ChoXacNhan`, `DaXacNhan`, `TuChoi`)
 
 ---
 
@@ -371,12 +420,18 @@ Fields: `roomId, title, description, priority, image` (file). Ảnh lưu `wwwroo
 
 ### `GET /api/maintenance/my` — Tenant
 
+### `PUT /api/maintenance/{id}/cancel` — Tenant
+Hủy yêu cầu của chính mình nếu yêu cầu chưa bắt đầu xử lý.
+
+### `POST /api/maintenance/{id}/reply` — Tenant
+Gửi thêm thông tin cho quản lý. Request: `{ "message": "..." }`; nội dung được nối vào cuộc trao đổi của yêu cầu.
+
 ### `GET /api/maintenance?status={status}` — Staff/Admin
 
 ### `GET /api/maintenance/{id}` — Admin/Staff hoặc chủ yêu cầu
 
 ### `PUT /api/maintenance/{id}/assign` — Staff/Admin
-Phân công xử lý. Request: `{ "assignedToUserId": 2 }` → `Status = DaPhanCong`. Chỉ áp dụng khi đang `Moi`/`DaPhanCong`.
+Phân công cho tài khoản có role `Staff`. Request: `{ "assignedToUserId": 2 }` → `Status = DaPhanCong`. Chỉ áp dụng khi đang `Moi`/`DaPhanCong`; API trả 400 nếu ID không thuộc nhân viên.
 
 ### `PUT /api/maintenance/{id}/status` — Staff/Admin
 Request: `{ "status": "HoanThanh", "note": "..." }`. Nếu `status` là `HoanThanh`/`DaHuy` → tự set `ResolvedAt`.
@@ -393,6 +448,11 @@ Request: `{ "status": "HoanThanh", "note": "..." }`. Nếu `status` là `HoanTha
 
 ### `POST /api/notification` — Staff/Admin
 Gửi thông báo tới 1 user cụ thể. Request: `{ "userId": 5, "title": "...", "content": "...", "type": "ThongBaoChung" }`
+
+### `POST /api/notification/broadcast` — Staff/Admin
+Gửi thông báo đến toàn bộ tài khoản `Tenant`. Không cần `userId` trong request.
+Request: `{ "title": "...", "content": "...", "type": "ThongBaoChung" }`
+Response 200: `{ "message": "Đã gửi thông báo đến N khách thuê.", "count": N }`.
 
 ### `POST /api/notification/remind-overdue` — Staff/Admin
 Tự động quét toàn bộ `Invoice` đang `ChuaThanhToan` và đã qua `DueDate` → chuyển `Status = QuaHan`, tạo thông báo `Type = NhacNo` cho từng tenant liên quan.
@@ -413,15 +473,19 @@ Response 200: `{ "message": "Đã nhắc N hợp đồng sắp hết hạn.", "c
 
 ---
 
-## 12. SystemConfig — `/api/systemconfig` (Admin)
+## 12. SystemConfig — `/api/systemconfig`
 
 Cấu hình dạng key-value. Các key được seed sẵn: `BankBin`, `BankAccountNumber`, `BankAccountName` (dùng bởi `VietQrService`), `DefaultElectricUnitPrice` (3500), `DefaultWaterUnitPrice` (18000), `DefaultServiceFee` (100000).
 
 ### `GET /api/systemconfig`
-Trả `SystemConfigDto[]`.
+Admin. Trả `SystemConfigDto[]`.
 
 ### `PUT /api/systemconfig`
 Upsert theo `Key` (tạo mới nếu chưa có, cập nhật nếu đã có).
+
+### `GET /api/systemconfig/public-rates` — công khai
+Chỉ trả các trường `electricUnitPrice` và `waterUnitPrice` hiện được cấu hình để khách tham khảo giá điện/nước.
+Không trả các cấu hình khác, đặc biệt là thông tin tài khoản ngân hàng.
 
 Request: `{ "key": "BankBin", "value": "970422", "description": "..." }`
 Response 200: `SystemConfigDto`.

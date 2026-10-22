@@ -54,6 +54,14 @@ namespace ShopAPI.Controllers
             return Ok(notification);
         }
 
+        [Authorize(Roles = "Staff,Admin")]
+        [HttpPost("broadcast")]
+        public IActionResult Broadcast(BroadcastNotificationDto dto)
+        {
+            var count = _notificationService.CreateForAllTenants(dto, GetUserId());
+            return Ok(new { message = $"Đã gửi thông báo đến {count} khách thuê.", count });
+        }
+
         // Staff/Admin nhắc nợ tự động cho toàn bộ hóa đơn quá hạn
         [Authorize(Roles = "Staff,Admin")]
         [HttpPost("remind-overdue")]

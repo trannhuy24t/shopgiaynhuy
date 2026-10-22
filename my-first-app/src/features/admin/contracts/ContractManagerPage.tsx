@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { getContracts, approveContract, rejectContract, terminateContract, setContractUnitPrice } from '../../../api/contract';
+import { useCallback, useEffect, useState } from 'react';
+import { getContracts, approveContract, rejectContract, terminateContract, setContractUnitPrice, extendContract } from '../../../api/contract';
 import { remindUpcomingContracts } from '../../../api/notification';
 import { getSystemConfigs } from '../../../api/systemConfig';
 import { getApiErrorMessage } from '../../../api/client';
@@ -17,7 +17,7 @@ const formatPrice = (price: number) => {
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('vi-VN');
 
-type ModalMode = null | { type: 'approve' | 'reject' | 'occupants' | 'setPrice'; contract: ContractDto };
+type ModalMode = null | { type: 'approve' | 'reject' | 'occupants' | 'setPrice' | 'extend'; contract: ContractDto };
 
 const ContractManagerPage = () => {
   const { user } = useAuth();
@@ -42,6 +42,8 @@ const ContractManagerPage = () => {
   const [setPriceElectric, setSetPriceElectric] = useState('');
   const [setPriceWater, setSetPriceWater] = useState('');
   const [activeContracts, setActiveContracts] = useState<ContractDto[]>([]);
+  const [activeContractsError, setActiveContractsError] = useState('');
+  const [activeContractsLoading, setActiveContractsLoading] = useState(false);
 
   const [reminding, setReminding] = useState(false);
   const [remindResult, setRemindResult] = useState('');
@@ -66,15 +68,23 @@ const ContractManagerPage = () => {
 
   // Danh sách hợp đồng đang hiệu lực riêng, không phụ thuộc bộ lọc trạng thái ở trên — để banner
   // cảnh báo "thiếu giá điện/nước" luôn hiện đúng, kể cả khi Admin đang lọc theo trạng thái khác.
-  const loadActiveContracts = () => {
-    getContracts('DangHieuLuc')
-      .then((res) => setActiveContracts(res.data))
-      .catch(() => setActiveContracts([]));
-  };
+  const loadActiveContracts = useCallback(async () => {
+    setActiveContractsLoading(true);
+    setActiveContractsError('');
+    try {
+      const res = await getContracts('DangHieuLuc');
+      setActiveContracts(res.data);
+    } catch (err) {
+      setActiveContracts([]);
+      setActiveContractsError(getApiErrorMessage(err, 'Không thể kiểm tra đơn giá các hợp đồng đang hiệu lực.'));
+    } finally {
+      setActiveContractsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    loadActiveContracts();
-  }, []);
+    void loadActiveContracts();
+  }, [loadActiveContracts]);
 
   useEffect(() => {
     // Chỉ Admin gọi được GET /SystemConfig (Staff bị 403) — nếu lỗi thì bỏ qua, để Staff nhập tay.
@@ -114,6 +124,14 @@ const ContractManagerPage = () => {
     setModal({ type: 'setPrice', contract });
     setSetPriceElectric(contract.electricUnitPrice > 0 ? String(contract.electricUnitPrice) : defaultUnitPrices.electric);
     setSetPriceWater(contract.waterUnitPrice > 0 ? String(contract.waterUnitPrice) : defaultUnitPrices.water);
+    setModalError('');
+  };
+
+  const openExtendModal = (contract: ContractDto) => {
+    setModal({ type: 'extend', contract });
+    const date = new Date(contract.endDate);
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+    setEndDate(date.toISOString().slice(0, 10));
     setModalError('');
   };
 
@@ -214,6 +232,30 @@ const ContractManagerPage = () => {
     }
   };
 
+  const handleExtend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (modal?.type !== 'extend') return;
+    setModalError('');
+    const newEndDate = new Date(`${endDate}T00:00:00`);
+    const currentEndDate = new Date(modal.contract.endDate);
+    currentEndDate.setHours(0, 0, 0, 0);
+    if (!endDate || newEndDate.getTime() <= currentEndDate.getTime()) {
+      setModalError('Ngày gia hạn phải sau ngày kết thúc hiện tại.');
+      return;
+    }
+    try {
+      setSaving(true);
+      await extendContract(modal.contract.id, { endDate: newEndDate.toISOString() });
+      setModal(null);
+      await loadContracts();
+      loadActiveContracts();
+    } catch (err) {
+      setModalError(getApiErrorMessage(err, 'Không thể gia hạn hợp đồng.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleTerminate = async (contract: ContractDto) => {
     const confirmed = window.confirm(`Kết thúc hợp đồng phòng ${contract.roomNumber || contract.roomId}? Hành động này không thể hoàn tác.`);
     if (!confirmed) return;
@@ -276,6 +318,15 @@ const ContractManagerPage = () => {
         <div className="bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-semibold p-4 rounded-xl flex items-start gap-2">
           <Info size={16} className="shrink-0 mt-0.5" />
           Khi duyệt hợp đồng ("Chờ duyệt" → "Chờ cọc"), hệ thống tự tạo hóa đơn tiền cọc — không cần tạo hóa đơn tay.
+        </div>
+      )}
+
+      {activeContractsError && (
+        <div role="alert" className="bg-red-500/10 border border-red-500/20 text-red-300 text-xs font-semibold p-4 rounded-xl flex flex-wrap items-center justify-between gap-3">
+          <span>{activeContractsError} Cảnh báo đơn giá có thể chưa đầy đủ.</span>
+          <button type="button" onClick={() => void loadActiveContracts()} disabled={activeContractsLoading} className="font-bold text-orange-300 hover:text-orange-200 disabled:opacity-50">
+            {activeContractsLoading ? 'Đang tải...' : 'Tải lại'}
+          </button>
         </div>
       )}
 
@@ -395,6 +446,7 @@ const ContractManagerPage = () => {
                         )}
                         {c.status === 'DangHieuLuc' && (
                           <>
+                            {isAdmin && <button onClick={() => openExtendModal(c)} className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/20 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer">Gia hạn</button>}
                             {isAdmin && (c.electricUnitPrice <= 0 || c.waterUnitPrice <= 0) && (
                               <button
                                 onClick={() => openSetPriceModal(c)}
@@ -643,6 +695,21 @@ const ContractManagerPage = () => {
               >
                 {saving ? 'Đang lưu...' : 'Lưu đơn giá'}
               </button>
+            </form>
+          </div>
+        </div>
+      )}
+      {modal?.type === 'extend' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeModal} />
+          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl">
+            <button onClick={closeModal} className="absolute top-4 right-4 p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white cursor-pointer"><X size={20} /></button>
+            <h3 className="font-bold text-xl text-white uppercase tracking-wide mb-2">Gia hạn hợp đồng</h3>
+            <p className="text-xs text-slate-400 mb-5">Phòng {modal.contract.roomNumber || modal.contract.roomId} — hiện kết thúc {formatDate(modal.contract.endDate)}</p>
+            {modalError && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-4">{modalError}</p>}
+            <form onSubmit={handleExtend} className="space-y-5">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Ngày kết thúc mới<input type="date" required value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mt-2 w-full bg-slate-950 border border-slate-800 focus:border-orange-500 rounded-xl px-4 py-3 text-sm text-white outline-none" /></label>
+              <button type="submit" disabled={saving} className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl">{saving ? 'Đang lưu...' : 'Xác nhận gia hạn'}</button>
             </form>
           </div>
         </div>

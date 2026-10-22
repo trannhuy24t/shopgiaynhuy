@@ -55,6 +55,8 @@ namespace ShopAPI.Services
                 Title = dto.Title,
                 Content = dto.Content,
                 Type = dto.Type,
+                RelatedInvoiceId = dto.RelatedInvoiceId,
+                RelatedContractId = dto.RelatedContractId,
                 CreatedByUserId = createdByUserId,
                 IsRead = false,
                 CreatedAt = DateTime.UtcNow
@@ -63,6 +65,29 @@ namespace ShopAPI.Services
             _notificationRepository.Add(notification);
 
             return MapToDto(notification);
+        }
+
+        public int CreateForAllTenants(BroadcastNotificationDto dto, int createdByUserId)
+        {
+            var tenantUserIds = _context.Users.Where(user => user.Role == "Tenant").Select(user => user.Id).ToList();
+            var createdAt = DateTime.UtcNow;
+            var notifications = tenantUserIds.Select(userId => new Notification
+            {
+                UserId = userId,
+                Title = dto.Title,
+                Content = dto.Content,
+                Type = dto.Type,
+                RelatedInvoiceId = dto.RelatedInvoiceId,
+                RelatedContractId = dto.RelatedContractId,
+                CreatedByUserId = createdByUserId,
+                IsRead = false,
+                CreatedAt = createdAt
+            }).ToList();
+
+            _context.Notifications.AddRange(notifications);
+            _context.SaveChanges();
+            _activityLogService.Log(createdByUserId, "BroadcastNotification", "Notification", null, $"Recipients={notifications.Count}; Title={dto.Title}");
+            return notifications.Count;
         }
 
         public int RemindOverdue(int actorUserId)

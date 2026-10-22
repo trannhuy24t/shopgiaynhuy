@@ -27,5 +27,20 @@ namespace ShopAPI.DTOs
         public string Content { get; set; } = string.Empty;
 
         public string Type { get; set; } = "ThongBaoChung";
+        public int? RelatedInvoiceId { get; set; }
+        public int? RelatedContractId { get; set; }
+    }
+
+    public class BroadcastNotificationDto
+    {
+        [Required]
+        public string Title { get; set; } = string.Empty;
+
+        [Required]
+        public string Content { get; set; } = string.Empty;
+
+        public string Type { get; set; } = "ThongBaoChung";
+        public int? RelatedInvoiceId { get; set; }
+        public int? RelatedContractId { get; set; }
     }
 }

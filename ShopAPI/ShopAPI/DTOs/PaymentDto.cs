@@ -10,6 +10,7 @@ namespace ShopAPI.DTOs
         public DateTime PaymentDate { get; set; }
         public string Method { get; set; } = string.Empty;
         public string? TransactionRef { get; set; }
+        public string Status { get; set; } = "DaXacNhan";
     }
 
     public class ConfirmPaymentDto
@@ -26,10 +27,26 @@ namespace ShopAPI.DTOs
         public string? TransactionRef { get; set; }
     }
 
+    public class SubmitTransferDto
+    {
+        [Required]
+        public int InvoiceId { get; set; }
+
+        [Required]
+        [Range(1, double.MaxValue)]
+        public decimal Amount { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string TransactionRef { get; set; } = string.Empty;
+    }
+
     public class QrPaymentResponseDto
     {
         public int InvoiceId { get; set; }
         public decimal Amount { get; set; }
         public string Payload { get; set; } = string.Empty;
+        public bool IsAvailable { get; set; } = true;
+        public string? Message { get; set; }
     }
 }

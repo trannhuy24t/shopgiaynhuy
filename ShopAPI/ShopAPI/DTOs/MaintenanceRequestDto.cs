@@ -1,5 +1,12 @@
 namespace ShopAPI.DTOs
 {
+    public class MaintenanceReplyDto
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MaxLength(2000)]
+        public string Message { get; set; } = string.Empty;
+    }
+
     public class MaintenanceRequestDto
     {
         public int Id { get; set; }

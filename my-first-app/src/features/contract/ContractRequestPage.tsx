@@ -13,11 +13,15 @@ const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
 };
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const toDateInput = (date: Date) => {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 10);
+};
+const todayStr = () => toDateInput(new Date());
 const oneYearLaterStr = () => {
   const d = new Date();
   d.setFullYear(d.getFullYear() + 1);
-  return d.toISOString().slice(0, 10);
+  return toDateInput(d);
 };
 
 interface FormState {
@@ -119,8 +123,8 @@ const ContractRequestPage = () => {
       setSubmitting(true);
       await requestContract({
         roomId: Number(roomId),
-        startDate: new Date(form.startDate).toISOString(),
-        endDate: new Date(form.endDate).toISOString(),
+        startDate: `${form.startDate}T00:00:00.000Z`,
+        endDate: `${form.endDate}T00:00:00.000Z`,
         numberOfOccupants: Number(form.numberOfOccupants),
         tenantProfile: {
           fullName: form.fullName,

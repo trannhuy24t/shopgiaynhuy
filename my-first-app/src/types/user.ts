@@ -9,6 +9,11 @@ export interface UserDto {
   createdAt: string;
 }
 
+export interface StaffOptionDto {
+  id: number;
+  fullName: string;
+}
+
 export interface CreateStaffPayload {
   fullName: string;
   email: string;
@@ -28,4 +33,10 @@ export interface UpdateUserRolePayload {
 export interface UpdateProfilePayload {
   fullName: string;
   phoneNumber?: string | null;
+}
+
+export interface UpdateUserPayload {
+  fullName: string;
+  phoneNumber?: string | null;
+  role: Role;
 }

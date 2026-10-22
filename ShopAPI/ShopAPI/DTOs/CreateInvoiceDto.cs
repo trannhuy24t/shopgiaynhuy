@@ -43,4 +43,5 @@ namespace ShopAPI.DTOs
         [Required]
         public DateTime DueDate { get; set; }
     }
+
 }

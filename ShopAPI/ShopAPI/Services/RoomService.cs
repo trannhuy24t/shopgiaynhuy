@@ -228,6 +228,7 @@ namespace ShopAPI.Services
                 Id = room.Id,
                 BuildingId = room.BuildingId,
                 BuildingName = room.Building?.Name,
+                BuildingAddress = room.Building?.Address,
                 OwnerPhone = room.Building?.Owner?.PhoneNumber,
                 RoomNumber = room.RoomNumber,
                 Area = room.Area,

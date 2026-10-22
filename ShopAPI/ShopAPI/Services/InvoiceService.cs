@@ -77,6 +77,13 @@ namespace ShopAPI.Services
                 return (null, "Há»£p Ä‘á»“ng khĂ´ng tá»“n táº¡i hoáº·c chÆ°a cĂ³ hiá»‡u lá»±c.");
             }
 
+            var existingForPeriod = _invoiceRepository.GetAll().Any(invoice =>
+                invoice.ContractId == dto.ContractId && invoice.Month == dto.Month && invoice.Year == dto.Year && invoice.Type == InvoiceType.HangThang);
+            if (existingForPeriod)
+            {
+                return (null, "Hợp đồng này đã có hóa đơn cho tháng/năm đã chọn.");
+            }
+
             if (dto.ElectricNewReading < dto.ElectricOldReading)
             {
                 return (null, "Sá»‘ Ä‘iá»‡n má»›i pháº£i lá»›n hÆ¡n hoáº·c báº±ng sá»‘ Ä‘iá»‡n cÅ©.");

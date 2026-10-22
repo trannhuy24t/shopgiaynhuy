@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getBuildings, createBuilding, updateBuilding, deleteBuilding } from '../../../api/building';
+import { getUsers } from '../../../api/user';
 import { getApiErrorMessage } from '../../../api/client';
 import { useAuth } from '../../../context/useAuth';
 import type { BuildingDto } from '../../../types/building';
@@ -12,9 +13,21 @@ interface BuildingFormData {
   description: string;
 }
 
+interface OwnerOption {
+  id: number;
+  fullName: string;
+  email: string;
+}
+
 const BuildingManagerPage = () => {
   const { user } = useAuth();
   const [buildings, setBuildings] = useState<BuildingDto[]>([]);
+  const [ownerOptions, setOwnerOptions] = useState<OwnerOption[]>(
+    user ? [{ id: user.id, fullName: user.fullName, email: user.email }] : [],
+  );
+  const [ownerLoading, setOwnerLoading] = useState(true);
+  const [ownerError, setOwnerError] = useState('');
+  const [editingOwnerName, setEditingOwnerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -46,8 +59,43 @@ const BuildingManagerPage = () => {
     loadBuildings();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadOwners = async () => {
+      setOwnerLoading(true);
+      setOwnerError('');
+      try {
+        const res = await getUsers('Admin');
+        if (cancelled) return;
+
+        const admins = res.data.map(({ id, fullName, email }) => ({ id, fullName, email }));
+        if (user && !admins.some((admin) => admin.id === user.id)) {
+          admins.unshift({ id: user.id, fullName: user.fullName, email: user.email });
+        }
+        setOwnerOptions(admins);
+      } catch {
+        if (cancelled) return;
+        setOwnerOptions(user ? [{ id: user.id, fullName: user.fullName, email: user.email }] : []);
+        setOwnerError('Không tải được danh sách Admin. Bạn vẫn có thể chọn tài khoản đang đăng nhập.');
+      } finally {
+        if (!cancelled) setOwnerLoading(false);
+      }
+    };
+
+    loadOwners();
+    return () => { cancelled = true; };
+  }, [user?.id, user?.fullName, user?.email]);
+
+  const availableOwners = ownerOptions.some((owner) => owner.id === Number(formData.ownerId))
+    ? ownerOptions
+    : formData.ownerId
+      ? [{ id: Number(formData.ownerId), fullName: editingOwnerName || `Tài khoản #${formData.ownerId}`, email: '' }, ...ownerOptions]
+      : ownerOptions;
+
   const handleOpenAddModal = () => {
     setEditingId(null);
+    setEditingOwnerName('');
     setFormError('');
     setFormData({
       name: '',
@@ -60,6 +108,7 @@ const BuildingManagerPage = () => {
 
   const handleOpenEditModal = (building: BuildingDto) => {
     setEditingId(building.id);
+    setEditingOwnerName(building.ownerName || `Tài khoản #${building.ownerId}`);
     setFormError('');
     setFormData({
       name: building.name,
@@ -87,13 +136,13 @@ const BuildingManagerPage = () => {
     setFormError('');
 
     if (!formData.name.trim() || !formData.address.trim() || !formData.ownerId.trim()) {
-      setFormError('Vui lòng điền đầy đủ Tên, Địa chỉ và Chủ sở hữu (Owner ID).');
+      setFormError('Vui lòng điền tên, địa chỉ và chọn chủ sở hữu.');
       return;
     }
 
     const ownerIdNum = Number(formData.ownerId);
     if (!Number.isInteger(ownerIdNum) || ownerIdNum <= 0) {
-      setFormError('Owner ID phải là số nguyên hợp lệ.');
+      setFormError('Vui lòng chọn một tài khoản Admin hợp lệ.');
       return;
     }
 
@@ -258,17 +307,22 @@ const BuildingManagerPage = () => {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Owner ID (ID người dùng chủ sở hữu) *</label>
-                <input
-                  type="number"
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Chủ sở hữu *</label>
+                <select
                   required
-                  min={1}
                   value={formData.ownerId}
                   onChange={(e) => setFormData({ ...formData, ownerId: e.target.value })}
-                  placeholder="ID tài khoản Admin sở hữu tòa nhà"
                   className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-xs text-white outline-none"
-                />
-                <p className="text-[10px] text-slate-500 mt-1.5">Mặc định là ID của bạn ({user?.id}). Trang quản lý người dùng để chọn chủ sở hữu khác sẽ có ở nhóm sau.</p>
+                >
+                  <option value="" disabled>Chọn tài khoản Admin</option>
+                  {availableOwners.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.fullName}{owner.email ? ` — ${owner.email}` : ''}
+                    </option>
+                  ))}
+                </select>
+                {ownerLoading && <p className="text-[10px] text-slate-500 mt-1.5">Đang tải danh sách Admin…</p>}
+                {ownerError && <p className="text-[10px] text-amber-300 mt-1.5">{ownerError}</p>}
               </div>
 
               <div>

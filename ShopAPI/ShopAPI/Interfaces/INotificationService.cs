@@ -10,6 +10,8 @@ namespace ShopAPI.Interfaces
 
         NotificationDto Create(CreateNotificationDto dto, int createdByUserId);
 
+        int CreateForAllTenants(BroadcastNotificationDto dto, int createdByUserId);
+
         int RemindOverdue(int actorUserId);
 
         // Nhắc hóa đơn sắp đến hạn thanh toán (chưa quá hạn) — báo cả Tenant lẫn Admin/Staff

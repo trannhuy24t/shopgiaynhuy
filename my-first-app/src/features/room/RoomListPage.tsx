@@ -4,6 +4,7 @@ import { getAvailableRooms } from '../../api/room';
 import { getPublicRates } from '../../api/systemConfig';
 import { getApiErrorMessage, resolveImageUrl } from '../../api/client';
 import StatusBadge from '../../components/Common/StatusBadge';
+import ImageWithFallback from '../../components/Common/ImageWithFallback';
 import type { RoomDto } from '../../types/room';
 import type { PublicRatesDto } from '../../types/systemConfig';
 import { ArrowUpDown, Building2, Ruler, Search, Zap } from 'lucide-react';
@@ -20,6 +21,9 @@ const RoomListPage = () => {
   const [error, setError] = useState('');
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [minArea, setMinArea] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [publicRates, setPublicRates] = useState<PublicRatesDto | null>(null);
 
@@ -56,11 +60,14 @@ const RoomListPage = () => {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [rooms]);
 
-  const hasActiveFilters = selectedBuildingId !== 'all' || searchTerm.trim() !== '';
+  const hasActiveFilters = selectedBuildingId !== 'all' || searchTerm.trim() !== '' || minPrice !== '' || maxPrice !== '' || minArea !== '';
 
   const handleResetFilters = () => {
     setSelectedBuildingId('all');
     setSearchTerm('');
+    setMinPrice('');
+    setMaxPrice('');
+    setMinArea('');
     setSortBy('newest');
   };
 
@@ -76,9 +83,14 @@ const RoomListPage = () => {
       result = result.filter(
         (room) =>
           room.roomNumber.toLowerCase().includes(term) ||
-          (room.buildingName || '').toLowerCase().includes(term)
+          (room.buildingName || '').toLowerCase().includes(term) ||
+          (room.buildingAddress || '').toLowerCase().includes(term)
       );
     }
+
+    if (minPrice !== '') result = result.filter((room) => room.price >= Number(minPrice));
+    if (maxPrice !== '') result = result.filter((room) => room.price <= Number(maxPrice));
+    if (minArea !== '') result = result.filter((room) => room.area >= Number(minArea));
 
     switch (sortBy) {
       case 'price-asc':
@@ -94,7 +106,7 @@ const RoomListPage = () => {
     }
 
     return result;
-  }, [rooms, selectedBuildingId, searchTerm, sortBy]);
+  }, [rooms, selectedBuildingId, searchTerm, minPrice, maxPrice, minArea, sortBy]);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -149,7 +161,7 @@ const RoomListPage = () => {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
           <input
             type="text"
-            placeholder="Tìm theo số phòng, tòa nhà..."
+            placeholder="Tìm số phòng, tòa nhà, địa chỉ..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-11 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-200 transition-colors"
@@ -168,6 +180,12 @@ const RoomListPage = () => {
             <option value="price-desc" className="bg-slate-950">Giá: Cao đến Thấp</option>
           </select>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        <label className="text-xs text-slate-400">Giá từ (VND/tháng)<input type="number" min="0" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} className="mt-1 w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-orange-500" placeholder="Không giới hạn" /></label>
+        <label className="text-xs text-slate-400">Giá đến (VND/tháng)<input type="number" min="0" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} className="mt-1 w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-orange-500" placeholder="Không giới hạn" /></label>
+        <label className="text-xs text-slate-400">Diện tích tối thiểu (m²)<input type="number" min="0" value={minArea} onChange={(e) => setMinArea(e.target.value)} className="mt-1 w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-orange-500" placeholder="Không giới hạn" /></label>
       </div>
 
       {/* Giá điện/nước tham khảo */}
@@ -227,8 +245,8 @@ const RoomListPage = () => {
               className="group bg-slate-900 border border-slate-850 hover:border-orange-500/50 rounded-2xl overflow-hidden flex flex-col transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/5"
             >
               <div className="relative aspect-video overflow-hidden bg-slate-950">
-                <img
-                  src={resolveImageUrl(room.imageUrl) || 'https://via.placeholder.com/400x260?text=Ph%C3%B2ng+tr%E1%BB%8D'}
+                <ImageWithFallback
+                  src={resolveImageUrl(room.imageUrl)}
                   alt={room.roomNumber}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
                 />
@@ -241,6 +259,7 @@ const RoomListPage = () => {
                   <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black block mb-1 flex items-center gap-1">
                     <Building2 size={11} /> {room.buildingName || `Tòa nhà #${room.buildingId}`}
                   </span>
+                  {room.buildingAddress && <p className="text-xs text-slate-500 line-clamp-2 mb-1">{room.buildingAddress}</p>}
                   <h3 className="font-bold text-white group-hover:text-orange-500 text-base leading-snug transition-colors">
                     Phòng {room.roomNumber}
                   </h3>

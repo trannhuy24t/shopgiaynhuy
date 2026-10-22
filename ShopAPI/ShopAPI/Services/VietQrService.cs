@@ -17,11 +17,20 @@ namespace ShopAPI.Services
             _configuration = configuration;
         }
 
-        public string GeneratePayload(decimal amount, string addInfo)
+        public bool TryGeneratePayload(decimal amount, string addInfo, out string payload)
         {
-            var bankBin = GetConfigValue("BankBin", "VietQr:BankBin");
-            var accountNumber = GetConfigValue("BankAccountNumber", "VietQr:BankAccountNumber");
-            var accountName = GetConfigValue("BankAccountName", "VietQr:BankAccountName");
+            var bankBin = GetConfigValue("BankBin", "VietQr:BankBin").Trim();
+            var accountNumber = GetConfigValue("BankAccountNumber", "VietQr:BankAccountNumber").Trim();
+            var accountName = GetConfigValue("BankAccountName", "VietQr:BankAccountName").Trim();
+
+            payload = string.Empty;
+            if (amount <= 0 || amount != decimal.Truncate(amount) ||
+                !System.Text.RegularExpressions.Regex.IsMatch(bankBin, @"^[0-9]{6}$") ||
+                !System.Text.RegularExpressions.Regex.IsMatch(accountNumber, @"^[0-9]{1,19}$") ||
+                string.IsNullOrWhiteSpace(accountName))
+            {
+                return false;
+            }
 
             var beneficiaryInfo = Tlv("00", bankBin) + Tlv("01", accountNumber);
 
@@ -48,7 +57,8 @@ namespace ShopAPI.Services
             sb.Append("6304");
             sb.Append(Crc16Ccitt(sb.ToString()));
 
-            return sb.ToString();
+            payload = sb.ToString();
+            return true;
         }
 
         private string GetConfigValue(string systemConfigKey, string appSettingsKey)

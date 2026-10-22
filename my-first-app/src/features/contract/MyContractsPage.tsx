@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { getMyContracts, getContract } from '../../api/contract';
+import { getMyContracts, getContract, cancelContractRequest } from '../../api/contract';
 import { getRoom } from '../../api/room';
 import { getApiErrorMessage } from '../../api/client';
 import StatusBadge from '../../components/Common/StatusBadge';
 import OccupantManager from '../../components/Common/OccupantManager';
 import type { ContractDto } from '../../types/contract';
 import type { RoomDto } from '../../types/room';
-import { FileText, X } from 'lucide-react';
+import { FileText, X, Printer } from 'lucide-react';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -25,6 +25,7 @@ const MyContractsPage = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
   const [detailRoom, setDetailRoom] = useState<RoomDto | null>(null);
+  const [cancelingId, setCancelingId] = useState<number | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -61,6 +62,20 @@ const MyContractsPage = () => {
     }
   };
 
+  const handleCancelRequest = async (id: number) => {
+    if (!window.confirm('Hủy yêu cầu thuê phòng đang chờ duyệt?')) return;
+    setCancelingId(id);
+    try {
+      await cancelContractRequest(id);
+      const res = await getMyContracts();
+      setContracts(res.data);
+    } catch (err) {
+      alert(getApiErrorMessage(err, 'Không thể hủy yêu cầu thuê phòng.'));
+    } finally {
+      setCancelingId(null);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="mb-8">
@@ -92,7 +107,7 @@ const MyContractsPage = () => {
       {!loading && !error && contracts.length > 0 && (
         <div className="space-y-4">
           {contracts.map((c) => (
-            <div key={c.id} className="bg-slate-900 border border-slate-850 p-5 sm:p-6 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div key={c.id} id={`contract-${c.id}`} className="bg-slate-900 border border-slate-850 p-5 sm:p-6 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
                   <h4 className="font-bold text-white text-sm sm:text-base">Phòng {c.roomNumber || `#${c.roomId}`}</h4>
@@ -102,7 +117,7 @@ const MyContractsPage = () => {
                   {formatDate(c.startDate)} — {formatDate(c.endDate)}
                 </p>
               </div>
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
                 <div className="text-right">
                   <span className="text-[10px] text-slate-500 block font-semibold">Giá thuê / tháng</span>
                   <span className="text-base font-extrabold text-orange-500">{formatPrice(c.monthlyRent)}</span>
@@ -113,6 +128,7 @@ const MyContractsPage = () => {
                 >
                   Xem chi tiết
                 </button>
+                {c.status === 'ChoDuyet' && <button onClick={() => handleCancelRequest(c.id)} disabled={cancelingId === c.id} className="bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 disabled:opacity-50 font-bold px-4 py-2.5 rounded-xl text-xs cursor-pointer">{cancelingId === c.id ? 'Đang hủy...' : 'Hủy yêu cầu'}</button>}
               </div>
             </div>
           ))}
@@ -123,10 +139,10 @@ const MyContractsPage = () => {
       {(detailLoading || detail || detailError) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setDetail(null); setDetailRoom(null); setDetailError(''); }} />
-          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl animate-scale-up max-h-[90vh] overflow-y-auto">
+          <div className="print-contract relative bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl animate-scale-up max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => { setDetail(null); setDetailRoom(null); setDetailError(''); }}
-              className="absolute top-4 right-4 p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="print-hide absolute top-4 right-4 p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
               <X size={20} />
             </button>
@@ -145,9 +161,12 @@ const MyContractsPage = () => {
 
             {detail && !detailLoading && (
               <div className="space-y-4 text-sm">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
                   <h3 className="font-bold text-lg text-white">Hợp đồng #{detail.id}</h3>
                   <StatusBadge entity="contract" value={detail.status} />
+                  </div>
+                  <button onClick={() => window.print()} className="print-hide flex items-center gap-1 rounded-lg border border-slate-700 px-2.5 py-2 text-xs text-slate-300 hover:text-white"><Printer size={14} /> In</button>
                 </div>
                 <div className="bg-slate-950 p-4 rounded-xl space-y-2 border border-slate-850 text-slate-300">
                   <p><span className="text-slate-500 font-bold uppercase block text-[10px] tracking-wider mb-0.5">Phòng</span> {detail.roomNumber || `#${detail.roomId}`}</p>
@@ -156,7 +175,7 @@ const MyContractsPage = () => {
                   <p><span className="text-slate-500 font-bold uppercase block text-[10px] tracking-wider mb-0.5">Ngày tạo</span> {formatDate(detail.createdAt)}</p>
                 </div>
 
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-850">
+                <div className="print-hide bg-slate-950 p-4 rounded-xl border border-slate-850">
                   <span className="text-slate-500 font-bold uppercase block text-[10px] tracking-wider mb-2.5">Các khoản tiền</span>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">

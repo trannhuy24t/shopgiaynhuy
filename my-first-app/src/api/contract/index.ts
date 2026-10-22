@@ -5,6 +5,7 @@ import type {
     ApproveContractPayload,
     RejectContractPayload,
     SetContractUnitPricePayload,
+    ExtendContractPayload,
 } from "../../types/contract";
 import type { ApiMessageResponse } from "../../types/common";
 
@@ -16,6 +17,10 @@ export const requestContract = (data: RequestContractPayload) => {
 // Tenant — hợp đồng của chính mình
 export const getMyContracts = () => {
     return api.get<ContractDto[]>("/Contract/my");
+};
+
+export const cancelContractRequest = (id: number) => {
+    return api.put<ApiMessageResponse>(`/Contract/${id}/cancel`, {});
 };
 
 // Admin, Staff — toàn bộ hợp đồng, lọc theo trạng thái
@@ -41,6 +46,10 @@ export const rejectContract = (id: number, data: RejectContractPayload) => {
 // Admin, Staff — kết thúc hợp đồng
 export const terminateContract = (id: number) => {
     return api.put<ApiMessageResponse>(`/Contract/${id}/terminate`, {});
+};
+
+export const extendContract = (id: number, data: ExtendContractPayload) => {
+    return api.put<ApiMessageResponse>(`/Contract/${id}/extend`, data);
 };
 
 // Admin — gán/sửa đơn giá điện/nước cho hợp đồng đang hiệu lực (không cần qua lại approve),

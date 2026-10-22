@@ -14,11 +14,15 @@ namespace ShopAPI.Interfaces
 
         ContractDto? Request(int userId, RequestContractDto dto);
 
+        bool CancelRequest(int contractId, int userId);
+
         bool Approve(int contractId, ApproveContractDto dto, int approverUserId);
 
         bool Reject(int contractId, RejectContractDto dto, int approverUserId);
 
         bool Terminate(int contractId, int actorUserId);
+
+        bool Extend(int contractId, ExtendContractDto dto, int actorUserId);
 
         // Gán/sửa đơn giá điện/nước cho hợp đồng đang DangHieuLuc mà chưa có (hoặc cần điều
         // chỉnh) mà không phải quay lại bước approve — tự thông báo cho Tenant khi thành công.

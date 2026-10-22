@@ -15,6 +15,7 @@ namespace ShopAPI.Interfaces
 
         (InvoiceDto? Invoice, string? Error) CreateMonthly(CreateInvoiceDto dto, int staffUserId);
 
+
         // Called by ContractService right after a contract is approved.
         Invoice CreateDepositInvoice(int contractId, DateTime startDate, decimal depositAmount);
     }

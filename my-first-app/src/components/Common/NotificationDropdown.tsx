@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyNotifications, markNotificationRead } from '../../api/notification';
+import { getApiErrorMessage } from '../../api/client';
 import { useNotificationCount } from '../../context/NotificationContext';
+import { useAuth } from '../../context/useAuth';
+import { getNotificationTarget } from '../../utils/notificationTarget';
 import StatusBadge from './StatusBadge';
 import type { NotificationDto } from '../../types/notification';
 import { Bell, CheckCheck } from 'lucide-react';
@@ -29,9 +32,12 @@ const formatRelativeTime = (iso: string) => {
 const NotificationDropdown = () => {
   const navigate = useNavigate();
   const { unreadCount, refreshUnreadCount } = useNotificationCount();
+  const { user } = useAuth();
+  const isStaff = user?.role === 'Admin' || user?.role === 'Staff';
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [markingAll, setMarkingAll] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -48,17 +54,24 @@ const NotificationDropdown = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
+  const loadNotifications = async () => {
+    setLoading(true);
+    setLoadError('');
+    try {
+      const res = await getMyNotifications();
+      setNotifications(res.data);
+    } catch (err) {
+      setNotifications([]);
+      setLoadError(getApiErrorMessage(err, 'Không thể tải thông báo. Vui lòng thử lại.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleToggle = () => {
     const next = !open;
     setOpen(next);
-
-    if (next) {
-      setLoading(true);
-      getMyNotifications()
-        .then((res) => setNotifications(res.data))
-        .catch(() => setNotifications([]))
-        .finally(() => setLoading(false));
-    }
+    if (next) void loadNotifications();
   };
 
   const handleMarkRead = async (n: NotificationDto) => {
@@ -87,6 +100,12 @@ const NotificationDropdown = () => {
   const handleViewAll = () => {
     setOpen(false);
     navigate('/thong-bao');
+  };
+
+  const handleOpenNotification = async (notification: NotificationDto) => {
+    await handleMarkRead(notification);
+    setOpen(false);
+    navigate(getNotificationTarget(notification, isStaff) ?? '/thong-bao');
   };
 
   const preview = notifications.slice(0, PREVIEW_LIMIT);
@@ -133,18 +152,31 @@ const NotificationDropdown = () => {
               </div>
             )}
 
-            {!loading && preview.length === 0 && (
+            {!loading && loadError && (
+              <div className="py-8 px-4 text-center" role="alert">
+                <p className="mb-3 text-xs text-red-400">{loadError}</p>
+                <button
+                  type="button"
+                  onClick={() => void loadNotifications()}
+                  className="text-xs font-bold text-orange-400 hover:text-orange-300"
+                >
+                  Thử tải lại
+                </button>
+              </div>
+            )}
+
+            {!loading && !loadError && preview.length === 0 && (
               <div className="py-10 text-center">
                 <Bell className="w-8 h-8 text-slate-700 mx-auto mb-2" />
                 <p className="text-slate-500 text-xs">Bạn chưa có thông báo nào.</p>
               </div>
             )}
 
-            {!loading &&
+            {!loading && !loadError &&
               preview.map((n) => (
                 <button
                   key={n.id}
-                  onClick={() => handleMarkRead(n)}
+                  onClick={() => handleOpenNotification(n)}
                   className={`w-full text-left px-4 py-3 border-b border-slate-850/60 last:border-b-0 transition-colors cursor-pointer hover:bg-slate-850/40 ${
                     n.isRead ? '' : 'bg-slate-850/20'
                   }`}

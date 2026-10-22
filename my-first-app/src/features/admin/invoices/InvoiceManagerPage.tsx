@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getInvoices } from '../../../api/invoice';
-import { confirmPayment } from '../../../api/payment';
+import { confirmPayment, getPaymentsByInvoice, confirmTransfer, rejectTransfer } from '../../../api/payment';
 import { remindOverdue, remindUpcomingInvoices } from '../../../api/notification';
 import { getApiErrorMessage } from '../../../api/client';
 import { notifyTenantByContract } from '../../../utils/notifyTenant';
 import StatusBadge from '../../../components/Common/StatusBadge';
 import { statusMaps } from '../../../constants/statusLabels';
 import type { InvoiceDto } from '../../../types/invoice';
-import type { PaymentMethod } from '../../../types/payment';
-import { Plus, Receipt, BellRing, X } from 'lucide-react';
+import type { PaymentDto, PaymentMethod } from '../../../types/payment';
+import { Plus, Receipt, BellRing, X, History, Layers } from 'lucide-react';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -29,6 +29,10 @@ const InvoiceManagerPage = () => {
   const [transactionRef, setTransactionRef] = useState('');
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState('');
+
+  const [historyTarget, setHistoryTarget] = useState<InvoiceDto | null>(null);
+  const [payments, setPayments] = useState<PaymentDto[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const [reminding, setReminding] = useState(false);
   const [remindResult, setRemindResult] = useState('');
@@ -51,6 +55,45 @@ const InvoiceManagerPage = () => {
     loadInvoices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus]);
+
+  const openHistoryModal = async (invoice: InvoiceDto) => {
+    setHistoryTarget(invoice);
+    setPayments([]);
+    setLoadingHistory(true);
+    try {
+      const res = await getPaymentsByInvoice(invoice.id);
+      setPayments(res.data);
+    } catch {
+      setPayments([]);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleTransferDecision = async (payment: PaymentDto, approve: boolean) => {
+    try {
+      if (approve) {
+        await confirmTransfer(payment.id);
+        if (historyTarget) {
+          notifyTenantByContract(historyTarget.contractId, {
+            title: 'Đã xác nhận chuyển khoản',
+            content: `Giao dịch ${payment.transactionRef || ''} cho hóa đơn kỳ ${historyTarget.month}/${historyTarget.year} đã được xác nhận.`,
+            type: 'ThongBaoChung',
+          });
+        }
+      } else {
+        if (!window.confirm('Từ chối giao dịch chuyển khoản này?')) return;
+        await rejectTransfer(payment.id);
+      }
+      if (historyTarget) {
+        const res = await getPaymentsByInvoice(historyTarget.id);
+        setPayments(res.data);
+      }
+      await loadInvoices();
+    } catch (err) {
+      alert(getApiErrorMessage(err, 'Không cập nhật được giao dịch.'));
+    }
+  };
 
   const openConfirmModal = (invoice: InvoiceDto) => {
     setConfirmTarget(invoice);
@@ -128,7 +171,7 @@ const InvoiceManagerPage = () => {
           </span>
           <h1 className="text-3xl font-black text-white tracking-tight uppercase">Quản lý hóa đơn</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={handleRemindOverdue}
             disabled={reminding}
@@ -149,6 +192,12 @@ const InvoiceManagerPage = () => {
             className="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-bold px-5 py-3 rounded-2xl flex items-center gap-1.5 transition-all shadow-lg shadow-orange-500/10 cursor-pointer"
           >
             <Plus size={16} /> Tạo hóa đơn mới
+          </Link>
+          <Link
+            to="/admin/invoices/tao-hang-loat"
+            className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-xs font-bold px-4 py-3 rounded-2xl flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <Layers size={15} /> Tạo hàng loạt
           </Link>
         </div>
       </div>
@@ -238,21 +287,66 @@ const InvoiceManagerPage = () => {
                     <td className="p-5 font-medium text-slate-500">{formatDate(inv.dueDate)}</td>
                     <td className="p-5"><StatusBadge entity="invoiceStatus" value={inv.status} /></td>
                     <td className="p-5 text-center">
-                      {(inv.status === 'ChuaThanhToan' || inv.status === 'QuaHan') ? (
+                      <div className="flex justify-center gap-2 flex-wrap">
                         <button
-                          onClick={() => openConfirmModal(inv)}
-                          className="bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
+                          onClick={() => openHistoryModal(inv)}
+                          className="bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer flex items-center gap-1"
                         >
-                          Xác nhận thanh toán
+                          <History size={11} /> Lịch sử
                         </button>
-                      ) : (
-                        <span className="text-slate-600 text-[10px]">—</span>
-                      )}
+                        {(inv.status === 'ChuaThanhToan' || inv.status === 'QuaHan') && (
+                          <button
+                            onClick={() => openConfirmModal(inv)}
+                            className="bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
+                          >
+                            Xác nhận TT
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Modal lịch sử thanh toán */}
+      {historyTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setHistoryTarget(null)} />
+          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg p-6 sm:p-8 shadow-2xl">
+            <button onClick={() => setHistoryTarget(null)} className="absolute top-4 right-4 p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white cursor-pointer">
+              <X size={20} />
+            </button>
+            <h3 className="font-bold text-xl text-white uppercase tracking-wide mb-1">Lịch sử thanh toán</h3>
+            <p className="text-xs text-slate-500 mb-6">Phòng {historyTarget.roomNumber} — Kỳ {historyTarget.month}/{historyTarget.year}</p>
+
+            {loadingHistory ? (
+              <div className="flex justify-center py-8">
+                <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : payments.length === 0 ? (
+              <p className="text-slate-500 text-sm text-center py-8">Chưa có giao dịch thanh toán nào.</p>
+            ) : (
+              <div className="space-y-3">
+                {payments.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between bg-slate-800/50 border border-slate-700 rounded-2xl px-4 py-3">
+                    <div>
+                      <p className="text-white font-bold text-sm">{formatPrice(p.amount)}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{statusMaps.paymentMethod[p.method as keyof typeof statusMaps.paymentMethod]?.label ?? p.method}</p>
+                      {p.transactionRef && <p className="text-[10px] text-slate-500 mt-0.5">Mã: {p.transactionRef}</p>}
+                      <p className={`text-[10px] font-bold mt-1 ${p.status === 'ChoXacNhan' ? 'text-amber-400' : p.status === 'TuChoi' ? 'text-red-400' : 'text-green-400'}`}>{p.status === 'ChoXacNhan' ? 'Chờ xác nhận' : p.status === 'TuChoi' ? 'Đã từ chối' : 'Đã xác nhận'}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <p className="text-xs text-slate-400">{formatDate(p.paymentDate)}</p>
+                      {p.status === 'ChoXacNhan' && <div className="flex gap-2"><button onClick={() => handleTransferDecision(p, true)} className="rounded-lg bg-green-500/10 px-2.5 py-1.5 text-[10px] font-bold text-green-400">Xác nhận</button><button onClick={() => handleTransferDecision(p, false)} className="rounded-lg bg-red-500/10 px-2.5 py-1.5 text-[10px] font-bold text-red-400">Từ chối</button></div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -42,4 +42,10 @@ namespace ShopAPI.DTOs
         [Range(0, double.MaxValue, ErrorMessage = "Đơn giá nước không được âm.")]
         public decimal WaterUnitPrice { get; set; }
     }
+
+    public class ExtendContractDto
+    {
+        [Required]
+        public DateTime EndDate { get; set; }
+    }
 }

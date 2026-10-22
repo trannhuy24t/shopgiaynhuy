@@ -6,6 +6,7 @@ export const createInvoice = (data: CreateInvoicePayload) => {
     return api.post<InvoiceDto>("/Invoice", data);
 };
 
+
 // Tenant — hóa đơn của tôi
 export const getMyInvoices = () => {
     return api.get<InvoiceDto[]>("/Invoice/my");

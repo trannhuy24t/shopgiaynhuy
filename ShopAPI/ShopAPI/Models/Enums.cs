@@ -2,7 +2,7 @@ namespace ShopAPI.Models
 {
     public enum RoomStatus { Trong, DaThue, DangSua }
 
-    public enum ContractStatus { ChoDuyet, TuChoi, ChoCoc, DangHieuLuc, DaKetThuc }
+    public enum ContractStatus { ChoDuyet, TuChoi, ChoCoc, DangHieuLuc, DaKetThuc, DaHuy }
 
     public enum InvoiceType { Coc, HangThang }
 

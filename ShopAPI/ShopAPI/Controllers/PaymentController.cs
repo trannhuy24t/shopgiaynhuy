@@ -40,6 +40,14 @@ namespace ShopAPI.Controllers
             return Ok(qr);
         }
 
+        [Authorize(Roles = "Tenant")]
+        [HttpPost("submit-transfer")]
+        public IActionResult SubmitTransfer(SubmitTransferDto dto)
+        {
+            var result = _paymentService.SubmitTransfer(dto, GetUserId());
+            return result.Success ? Ok(new { message = result.Message }) : BadRequest(new { message = result.Message });
+        }
+
         [HttpGet("invoice/{invoiceId}")]
         public IActionResult GetByInvoice(int invoiceId)
         {
@@ -68,6 +76,22 @@ namespace ShopAPI.Controllers
             }
 
             return Ok(new { message = "Xác nhận thanh toán thành công." });
+        }
+
+        [Authorize(Roles = "Staff,Admin")]
+        [HttpPut("{paymentId}/confirm-transfer")]
+        public IActionResult ConfirmTransfer(int paymentId)
+        {
+            var result = _paymentService.ConfirmTransfer(paymentId, GetUserId());
+            return result ? Ok(new { message = "Đã xác nhận giao dịch chuyển khoản." }) : BadRequest(new { message = "Giao dịch không còn chờ xác nhận hoặc số tiền không khớp." });
+        }
+
+        [Authorize(Roles = "Staff,Admin")]
+        [HttpPut("{paymentId}/reject-transfer")]
+        public IActionResult RejectTransfer(int paymentId)
+        {
+            var result = _paymentService.RejectTransfer(paymentId, GetUserId());
+            return result ? Ok(new { message = "Đã từ chối giao dịch." }) : BadRequest(new { message = "Giao dịch không còn chờ xác nhận." });
         }
     }
 }

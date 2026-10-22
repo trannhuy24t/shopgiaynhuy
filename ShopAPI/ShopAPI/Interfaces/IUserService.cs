@@ -6,6 +6,10 @@ namespace ShopAPI.Interfaces
     {
         List<UserDto> GetAll(string? role);
 
+        List<StaffOptionDto> GetStaffOptions();
+
+        bool IsStaff(int id);
+
         UserDto? GetById(int id);
 
         UserDto? CreateStaff(CreateStaffDto dto);

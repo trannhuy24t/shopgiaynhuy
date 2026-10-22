@@ -12,10 +12,12 @@ namespace ShopAPI.Controllers
     public class MaintenanceController : ControllerBase
     {
         private readonly IMaintenanceRequestService _requestService;
+        private readonly IUserService _userService;
 
-        public MaintenanceController(IMaintenanceRequestService requestService)
+        public MaintenanceController(IMaintenanceRequestService requestService, IUserService userService)
         {
             _requestService = requestService;
+            _userService = userService;
         }
 
         private int GetUserId()
@@ -90,6 +92,26 @@ namespace ShopAPI.Controllers
             return Ok(requests);
         }
 
+        [Authorize(Roles = "Tenant")]
+        [HttpPut("{id}/cancel")]
+        public IActionResult CancelOwn(int id)
+        {
+            var result = _requestService.CancelOwn(id, GetUserId());
+            return result
+                ? Ok(new { message = "Đã hủy yêu cầu bảo trì." })
+                : BadRequest(new { message = "Yêu cầu đã bắt đầu xử lý hoặc không thuộc về bạn nên không thể hủy." });
+        }
+
+        [Authorize(Roles = "Tenant")]
+        [HttpPost("{id}/reply")]
+        public IActionResult Reply(int id, MaintenanceReplyDto dto)
+        {
+            var result = _requestService.AddTenantReply(id, GetUserId(), dto.Message);
+            return result
+                ? Ok(new { message = "Đã gửi phản hồi cho quản lý." })
+                : BadRequest(new { message = "Không thể gửi phản hồi cho yêu cầu này." });
+        }
+
         [Authorize(Roles = "Staff,Admin")]
         [HttpGet]
         public IActionResult GetAll([FromQuery] string? status)
@@ -124,6 +146,11 @@ namespace ShopAPI.Controllers
         [HttpPut("{id}/assign")]
         public IActionResult Assign(int id, AssignMaintenanceDto dto)
         {
+            if (!_userService.IsStaff(dto.AssignedToUserId))
+            {
+                return BadRequest(new { message = "Chỉ có thể phân công yêu cầu cho tài khoản nhân viên." });
+            }
+
             var result = _requestService.Assign(id, dto, GetUserId());
 
             if (!result)

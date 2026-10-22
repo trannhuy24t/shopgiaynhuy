@@ -19,19 +19,21 @@ sang quản lý nhà trọ/chung cư mini). Cập nhật sau mỗi phần chức
 
 ## 2. Auth & Role
 
-Đăng nhập/đăng ký giữ nguyên cơ chế cũ trong `context/AuthContext.tsx` (không đổi logic),
-chỉ thêm 2 field suy ra từ `user.role`: `isAuthenticated`, `isAdmin`.
+Đăng nhập/đăng ký đi qua `context/AuthContext.tsx`, nơi lưu phiên đăng nhập và cập nhật trạng
+thái giao diện ngay sau khi xác thực. Đăng ký mới tạo tài khoản `Tenant`; tài khoản `User` cũ
+được chuyển sang `Tenant` khi đăng nhập thành công.
 
 | Role | Ý nghĩa | Ghi chú |
 |---|---|---|
 | `Admin` | Chủ trọ | Toàn quyền |
 | `Staff` | Nhân viên quản lý | Không có quyền Report, User, SystemConfig, Building |
 | `Tenant` | Khách thuê | Chỉ thấy dữ liệu của chính mình |
-| `User` | Mặc định khi `/auth/register` | Chưa dùng được gì — Admin đổi role qua trang Quản lý người dùng (`/admin/users`) hoặc `PUT /api/user/{id}/role` |
+| `User` | Role cũ còn trong dữ liệu | Được chuyển sang `Tenant` khi đăng nhập; Admin có thể đổi role ở `/admin/users` hoặc `PUT /api/User/{id}/role` |
 
 Bảo vệ route theo role dùng component `RoleRoute` (trong [`App.tsx`](src/App.tsx)), nhận
 `roles: Role[]`. `PrivateRoute` dùng cho trang chỉ cần đăng nhập, không phân biệt role (VD
-Thông báo). Không đụng tới cơ chế Auth/Login gốc.
+Thông báo). Nếu tài khoản không có quyền, giao diện hiện trang giải thích thay vì hộp thoại
+trình duyệt.
 
 **Bug đã sửa (2026-08-22)**: `LoginPage.tsx` trước đây gọi thẳng `api/auth` và tự ghi
 `localStorage`, không qua `AuthContext` nên `user` trong React không đổi cho tới khi F5. Đã sửa
@@ -65,8 +67,8 @@ source) cho từng nhóm.
 
 | Trang | Route | Role | API |
 |---|---|---|---|
-| Danh sách phòng trống | `/rooms` | Công khai | `GET /Room/available` |
-| Chi tiết phòng | `/rooms/:id` | Công khai | `GET /Room/{id}` |
+| Danh sách phòng trống | `/rooms` | Công khai | `GET /Room/available`, `GET /SystemConfig/public-rates` |
+| Chi tiết phòng | `/rooms/:id` | Công khai | `GET /Room/{id}`, `GET /SystemConfig/public-rates` |
 | Quản lý phòng | `/admin/rooms` | Admin (đủ CRUD), Staff (xem + đổi trạng thái) | `GET/POST/PUT /Room`, `PUT /Room/status`, `POST /Room/upload`, `PUT /Room/{id}/upload`, `DELETE /Room/{id}` |
 | Quản lý tòa nhà | `/admin/buildings` | Admin | `GET/POST/PUT/DELETE /Building` |
 
@@ -83,6 +85,8 @@ giữ nguyên, gửi ảnh mới → cập nhật đúng.
 
 | Trang | Route | Role | API |
 |---|---|---|---|
+| Đăng ký | `/dang-ky` | Công khai | `POST /Auth/register` |
+| Tài khoản | `/tai-khoan` | Đã đăng nhập | `POST /Auth/change-password`, `PUT /User/profile` |
 | Hồ sơ khách thuê | `/ho-so` | Tenant | `GET/PUT /Tenant/me` |
 
 Xử lý riêng: `GET /Tenant/me` trả 404 khi chưa có hồ sơ → không coi là lỗi, hiện form trống để
@@ -93,8 +97,8 @@ tạo mới (cùng 1 form Upsert). File API: [`api/tenant`](src/api/tenant/index
 | Trang | Route | Role | API |
 |---|---|---|---|
 | Form đăng ký thuê (kèm hồ sơ tenant) | `/thue/:roomId` | Tenant | `POST /Contract/request` |
-| Hợp đồng của tôi | `/hop-dong-cua-toi` | Tenant | `GET /Contract/my`, `GET /Contract/{id}` |
-| Quản lý hợp đồng | `/admin/contracts` | Admin (duyệt/từ chối/kết thúc), Staff (xem + kết thúc) | `GET /Contract?status=`, `PUT /Contract/{id}/approve\|reject\|terminate` |
+| Hợp đồng của tôi | `/hop-dong-cua-toi` | Tenant | `GET /Contract/my`, `GET /Contract/{id}`, `PUT /Contract/{id}/cancel` |
+| Quản lý hợp đồng | `/admin/contracts` | Admin (duyệt/từ chối/gia hạn/gán giá), Staff (xem + kết thúc) | `GET /Contract?status=`, `PUT /Contract/{id}/approve\|reject\|terminate\|extend\|set-unit-price` |
 
 File API: [`api/contract`](src/api/contract/index.ts). Đã verify: request → duyệt → hệ thống
 tự tạo hóa đơn cọc (`type: Coc`, `status: ChuaThanhToan`) khớp 100% với `types/invoice.ts`.
@@ -148,15 +152,19 @@ Dữ liệu test (hợp đồng, tài khoản Tenant tạm) đã dọn sạch sa
 
 | Trang | Route | Role | API |
 |---|---|---|---|
-| Hóa đơn của tôi + QR thanh toán | `/hoa-don-cua-toi` | Tenant | `GET /Invoice/my`, `GET /Payment/qr/{invoiceId}` |
+| Hóa đơn của tôi + thanh toán chuyển khoản | `/hoa-don-cua-toi` | Tenant | `GET /Invoice/my`, `GET /Payment/qr/{invoiceId}`, `POST /Payment/submit-transfer` |
 | Tạo hóa đơn hàng tháng | `/admin/invoices/tao-moi` | Admin, Staff | `GET /Contract?status=DangHieuLuc`, `GET /SystemConfig` (chỉ Admin, xem lưu ý), `POST /Invoice` |
-| Quản lý hóa đơn + xác nhận thanh toán + nhắc nợ | `/admin/invoices` | Admin, Staff | `GET /Invoice?status=`, `PUT /Payment/confirm-cash`, `POST /Notification/remind-overdue\|remind-upcoming-invoices` |
+| Quản lý hóa đơn + xác nhận giao dịch + nhắc nợ | `/admin/invoices` | Admin, Staff | `GET /Invoice?status=`, `PUT /Payment/confirm-cash`, `PUT /Payment/{id}/confirm-transfer\|reject-transfer`, `POST /Notification/remind-overdue\|remind-upcoming-invoices` |
 
 File API: [`api/invoice`](src/api/invoice/index.ts), [`api/payment`](src/api/payment/index.ts),
 [`api/systemConfig`](src/api/systemConfig/index.ts) (rút gọn, chỉ GET).
 
 **Cài thêm dependency** (đã được duyệt): `qrcode` + `@types/qrcode` — render payload VietQR
 (chuỗi EMV) thành ảnh QR ngay trên trình duyệt, không gọi dịch vụ ngoài.
+
+Nếu tài khoản ngân hàng chưa được cấu hình đầy đủ, `GET /Payment/qr/{invoiceId}` trả
+`isAvailable: false` và hướng dẫn liên hệ ban quản lý; khách vẫn gửi mã tham chiếu qua
+`POST /Payment/submit-transfer` để Admin/Staff xác nhận thủ công.
 
 **Lưu ý lệch spec đã xác nhận với bạn**: `GET /SystemConfig` chỉ role `Admin` gọi được (Staff bị
 403). Xử lý: Admin tạo hóa đơn thì form tự điền giá điện/nước/phí dịch vụ; Staff tự nhập tay, có
@@ -296,16 +304,15 @@ Live-test: `curl /api/SystemConfig/public-rates` không cần token → trả đ
 | Trang | Route | Role | API |
 |---|---|---|---|
 | Gửi yêu cầu bảo trì | `/yeu-cau-bao-tri/moi` | Tenant | `POST /Maintenance`, `POST /Maintenance/upload` |
-| Yêu cầu của tôi | `/yeu-cau-cua-toi` | Tenant | `GET /Maintenance/my` |
-| Quản lý bảo trì (phân công, cập nhật trạng thái) | `/admin/maintenance` | Admin, Staff | `GET /Maintenance?status=`, `PUT /Maintenance/{id}/assign\|status` |
+| Yêu cầu của tôi | `/yeu-cau-cua-toi` | Tenant | `GET /Maintenance/my`, `PUT /Maintenance/{id}/cancel`, `POST /Maintenance/{id}/reply` |
+| Quản lý bảo trì (phân công, cập nhật trạng thái) | `/admin/maintenance` | Admin, Staff | `GET /Maintenance?status=`, `GET /User/staff-options`, `PUT /Maintenance/{id}/assign\|status` |
 
 File API: [`api/maintenance`](src/api/maintenance/index.ts),
-[`api/user`](src/api/user/index.ts) (`getUsers(role?)`).
+[`api/user`](src/api/user/index.ts) (`getStaffOptions()`).
 
-**Lưu ý lệch spec (cùng dạng SystemConfig)**: `GET /User` cũng chỉ role `Admin` gọi được — Staff
-bị 403 khi cần lấy danh sách nhân viên để phân công. Xử lý: Admin thấy dropdown chọn nhân viên
-đầy đủ; Staff nhập tay ID nhân viên (có banner giải thích), `PUT /Maintenance/{id}/assign` vẫn
-hoạt động bình thường cho Staff.
+Endpoint `GET /User/staff-options` dành cho Admin/Staff, chỉ trả ID và tên nhân viên để phân
+công; không mở danh sách email hoặc số điện thoại. API kiểm tra người nhận thuộc role `Staff`
+trước khi lưu phân công. Cả Admin và Staff đều chọn nhân viên theo tên trong giao diện.
 
 Live-test xác nhận đúng: Tenant gửi yêu cầu → Staff tự phân công → trạng thái tự chuyển
 `Moi → DaPhanCong` → cập nhật `DangXuLy → HoanThanh` kèm ghi chú → Tenant thấy đúng
@@ -316,12 +323,16 @@ Live-test xác nhận đúng: Tenant gửi yêu cầu → Staff tự phân công
 | Trang | Route | Role | API |
 |---|---|---|---|
 | Thông báo của tôi | `/thong-bao` | Bất kỳ user đã đăng nhập (không giới hạn role — đúng như backend) | `GET /Notification/my`, `PUT /Notification/{id}/read` |
+| Gửi thông báo | `/admin/notifications` | Admin, Staff | `GET /Tenant`, `POST /Notification`, `POST /Notification/broadcast` |
 
 File API: [`api/notification`](src/api/notification/index.ts). Dùng `PrivateRoute` vì
 `NotificationController` không giới hạn role cho 2 endpoint này. Icon chuông trên Header hiện
 cho mọi user đã đăng nhập. Nút **"Đọc tất cả"** (không có endpoint bulk ở backend — gọi song
 song `PUT /Notification/{id}/read` cho từng thông báo chưa đọc qua `Promise.allSettled`, báo lỗi
 nếu có cái thất bại).
+
+Trang gửi thông báo nhận danh sách khách thuê qua `GET /Tenant`; nếu tải lỗi sẽ báo lỗi và cho
+thử lại. `POST /Notification/broadcast` nhận `title`, `content`, `type` và không cần `userId`.
 
 ### User/SystemConfig/Report
 
@@ -447,15 +458,16 @@ Build sạch sau khi dọn, bundle giảm từ 846KB → 803KB.
 3. **Tài khoản test đã tạo sẵn, dùng được ngay** (email nội bộ `@test.local`):
    - Tenant (đã có hồ sơ khách thuê): `schema.probe2.trohub@test.local` / `Test@12345`
    - Staff: `staff.probe.trohub@test.local` / `Test@12345`
-4. Đăng ký tài khoản mới qua `/login` sẽ có role mặc định `User`, chưa dùng được trang nào
-   ngoài `/rooms`, `/rooms/:id` — vào `/admin/users` (role Admin) để đổi role.
+4. Đăng ký tài khoản mới qua `/dang-ky` sẽ tạo role `Tenant`; người thuê có thể bổ sung hồ sơ ở
+   `/ho-so` và gửi yêu cầu thuê từ trang chi tiết phòng.
 5. ⚠️ DB dev từng bị reset khi backend đổi migration — nếu tài khoản test ở trên biến mất/login
    báo lỗi, khả năng cao DB vừa bị recreate, cần tạo lại.
 
 ## 10. Giới hạn / việc còn để ngỏ
 
-- Chưa có component Toast/Notification dùng chung trong project — các trang mới dùng banner lỗi
-  inline (cùng kiểu `LoginPage` đang dùng) thay vì toast như spec ban đầu giả định.
-- Tên thương hiệu "TROHUB" là tên tạm (đổi ở [`App.tsx`](src/App.tsx), 1 chỗ).
-- Chưa live-test `terminate` hợp đồng qua UI để tránh phá dữ liệu seed/fixture đang dùng chung
-  cho nhiều lần test — logic gọi API giống hệt pattern approve/reject đã verify nên rủi ro thấp.
+- Khôi phục mật khẩu qua email chưa khả dụng vì chưa cấu hình dịch vụ email; trang đăng nhập
+  giải thích cách đổi mật khẩu khi đã đăng nhập hoặc liên hệ quản trị viên.
+- Thanh toán trực tuyến chưa có cổng ngân hàng; khách gửi mã giao dịch và Admin/Staff xác nhận
+  thủ công. QR chỉ hiện khi thông tin ngân hàng được cấu hình.
+- Thông tin hỗ trợ chính thức cần được chủ dự án cung cấp trước khi cập nhật footer.
+- Tạo hóa đơn hàng loạt chưa được bật; cần chốt quy trình và quyền phát hành trước khi triển khai.

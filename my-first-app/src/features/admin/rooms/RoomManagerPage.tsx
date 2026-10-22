@@ -15,6 +15,7 @@ import { getContracts } from '../../../api/contract';
 import { getApiErrorMessage, resolveImageUrl } from '../../../api/client';
 import { useAuth } from '../../../context/useAuth';
 import StatusBadge from '../../../components/Common/StatusBadge';
+import ImageWithFallback from '../../../components/Common/ImageWithFallback';
 import OccupantManager from '../../../components/Common/OccupantManager';
 import { statusMaps } from '../../../constants/statusLabels';
 import type { RoomDto, RoomStatus, RoomMediaDto } from '../../../types/room';
@@ -51,6 +52,9 @@ const RoomManagerPage = () => {
   const [rooms, setRooms] = useState<RoomDto[]>([]);
   const [buildings, setBuildings] = useState<BuildingDto[]>([]);
   const [activeContracts, setActiveContracts] = useState<ContractDto[]>([]);
+  const [buildingsError, setBuildingsError] = useState('');
+  const [activeContractsError, setActiveContractsError] = useState('');
+  const [lookupsReloadKey, setLookupsReloadKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [occupantsModalRoom, setOccupantsModalRoom] = useState<RoomDto | null>(null);
@@ -90,15 +94,23 @@ const RoomManagerPage = () => {
   };
 
   useEffect(() => {
+    setBuildingsError('');
+    setActiveContractsError('');
     getBuildings()
       .then((res) => setBuildings(res.data))
-      .catch(() => setBuildings([]));
+      .catch((err) => {
+        setBuildings([]);
+        setBuildingsError(getApiErrorMessage(err, 'Không tải được danh sách tòa nhà.'));
+      });
 
     // Chỉ Admin/Staff gọi được — dùng để tra tên người thuê + người ở cùng theo phòng.
     getContracts('DangHieuLuc')
       .then((res) => setActiveContracts(res.data))
-      .catch(() => setActiveContracts([]));
-  }, []);
+      .catch((err) => {
+        setActiveContracts([]);
+        setActiveContractsError(getApiErrorMessage(err, 'Không tải được danh sách hợp đồng đang hiệu lực.'));
+      });
+  }, [lookupsReloadKey]);
 
   useEffect(() => {
     loadRooms();
@@ -276,7 +288,9 @@ const RoomManagerPage = () => {
         {isAdmin && (
           <button
             onClick={handleOpenAddModal}
-            className="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-bold px-5 py-3 rounded-2xl flex items-center gap-1.5 transition-all shadow-lg shadow-orange-500/10 cursor-pointer"
+            disabled={!buildings.length || Boolean(buildingsError)}
+            title={buildingsError ? 'Tải danh sách tòa nhà thành công rồi thử lại.' : !buildings.length ? 'Cần tạo tòa nhà trước khi thêm phòng.' : undefined}
+            className="bg-orange-500 hover:bg-orange-600 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold px-5 py-3 rounded-2xl flex items-center gap-1.5 transition-all shadow-lg shadow-orange-500/10 cursor-pointer"
           >
             <Plus size={16} /> Thêm phòng mới
           </button>
@@ -307,6 +321,38 @@ const RoomManagerPage = () => {
           ))}
         </select>
       </div>
+
+      {(buildingsError || (!buildings.length && isAdmin)) && (
+        <div className={`rounded-xl border p-3 text-xs ${buildingsError ? 'border-red-500/20 bg-red-500/10 text-red-400' : 'border-slate-800 bg-slate-900/50 text-slate-400'}`}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{buildingsError || 'Chưa có tòa nhà. Hãy tạo tòa nhà trước khi thêm phòng.'}</span>
+            {buildingsError && (
+              <button
+                type="button"
+                onClick={() => setLookupsReloadKey((key) => key + 1)}
+                className="font-bold text-orange-400 hover:text-orange-300"
+              >
+                Thử tải lại
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeContractsError && (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-300">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{activeContractsError} Thông tin người ở chưa thể hiển thị.</span>
+            <button
+              type="button"
+              onClick={() => setLookupsReloadKey((key) => key + 1)}
+              className="font-bold text-orange-400 hover:text-orange-300"
+            >
+              Thử tải lại
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading && (
         <div className="min-h-[30vh] flex items-center justify-center">
@@ -347,8 +393,8 @@ const RoomManagerPage = () => {
                 {rooms.map((room) => (
                   <tr key={room.id} className="text-slate-300 hover:bg-slate-950/10 transition-colors">
                     <td className="p-5 shrink-0">
-                      <img
-                        src={resolveImageUrl(room.imageUrl) || 'https://via.placeholder.com/64?text=P'}
+                      <ImageWithFallback
+                        src={resolveImageUrl(room.imageUrl)}
                         alt={room.roomNumber}
                         className="w-12 h-12 rounded-xl object-cover bg-slate-950 border border-slate-800"
                       />
@@ -425,6 +471,9 @@ const RoomManagerPage = () => {
             </h3>
             {(() => {
               const contract = activeContracts.find((c) => c.roomId === occupantsModalRoom.id);
+              if (activeContractsError) {
+                return <p className="text-amber-300 text-xs mt-4">{activeContractsError}</p>;
+              }
               if (!contract) {
                 return <p className="text-slate-500 text-xs mt-4">Không tìm thấy hợp đồng đang hiệu lực cho phòng này.</p>;
               }
@@ -568,7 +617,7 @@ const RoomManagerPage = () => {
                         const isPrimary = editingRoomImageUrl === media.url;
                         return (
                           <div key={media.id} className="relative group">
-                            <img
+                            <ImageWithFallback
                               src={resolveImageUrl(media.url)}
                               alt="Ảnh phòng"
                               className={`w-full aspect-square rounded-xl object-cover bg-slate-950 border ${

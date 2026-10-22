@@ -9,7 +9,6 @@ namespace ShopAPI.Interfaces
         AuthResponseDto Login(LoginDto dto);
 
         AuthResponseDto RefreshToken(RefreshTokenDto dto);
-
         (bool Success, string Message) ChangePassword(int userId, ChangePasswordDto dto);
     }
 }

@@ -36,7 +36,9 @@ namespace ShopAPI.Services
                 FullName = dto.FullName,
                 Email = dto.Email,
                 Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = "User",
+                // Public registration creates a renter account so the new user can
+                // submit a rental request without a manual role change.
+                Role = "Tenant",
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -76,6 +78,13 @@ namespace ShopAPI.Services
                     Success = false,
                     Message = "Mật khẩu không đúng!"
                 };
+            }
+
+            // Accounts created by older public registration used the legacy "User" role.
+            // The public portal is for renters, so normalize those accounts on next login.
+            if (user.Role == "User")
+            {
+                user.Role = "Tenant";
             }
 
             var token = _jwtService.GenerateToken(user);

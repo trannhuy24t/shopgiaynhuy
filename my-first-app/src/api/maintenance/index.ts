@@ -39,6 +39,14 @@ export const getMyMaintenanceRequests = () => {
     return api.get<MaintenanceRequestDto[]>("/Maintenance/my");
 };
 
+export const cancelMyMaintenanceRequest = (id: number) => {
+    return api.put<ApiMessageResponse>(`/Maintenance/${id}/cancel`, {});
+};
+
+export const replyToMaintenanceRequest = (id: number, message: string) => {
+    return api.post<ApiMessageResponse>(`/Maintenance/${id}/reply`, { message });
+};
+
 // Staff, Admin — toàn bộ yêu cầu, lọc theo trạng thái
 export const getMaintenanceRequests = (status?: string) => {
     return api.get<MaintenanceRequestDto[]>("/Maintenance", { params: status ? { status } : undefined });

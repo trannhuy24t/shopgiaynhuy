@@ -37,3 +37,7 @@ export const register = (data: RegisterPayload) => {
 export const refreshTokenApi = (accessToken: string, refreshToken: string) => {
     return api.post<RefreshTokenResponse>("/Auth/refresh-token", { accessToken, refreshToken });
 };
+
+export const changePassword = (data: { currentPassword: string; newPassword: string }) => {
+    return api.post<{ message: string }>("/Auth/change-password", data);
+};

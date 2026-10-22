@@ -32,6 +32,7 @@ namespace ShopAPI.Data
             modelBuilder.Entity<Contract>().Property(c => c.Status).HasConversion<string>();
             modelBuilder.Entity<Invoice>().Property(i => i.Type).HasConversion<string>();
             modelBuilder.Entity<Invoice>().Property(i => i.Status).HasConversion<string>();
+            modelBuilder.Entity<Payment>().Property(p => p.Status).HasDefaultValue("DaXacNhan");
             modelBuilder.Entity<MaintenanceRequest>().Property(m => m.Priority).HasConversion<string>();
             modelBuilder.Entity<MaintenanceRequest>().Property(m => m.Status).HasConversion<string>();
 

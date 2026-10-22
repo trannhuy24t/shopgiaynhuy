@@ -19,6 +19,9 @@ namespace ShopAPI.Models
         // TienMat | ChuyenKhoan | QR
         public string Method { get; set; } = "TienMat";
 
+        [MaxLength(20)]
+        public string Status { get; set; } = "DaXacNhan"; // ChoXacNhan | DaXacNhan | TuChoi
+
         [MaxLength(100)]
         public string? TransactionRef { get; set; }
     }

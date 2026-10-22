@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getAvailableRooms } from '../../api/room';
 import { getApiErrorMessage, resolveImageUrl } from '../../api/client';
 import StatusBadge from '../../components/Common/StatusBadge';
+import ImageWithFallback from '../../components/Common/ImageWithFallback';
 import type { RoomDto } from '../../types/room';
 import { ArrowRight, Building2, DoorOpen, FileCheck2, HeadphonesIcon, Ruler, ShieldCheck } from 'lucide-react';
 
@@ -52,7 +53,7 @@ const HomePage = () => {
               </span>
             </h1>
             <p className="text-slate-400 text-base md:text-lg leading-relaxed max-w-xl mx-auto lg:mx-0">
-              Xem phòng trống theo thời gian thực, đăng ký thuê trực tuyến, theo dõi hợp đồng và hóa đơn hàng tháng — tất cả trên cùng một nền tảng.
+              Xem danh sách phòng đang trống, đăng ký thuê trực tuyến, theo dõi hợp đồng và hóa đơn hàng tháng — tất cả trên cùng một nền tảng.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-2">
               <Link
@@ -62,22 +63,23 @@ const HomePage = () => {
                 Xem phòng trống
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </Link>
-              <a
-                href="#lien-he"
+              <Link
+                to="/rooms"
                 className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-white font-bold px-8 py-4 rounded-2xl transition-all flex items-center justify-center cursor-pointer"
               >
-                Liên hệ tư vấn
-              </a>
+                Liên hệ chủ trọ
+              </Link>
             </div>
           </div>
 
           {/* Hero Image */}
           <div className="relative flex justify-center items-center">
             <div className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 opacity-20 blur-2xl animate-pulse" />
-            <img
+            <ImageWithFallback
               src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80"
               alt="Tòa nhà chung cư mini"
               className="w-full max-w-[480px] object-cover rounded-3xl drop-shadow-[0_20px_50px_rgba(249,115,22,0.25)]"
+              fallbackClassName="w-full max-w-[480px] min-h-72 rounded-3xl"
             />
           </div>
         </div>
@@ -93,7 +95,7 @@ const HomePage = () => {
             <div className="text-left">
               <h4 className="font-bold text-white mb-2">Minh bạch giá thuê</h4>
               <p className="text-sm text-slate-400 leading-relaxed">
-                Giá phòng, tiền cọc và các khoản phí dịch vụ hiển thị rõ ràng ngay từ đầu, không phát sinh ẩn.
+                Giá thuê và phí dịch vụ được hiển thị riêng; khách xem giá điện, nước tham khảo trước khi đăng ký và giá chốt trong hợp đồng.
               </p>
             </div>
           </div>
@@ -113,7 +115,7 @@ const HomePage = () => {
               <HeadphonesIcon size={24} />
             </div>
             <div className="text-left">
-              <h4 className="font-bold text-white mb-2">Hỗ trợ nhanh chóng</h4>
+              <h4 className="font-bold text-white mb-2">Theo dõi yêu cầu hỗ trợ</h4>
               <p className="text-sm text-slate-400 leading-relaxed">
                 Gửi yêu cầu bảo trì, nhận thông báo nhắc nợ và phản hồi từ quản lý ngay trong ứng dụng.
               </p>
@@ -167,8 +169,8 @@ const HomePage = () => {
                 className="group bg-slate-900 border border-slate-850 hover:border-orange-500/50 rounded-2xl overflow-hidden flex flex-col transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/5"
               >
                 <div className="relative aspect-square overflow-hidden bg-slate-950">
-                  <img
-                    src={resolveImageUrl(room.imageUrl) || 'https://via.placeholder.com/400x400?text=Ph%C3%B2ng+tr%E1%BB%8D'}
+                  <ImageWithFallback
+                    src={resolveImageUrl(room.imageUrl)}
                     alt={room.roomNumber}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
                   />

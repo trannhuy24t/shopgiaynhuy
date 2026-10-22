@@ -1,10 +1,14 @@
 import api from "../client";
-import type { NotificationDto, CreateNotificationPayload } from "../../types/notification";
+import type { NotificationDto, CreateNotificationPayload, BroadcastNotificationPayload } from "../../types/notification";
 import type { ApiMessageResponse } from "../../types/common";
 
 // Staff, Admin — gửi thông báo cho 1 khách thuê cụ thể (theo userId)
 export const createNotification = (data: CreateNotificationPayload) => {
     return api.post<NotificationDto>("/Notification", data);
+};
+
+export const broadcastNotification = (data: BroadcastNotificationPayload) => {
+    return api.post<{ message: string; count: number }>("/Notification/broadcast", data);
 };
 
 // Bất kỳ user đã đăng nhập nào — thông báo của tôi

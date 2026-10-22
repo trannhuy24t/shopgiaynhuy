@@ -18,3 +18,5 @@ export interface CreateNotificationPayload {
   content: string;
   type?: NotificationType;
 }
+
+export type BroadcastNotificationPayload = Omit<CreateNotificationPayload, 'userId'>;

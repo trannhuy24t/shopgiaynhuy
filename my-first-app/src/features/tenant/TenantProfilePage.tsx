@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getMyTenantProfile, updateMyTenantProfile } from '../../api/tenant';
 import { getApiErrorMessage, isNotFoundError } from '../../api/client';
+import { useAuth } from '../../context/useAuth';
 import type { UpsertTenantProfilePayload } from '../../types/tenant';
 import { User, IdCard, Phone, Mail, PhoneCall, CheckCircle2 } from 'lucide-react';
 
@@ -13,6 +14,7 @@ const emptyForm: UpsertTenantProfilePayload = {
 };
 
 const TenantProfilePage = () => {
+  const { updateUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [hasProfile, setHasProfile] = useState(false);
@@ -79,6 +81,7 @@ const TenantProfilePage = () => {
         email: res.data.email || '',
         emergencyContact: res.data.emergencyContact || '',
       });
+      updateUser({ fullName: res.data.fullName, phoneNumber: res.data.phone || null });
       setSaveSuccess(true);
     } catch (err) {
       setSaveError(getApiErrorMessage(err, 'Không thể lưu hồ sơ.'));

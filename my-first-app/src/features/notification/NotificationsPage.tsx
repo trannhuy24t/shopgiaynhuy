@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getMyNotifications, markNotificationRead } from '../../api/notification';
 import { getApiErrorMessage } from '../../api/client';
 import { useNotificationCount } from '../../context/NotificationContext';
+import { useAuth } from '../../context/useAuth';
+import { getNotificationTarget } from '../../utils/notificationTarget';
 import StatusBadge from '../../components/Common/StatusBadge';
 import type { NotificationDto } from '../../types/notification';
 import { Bell, Check, CheckCheck } from 'lucide-react';
@@ -17,6 +20,9 @@ const NotificationsPage = () => {
   const [markingId, setMarkingId] = useState<number | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
   const { refreshUnreadCount } = useNotificationCount();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const isStaff = user?.role === 'Admin' || user?.role === 'Staff';
 
   useEffect(() => {
     const load = async () => {
@@ -65,6 +71,12 @@ const NotificationsPage = () => {
     if (failedCount > 0) {
       alert(`Đã đọc ${succeededIds.size}/${unreadIds.length} thông báo — ${failedCount} thông báo đánh dấu thất bại, thử lại sau.`);
     }
+  };
+
+  const handleOpenNotification = async (notification: NotificationDto) => {
+    if (!notification.isRead) await handleMarkRead(notification.id);
+    const target = getNotificationTarget(notification, isStaff);
+    if (target) navigate(target);
   };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -127,11 +139,12 @@ const NotificationsPage = () => {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                   {!n.isRead && <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />}
-                  <h4 className="font-bold text-white text-sm">{n.title}</h4>
+                  <button onClick={() => handleOpenNotification(n)} className="font-bold text-white text-sm text-left hover:text-orange-300">{n.title}</button>
                   <StatusBadge entity="notificationType" value={n.type} />
                 </div>
                 <p className="text-sm text-slate-400 leading-relaxed">{n.content}</p>
                 <p className="text-[10px] text-slate-600 font-semibold mt-2">{formatDateTime(n.createdAt)}</p>
+                {getNotificationTarget(n, isStaff) && <button onClick={() => handleOpenNotification(n)} className="mt-2 text-xs font-bold text-orange-400 hover:text-orange-300">Mở nội dung liên quan →</button>}
               </div>
               {!n.isRead && (
                 <button

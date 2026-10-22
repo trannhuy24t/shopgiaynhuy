@@ -1,16 +1,19 @@
 ﻿using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
+using ShopAPI.Data;
 
 namespace ShopAPI.Services
 {
     public class TenantService : ITenantService
     {
         private readonly ITenantRepository _tenantRepository;
+        private readonly AppDbContext _context;
 
-        public TenantService(ITenantRepository tenantRepository)
+        public TenantService(ITenantRepository tenantRepository, AppDbContext context)
         {
             _tenantRepository = tenantRepository;
+            _context = context;
         }
 
         public List<TenantDto> GetAll()
@@ -35,6 +38,7 @@ namespace ShopAPI.Services
         public TenantDto UpsertForUser(int userId, UpsertTenantProfileDto dto)
         {
             var tenant = _tenantRepository.GetByUserId(userId);
+            var user = _context.Users.Find(userId);
 
             if (tenant == null)
             {
@@ -60,6 +64,14 @@ namespace ShopAPI.Services
                 tenant.EmergencyContact = dto.EmergencyContact;
 
                 _tenantRepository.Update(tenant);
+            }
+
+            // Keep the identity shown in the header and the tenant record in sync.
+            if (user != null)
+            {
+                user.FullName = dto.FullName;
+                user.PhoneNumber = dto.Phone;
+                _context.SaveChanges();
             }
 
             return MapToDto(tenant);

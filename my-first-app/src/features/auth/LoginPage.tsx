@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Mail, Lock, LogIn } from 'lucide-react';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [showRecoveryHelp, setShowRecoveryHelp] = useState(false);
   const { login, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const justRegistered = location.state?.registered;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +29,10 @@ const LoginPage = () => {
       return;
     }
 
-    if (result.user.role === 'Admin' || result.user.role === 'Staff') {
+    const requestedPath = location.state?.from?.pathname;
+    if (typeof requestedPath === 'string' && requestedPath.startsWith('/') && !requestedPath.startsWith('//')) {
+      navigate(requestedPath, { replace: true });
+    } else if (result.user.role === 'Admin' || result.user.role === 'Staff') {
       navigate('/admin', { replace: true });
     } else {
       navigate('/', { replace: true });
@@ -42,8 +48,14 @@ const LoginPage = () => {
 
         <div className="text-center mb-8">
           <h2 className="text-3xl font-black text-white tracking-tight uppercase">Chào mừng trở lại</h2>
-          <p className="text-slate-400 text-sm mt-1.5">Đăng nhập tài khoản SneakerZone của bạn</p>
+          <p className="text-slate-400 text-sm mt-1.5">Đăng nhập tài khoản TroHub của bạn</p>
         </div>
+
+        {justRegistered && (
+          <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-semibold p-4 rounded-xl mb-4 text-center">
+            Đăng ký thành công! Vui lòng đăng nhập.
+          </div>
+        )}
 
         {errorMsg && (
           <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold p-4 rounded-xl mb-6 text-center animate-shake">
@@ -82,6 +94,22 @@ const LoginPage = () => {
             </div>
           </div>
 
+          <div className="-mt-3 text-right">
+            <button
+              type="button"
+              aria-expanded={showRecoveryHelp}
+              onClick={() => setShowRecoveryHelp((current) => !current)}
+              className="text-xs font-semibold text-orange-400 hover:text-orange-300"
+            >
+              Quên mật khẩu?
+            </button>
+            {showRecoveryHelp && (
+              <p role="status" className="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-left text-xs leading-relaxed text-amber-200">
+                Chưa cấu hình email khôi phục. Nếu bạn còn đăng nhập trên thiết bị khác, hãy đổi mật khẩu trong mục Tài khoản. Nếu đã mất quyền truy cập, vui lòng liên hệ quản trị viên; thông tin hỗ trợ chính thức đang được cập nhật.
+              </p>
+            )}
+          </div>
+
           {/* Nút Đăng nhập */}
           <button
             type="submit"
@@ -97,6 +125,12 @@ const LoginPage = () => {
             )}
           </button>
         </form>
+        <p className="text-center text-xs text-slate-500 mt-6">
+          Chưa có tài khoản?{' '}
+          <Link to="/dang-ky" className="text-orange-400 hover:text-orange-300 font-semibold transition-colors">
+            Đăng ký ngay
+          </Link>
+        </p>
       </div>
     </div>
   );

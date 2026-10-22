@@ -31,6 +31,24 @@ namespace ShopAPI.Services
                 .ToList();
         }
 
+        public List<StaffOptionDto> GetStaffOptions()
+        {
+            return _context.Users
+                .Where(user => user.Role == "Staff")
+                .OrderBy(user => user.FullName)
+                .Select(user => new StaffOptionDto
+                {
+                    Id = user.Id,
+                    FullName = user.FullName
+                })
+                .ToList();
+        }
+
+        public bool IsStaff(int id)
+        {
+            return _context.Users.Any(user => user.Id == id && user.Role == "Staff");
+        }
+
         public UserDto? GetById(int id)
         {
             var user = _context.Users.Find(id);
@@ -115,6 +133,14 @@ namespace ShopAPI.Services
 
             user.FullName = dto.FullName;
             user.PhoneNumber = dto.PhoneNumber;
+
+            var tenant = _context.Tenants.FirstOrDefault(t => t.UserId == userId);
+            if (tenant != null)
+            {
+                tenant.FullName = dto.FullName;
+                tenant.Phone = dto.PhoneNumber;
+            }
+
             _context.SaveChanges();
 
             return MapToDto(user);

@@ -400,6 +400,12 @@ namespace ShopAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("DaXacNhan");
+
                     b.Property<DateTime>("PaymentDate")
                         .HasColumnType("datetime2");
 

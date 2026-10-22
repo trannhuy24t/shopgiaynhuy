@@ -142,7 +142,10 @@ namespace ShopAPI.Services
             }
 
             request.Status = newStatus;
-            request.Note = dto.Note;
+            if (!string.IsNullOrWhiteSpace(dto.Note))
+            {
+                request.Note = AppendConversation(request.Note, "Quản lý", dto.Note.Trim());
+            }
 
             if (newStatus is MaintenanceStatus.HoanThanh or MaintenanceStatus.DaHuy)
             {
@@ -154,6 +157,45 @@ namespace ShopAPI.Services
             _activityLogService.Log(actorUserId, "UpdateMaintenanceStatus", "MaintenanceRequest", request.Id, dto.Status);
 
             return true;
+        }
+
+        public bool CancelOwn(int id, int userId)
+        {
+            var request = _requestRepository.GetById(id);
+            if (request == null || request.Tenant?.UserId != userId || request.Status is not (MaintenanceStatus.Moi or MaintenanceStatus.DaPhanCong))
+            {
+                return false;
+            }
+
+            request.Status = MaintenanceStatus.DaHuy;
+            request.ResolvedAt = DateTime.UtcNow;
+            request.Note = AppendConversation(request.Note, "Khách thuê", "Đã hủy yêu cầu.");
+            _requestRepository.Update(request);
+            _activityLogService.Log(userId, "CancelMaintenanceRequest", "MaintenanceRequest", request.Id, null);
+            return true;
+        }
+
+        public bool AddTenantReply(int id, int userId, string message)
+        {
+            var request = _requestRepository.GetById(id);
+            if (request == null || request.Tenant?.UserId != userId || request.Status is MaintenanceStatus.HoanThanh or MaintenanceStatus.DaHuy || string.IsNullOrWhiteSpace(message))
+            {
+                return false;
+            }
+
+            var reply = message.Trim();
+            request.Note = AppendConversation(request.Note, "Khách thuê", reply);
+            _requestRepository.Update(request);
+            _notificationService.NotifyRole("Admin", "Phản hồi yêu cầu bảo trì", $"Khách thuê đã phản hồi yêu cầu #{request.Id}: {reply}", "BaoTri");
+            _notificationService.NotifyRole("Staff", "Phản hồi yêu cầu bảo trì", $"Khách thuê đã phản hồi yêu cầu #{request.Id}: {reply}", "BaoTri");
+            _activityLogService.Log(userId, "ReplyMaintenanceRequest", "MaintenanceRequest", request.Id, reply);
+            return true;
+        }
+
+        private static string AppendConversation(string? current, string speaker, string message)
+        {
+            var entry = $"{speaker}: {message}";
+            return string.IsNullOrWhiteSpace(current) ? entry : $"{current}{Environment.NewLine}{entry}";
         }
 
         private static MaintenanceRequestDto MapToDto(MaintenanceRequest request)

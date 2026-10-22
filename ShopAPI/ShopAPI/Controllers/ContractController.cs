@@ -47,6 +47,16 @@ namespace ShopAPI.Controllers
             return Ok(contracts);
         }
 
+        [Authorize(Roles = "Tenant")]
+        [HttpPut("{id}/cancel")]
+        public IActionResult CancelRequest(int id)
+        {
+            var result = _contractService.CancelRequest(id, GetUserId());
+            return result
+                ? Ok(new { message = "Đã hủy yêu cầu thuê phòng." })
+                : BadRequest(new { message = "Chỉ có thể hủy yêu cầu đang chờ duyệt của chính bạn." });
+        }
+
         [Authorize(Roles = "Admin,Staff")]
         [HttpGet]
         public IActionResult GetAll([FromQuery] string? status)
@@ -133,6 +143,16 @@ namespace ShopAPI.Controllers
             }
 
             return Ok(new { message = "Đã kết thúc hợp đồng." });
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{id}/extend")]
+        public IActionResult Extend(int id, ExtendContractDto dto)
+        {
+            var result = _contractService.Extend(id, dto, GetUserId());
+            return result
+                ? Ok(new { message = "Đã gia hạn hợp đồng và gửi thông báo cho khách thuê." })
+                : BadRequest(new { message = "Ngày kết thúc mới phải sau ngày kết thúc hiện tại của hợp đồng đang hiệu lực." });
         }
 
         // Danh sách người ở cùng của 1 hợp đồng (không tính người thuê chính)

@@ -8,7 +8,6 @@ namespace ShopAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -19,6 +18,7 @@ namespace ShopAPI.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public IActionResult GetAll([FromQuery] string? role)
         {
             var users = _userService.GetAll(role);
@@ -26,7 +26,15 @@ namespace ShopAPI.Controllers
             return Ok(users);
         }
 
+        [HttpGet("staff-options")]
+        [Authorize(Roles = "Admin,Staff")]
+        public IActionResult GetStaffOptions()
+        {
+            return Ok(_userService.GetStaffOptions());
+        }
+
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin")]
         public IActionResult GetById(int id)
         {
             var user = _userService.GetById(id);
@@ -40,6 +48,7 @@ namespace ShopAPI.Controllers
         }
 
         [HttpPost("staff")]
+        [Authorize(Roles = "Admin")]
         public IActionResult CreateStaff(CreateStaffDto dto)
         {
             var user = _userService.CreateStaff(dto);
@@ -53,6 +62,7 @@ namespace ShopAPI.Controllers
         }
 
         [HttpPost("tenant")]
+        [Authorize(Roles = "Admin")]
         public IActionResult CreateTenantAccount(CreateTenantAccountDto dto)
         {
             var user = _userService.CreateTenantAccount(dto);
@@ -84,6 +94,7 @@ namespace ShopAPI.Controllers
         }
 
         [HttpPut("{id}/role")]
+        [Authorize(Roles = "Admin")]
         public IActionResult UpdateRole(int id, UpdateUserRoleDto dto)
         {
             var result = _userService.UpdateRole(id, dto);

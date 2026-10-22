@@ -33,6 +33,7 @@ const contractStatusMap: Record<ContractStatus, StatusMeta> = {
   DangHieuLuc: { label: 'Đang hiệu lực', className: GREEN },
   DaKetThuc: { label: 'Đã kết thúc', className: SLATE },
   TuChoi: { label: 'Từ chối', className: RED },
+  DaHuy: { label: 'Đã hủy', className: SLATE },
 };
 
 const invoiceStatusMap: Record<InvoiceStatus, StatusMeta> = {

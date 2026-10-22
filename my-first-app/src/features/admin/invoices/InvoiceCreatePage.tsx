@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getContracts } from '../../../api/contract';
-import { createInvoice } from '../../../api/invoice';
+import { createInvoice, getInvoices } from '../../../api/invoice';
 import { getRoom } from '../../../api/room';
 import { getApiErrorMessage } from '../../../api/client';
 import { notifyTenantByContract } from '../../../utils/notifyTenant';
@@ -16,6 +16,7 @@ const today = new Date();
 const defaultDueDate = () => {
   const d = new Date();
   d.setDate(d.getDate() + 10);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0, 10);
 };
 
@@ -36,15 +37,17 @@ const InvoiceCreatePage = () => {
 
   const [contracts, setContracts] = useState<ContractDto[]>([]);
   const [loadingContracts, setLoadingContracts] = useState(true);
+  const [contractsError, setContractsError] = useState('');
+  const [contractsReloadKey, setContractsReloadKey] = useState(0);
 
   const [form, setForm] = useState<FormState>({
     contractId: '',
     month: String(today.getMonth() + 1),
     year: String(today.getFullYear()),
-    electricOldReading: '0',
-    electricNewReading: '0',
-    waterOldReading: '0',
-    waterNewReading: '0',
+    electricOldReading: '',
+    electricNewReading: '',
+    waterOldReading: '',
+    waterNewReading: '',
     serviceFee: '',
     dueDate: defaultDueDate(),
   });
@@ -52,16 +55,66 @@ const InvoiceCreatePage = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [roomServiceFee, setRoomServiceFee] = useState<number | null>(null);
+  const [contractInvoices, setContractInvoices] = useState<import('../../../types/invoice').InvoiceDto[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const [historyReloadKey, setHistoryReloadKey] = useState(0);
 
   useEffect(() => {
+    setLoadingContracts(true);
+    setContractsError('');
     getContracts('DangHieuLuc')
       .then((res) => setContracts(res.data))
-      .catch(() => setContracts([]))
+      .catch((err) => {
+        setContracts([]);
+        setContractsError(getApiErrorMessage(err, 'Không thể tải danh sách hợp đồng. Vui lòng thử lại.'));
+      })
       .finally(() => setLoadingContracts(false));
-  }, []);
+  }, [contractsReloadKey]);
 
   const selectedContract = contracts.find((c) => c.id === Number(form.contractId));
   const occupants = selectedContract?.numberOfOccupants || 1;
+
+  useEffect(() => {
+    if (!selectedContract) {
+      setContractInvoices([]);
+      setHistoryError('');
+      setLoadingHistory(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingHistory(true);
+    setHistoryError('');
+    getInvoices({ contractId: selectedContract.id })
+      .then((res) => { if (!cancelled) setContractInvoices(res.data); })
+      .catch((err) => {
+        if (!cancelled) {
+          setContractInvoices([]);
+          setHistoryError(getApiErrorMessage(err, 'Không thể tải lịch sử hóa đơn. Vui lòng thử lại.'));
+        }
+      })
+      .finally(() => { if (!cancelled) setLoadingHistory(false); });
+    return () => { cancelled = true; };
+  }, [selectedContract?.id, historyReloadKey]);
+
+  useEffect(() => {
+    if (!selectedContract || loadingHistory || historyError) return;
+    const month = Number(form.month);
+    const year = Number(form.year);
+    const monthlyInvoices = contractInvoices.filter((invoice) => invoice.type === 'HangThang');
+    const previous = monthlyInvoices
+      .filter((invoice) => invoice.year < year || (invoice.year === year && invoice.month < month))
+      .sort((a, b) => b.year - a.year || b.month - a.month)[0];
+    setForm((current) => ({
+      ...current,
+      electricOldReading: previous ? String(previous.electricNewReading) : '',
+      electricNewReading: previous ? String(previous.electricNewReading) : '',
+      waterOldReading: previous ? String(previous.waterNewReading) : '',
+      waterNewReading: previous ? String(previous.waterNewReading) : '',
+    }));
+  }, [selectedContract?.id, contractInvoices, form.month, form.year, loadingHistory, historyError]);
+
+  const duplicateInvoice = contractInvoices.some((invoice) => invoice.type === 'HangThang' && invoice.month === Number(form.month) && invoice.year === Number(form.year));
 
   // Lấy đơn giá dịch vụ mặc định của phòng để hiện tham khảo — nếu để trống ô "Đơn giá / người",
   // backend tự dùng đúng giá trị này (Room.ServiceFee) khi tạo hóa đơn.
@@ -91,8 +144,20 @@ const InvoiceCreatePage = () => {
       setError('Vui lòng chọn hợp đồng cần lập hóa đơn.');
       return;
     }
+    if (loadingHistory || historyError) {
+      setError(historyError || 'Đang tải lịch sử hóa đơn, vui lòng chờ rồi thử lại.');
+      return;
+    }
     if (!selectedContract || selectedContract.electricUnitPrice <= 0 || selectedContract.waterUnitPrice <= 0) {
       setError('Hợp đồng này chưa có đơn giá điện/nước chốt sẵn — không thể tự tính tiền điện/nước. Liên hệ Admin để cập nhật.');
+      return;
+    }
+    if (duplicateInvoice) {
+      setError('Hợp đồng này đã có hóa đơn cho tháng/năm đã chọn.');
+      return;
+    }
+    if (form.electricOldReading === '' || form.electricNewReading === '' || form.waterOldReading === '' || form.waterNewReading === '') {
+      setError('Vui lòng nhập đủ chỉ số điện và nước. Lần lập hóa đơn đầu tiên cần nhập chỉ số cũ ban đầu.');
       return;
     }
     if (Number(form.electricNewReading) < Number(form.electricOldReading)) {
@@ -116,11 +181,11 @@ const InvoiceCreatePage = () => {
         waterOldReading: Number(form.waterOldReading),
         waterNewReading: Number(form.waterNewReading),
         serviceFee: form.serviceFee.trim() === '' ? undefined : Number(form.serviceFee),
-        dueDate: new Date(form.dueDate).toISOString(),
+        dueDate: new Date(`${form.dueDate}T00:00:00`).toISOString(),
       });
       notifyTenantByContract(contractIdNum, {
         title: 'Hóa đơn mới',
-        content: `Hóa đơn kỳ ${form.month}/${form.year} (${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(res.data.totalAmount)}) đã được tạo, hạn thanh toán ${new Date(form.dueDate).toLocaleDateString('vi-VN')}.`,
+        content: `Hóa đơn kỳ ${form.month}/${form.year} (${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(res.data.totalAmount)}) đã được tạo, hạn thanh toán ${new Date(`${form.dueDate}T00:00:00`).toLocaleDateString('vi-VN')}.`,
         type: 'ThongBaoChung',
       });
       navigate('/admin/invoices');
@@ -154,7 +219,7 @@ const InvoiceCreatePage = () => {
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Hợp đồng (phòng đang hiệu lực) *</label>
             <select
               required
-              disabled={loadingContracts}
+              disabled={loadingContracts || Boolean(contractsError)}
               value={form.contractId}
               onChange={(e) => setForm({ ...form, contractId: e.target.value })}
               className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-3 py-3 text-sm text-white outline-none cursor-pointer disabled:opacity-50"
@@ -166,7 +231,18 @@ const InvoiceCreatePage = () => {
                 </option>
               ))}
             </select>
-            {!loadingContracts && contracts.length === 0 && (
+            {contractsError ? (
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-red-400">
+                <span>{contractsError}</span>
+                <button
+                  type="button"
+                  onClick={() => setContractsReloadKey((key) => key + 1)}
+                  className="font-bold text-orange-400 hover:text-orange-300"
+                >
+                  Thử tải lại
+                </button>
+              </div>
+            ) : !loadingContracts && contracts.length === 0 && (
               <p className="text-[10px] text-slate-500 mt-1.5">Chưa có hợp đồng nào đang hiệu lực.</p>
             )}
           </div>
@@ -196,6 +272,28 @@ const InvoiceCreatePage = () => {
             </div>
           </div>
 
+          {duplicateInvoice && <p className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">Hợp đồng này đã có hóa đơn tháng {form.month}/{form.year}. Chọn kỳ khác để tránh thu trùng.</p>}
+          {selectedContract && (
+            <div className="text-[10px]">
+              {loadingHistory ? (
+                <p className="text-slate-500">Đang tra chỉ số kỳ trước...</p>
+              ) : historyError ? (
+                <div className="flex flex-wrap items-center gap-3 text-red-400">
+                  <span>{historyError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setHistoryReloadKey((key) => key + 1)}
+                    className="font-bold text-orange-400 hover:text-orange-300"
+                  >
+                    Thử tải lại
+                  </button>
+                </div>
+              ) : (
+                <p className="text-slate-500">Chỉ số cũ được lấy từ hóa đơn gần nhất. Nếu đây là hóa đơn đầu tiên, hãy nhập chỉ số ban đầu theo đồng hồ.</p>
+              )}
+            </div>
+          )}
+
           <div className="pt-4 border-t border-slate-850">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-sm text-white uppercase tracking-wide">Chỉ số điện</h3>
@@ -214,11 +312,11 @@ const InvoiceCreatePage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Chỉ số cũ</label>
-                <input type="number" min={0} value={form.electricOldReading} onChange={(e) => setForm({ ...form, electricOldReading: e.target.value })} className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-sm text-white outline-none" />
+                <input type="number" required min={0} value={form.electricOldReading} onChange={(e) => setForm({ ...form, electricOldReading: e.target.value })} className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-sm text-white outline-none" />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Chỉ số mới</label>
-                <input type="number" min={0} value={form.electricNewReading} onChange={(e) => setForm({ ...form, electricNewReading: e.target.value })} className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-sm text-white outline-none" />
+                <input type="number" required min={0} value={form.electricNewReading} onChange={(e) => setForm({ ...form, electricNewReading: e.target.value })} className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-sm text-white outline-none" />
               </div>
             </div>
           </div>
@@ -241,11 +339,11 @@ const InvoiceCreatePage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Chỉ số cũ</label>
-                <input type="number" min={0} value={form.waterOldReading} onChange={(e) => setForm({ ...form, waterOldReading: e.target.value })} className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-sm text-white outline-none" />
+                <input type="number" required min={0} value={form.waterOldReading} onChange={(e) => setForm({ ...form, waterOldReading: e.target.value })} className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-sm text-white outline-none" />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Chỉ số mới</label>
-                <input type="number" min={0} value={form.waterNewReading} onChange={(e) => setForm({ ...form, waterNewReading: e.target.value })} className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-sm text-white outline-none" />
+                <input type="number" required min={0} value={form.waterNewReading} onChange={(e) => setForm({ ...form, waterNewReading: e.target.value })} className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-sm text-white outline-none" />
               </div>
             </div>
           </div>
@@ -282,7 +380,7 @@ const InvoiceCreatePage = () => {
 
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || loadingContracts || Boolean(contractsError) || loadingHistory || Boolean(historyError) || !selectedContract}
             className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/50 text-white font-bold py-3.5 rounded-2xl text-sm tracking-wide transition-colors cursor-pointer"
           >
             {saving ? 'Đang tạo...' : 'Tạo hóa đơn'}

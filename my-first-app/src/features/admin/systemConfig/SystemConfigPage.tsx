@@ -10,9 +10,9 @@ interface ConfigField {
 }
 
 const FIELDS: ConfigField[] = [
-  { key: 'BankBin', label: 'Mã BIN ngân hàng', description: 'Dùng để tạo mã VietQR (VD: 970422)' },
-  { key: 'BankAccountNumber', label: 'Số tài khoản nhận thanh toán', description: '' },
-  { key: 'BankAccountName', label: 'Tên chủ tài khoản', description: '' },
+  { key: 'BankBin', label: 'Mã BIN ngân hàng', description: 'Gồm 6 chữ số, dùng để tạo mã VietQR (VD: 970422).' },
+  { key: 'BankAccountNumber', label: 'Số tài khoản nhận thanh toán', description: 'Chỉ nhập 1–19 chữ số.' },
+  { key: 'BankAccountName', label: 'Tên chủ tài khoản', description: 'Tên sẽ hiện trong mã VietQR.' },
   { key: 'DefaultElectricUnitPrice', label: 'Đơn giá điện mặc định (đ/kWh)', description: 'Tự điền sẵn khi Staff/Admin tạo hóa đơn hàng tháng' },
   { key: 'DefaultWaterUnitPrice', label: 'Đơn giá nước mặc định (đ/m³)', description: 'Tự điền sẵn khi Staff/Admin tạo hóa đơn hàng tháng' },
 ];
@@ -88,6 +88,10 @@ const SystemConfigPage = () => {
       <div className="bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-semibold p-4 rounded-xl mb-6">
         Đơn giá phí dịch vụ (theo đầu người) giờ cấu hình riêng cho từng phòng ở trang Quản lý phòng,
         không còn ở đây.
+      </div>
+
+      <div className="bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold p-4 rounded-xl mb-6">
+        VietQR cần đủ BIN, số tài khoản và tên chủ tài khoản. Nếu chưa cấu hình, khách thuê vẫn có thể gửi mã giao dịch sau khi nhận thông tin chuyển khoản từ ban quản lý; giao dịch được xác nhận thủ công.
       </div>
 
       {loading && (

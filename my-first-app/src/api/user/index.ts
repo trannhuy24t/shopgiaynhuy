@@ -1,11 +1,13 @@
 import api from "../client";
-import type { UserDto, CreateStaffPayload, CreateTenantAccountPayload, UpdateUserRolePayload, UpdateProfilePayload } from "../../types/user";
+import type { UserDto, StaffOptionDto, CreateStaffPayload, CreateTenantAccountPayload, UpdateUserRolePayload, UpdateProfilePayload, UpdateUserPayload } from "../../types/user";
 import type { ApiMessageResponse } from "../../types/common";
 
 // Admin — danh sách người dùng, lọc theo role
 export const getUsers = (role?: string) => {
     return api.get<UserDto[]>("/User", { params: role ? { role } : undefined });
 };
+
+export const getStaffOptions = () => api.get<StaffOptionDto[]>("/User/staff-options");
 
 export const getUser = (id: number) => {
     return api.get<UserDto>(`/User/${id}`);
@@ -26,6 +28,17 @@ export const createTenantAccount = (data: CreateTenantAccountPayload) => {
 export const updateUserRole = (id: number, data: UpdateUserRolePayload) => {
     return api.put<ApiMessageResponse>(`/User/${id}/role`, data);
 };
+
+// Admin — xóa tài khoản người dùng
+export const deleteUser = (id: number) => {
+    return api.delete<ApiMessageResponse>(`/User/${id}`);
+};
+
+// Admin — sửa thông tin người dùng (fullName, phoneNumber, role)
+export const updateUser = (id: number, data: UpdateUserPayload) => {
+    return api.put<UserDto>(`/User/${id}`, data);
+};
+
 
 // Mọi user đã đăng nhập — cập nhật thông tin cá nhân
 export const updateProfile = (data: UpdateProfilePayload) => {

@@ -11,6 +11,7 @@ import {
   FileClock,
   UserCircle,
   UserCog,
+  Bell,
 } from 'lucide-react';
 import type { Role } from '../types/auth';
 
@@ -33,6 +34,7 @@ export const adminMenu: MenuItem[] = [
   { label: 'Cấu hình hệ thống', path: '/admin/system-config', icon: Settings2, roles: ['Admin'] },
   { label: 'Dashboard báo cáo', path: '/admin/report', icon: BarChart3, roles: ['Admin'] },
   { label: 'Nhật ký hoạt động', path: '/admin/logs', icon: FileClock, roles: ['Admin'] },
+  { label: 'Gửi thông báo', path: '/admin/notifications', icon: Bell, roles: ['Admin', 'Staff'] },
 ];
 
 // Menu tài khoản Tenant (render trên Header dạng icon)

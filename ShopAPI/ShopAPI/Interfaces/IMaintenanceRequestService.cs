@@ -17,5 +17,9 @@ namespace ShopAPI.Interfaces
         bool Assign(int id, AssignMaintenanceDto dto, int actorUserId);
 
         bool UpdateStatus(int id, UpdateMaintenanceStatusDto dto, int actorUserId);
+
+        bool CancelOwn(int id, int userId);
+
+        bool AddTenantReply(int id, int userId, string message);
     }
 }

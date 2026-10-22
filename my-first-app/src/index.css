@@ -1,5 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
+
+@media print {
+  body * { visibility: hidden !important; }
+  .print-contract, .print-contract * { visibility: visible !important; }
+  .print-contract {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #111 !important;
+  }
+  .print-contract * { color: #111 !important; }
+  .print-hide { display: none !important; }
+}
 /* --- CÁC HIỆU ỨNG MICRO-ANIMATIONS TÙY BIẾN CHO GIAO DIỆN PREMIUM --- */
 
 @layer utilities {
@@ -70,4 +90,121 @@ body {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   background-color: #020617;
   overflow-x: hidden;
+}
+
+/* Styles shared by the small reusable learning/demo components. */
+.product-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 15px;
+  color: #333;
+  text-align: center;
+  background-color: #fff;
+}
+
+.product-card-image {
+  width: 100%;
+  max-height: 150px;
+  object-fit: contain;
+}
+
+.product-card-title {
+  margin: 10px 0 5px;
+  font-size: 1.1rem;
+}
+
+.product-card-price {
+  margin: 0 0 10px;
+  color: #ff4d4f;
+  font-weight: 700;
+}
+
+.product-card-stock {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 0.8rem;
+}
+
+.product-card-stock--available {
+  color: #1890ff;
+  background-color: #e6f7ff;
+}
+
+.product-card-stock--unavailable {
+  color: #ff4d4f;
+  background-color: #fff1f0;
+}
+
+.user-card {
+  margin: 15px 0;
+  padding: 15px;
+  border: 2px solid #646cff;
+  border-radius: 8px;
+}
+
+.user-card-avatar {
+  margin-bottom: 10px;
+  border-radius: 50%;
+}
+
+.user-card-name {
+  color: #646cff;
+}
+
+.song-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #333;
+  border-radius: 4px;
+  color: #fff;
+  background-color: #181818;
+}
+
+.song-row-info,
+.song-row-meta {
+  display: flex;
+  align-items: center;
+}
+
+.song-row-info {
+  gap: 20px;
+}
+
+.song-row-id {
+  width: 20px;
+  color: #b3b3b3;
+}
+
+.song-row-copy,
+.song-row-title,
+.song-row-artist {
+  margin: 0;
+}
+
+.song-row-title {
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+
+.song-row-artist {
+  color: #b3b3b3;
+  font-size: 0.85rem;
+}
+
+.song-row-meta {
+  gap: 15px;
+  color: #b3b3b3;
+}
+
+.song-row-favorite {
+  color: #b3b3b3;
+  cursor: pointer;
+}
+
+.song-row-favorite--active {
+  color: #1db954;
 }

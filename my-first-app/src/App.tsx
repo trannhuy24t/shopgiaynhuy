@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
-import type { ReactNode } from 'react';
-import { User, LogOut, ShieldCheck, Home as HomeIcon, DoorOpen } from 'lucide-react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { User, LogOut, ShieldCheck, Home as HomeIcon, DoorOpen, Menu, X } from 'lucide-react';
 import NotificationDropdown from './components/Common/NotificationDropdown';
 
 // Context Providers
@@ -10,63 +10,72 @@ import { NotificationCountProvider } from './context/NotificationContext';
 import type { Role } from './types/auth';
 import { tenantMenu, getMenuForRole } from './constants/menuConfig';
 
-// Pages
-import Home from './features/home/HomePage';
-import Login from './features/auth/LoginPage';
+// Each route loads on demand so users don't download every admin screen up front.
+const Home = lazy(() => import('./features/home/HomePage'));
+const Login = lazy(() => import('./features/auth/LoginPage'));
+const Register = lazy(() => import('./features/auth/RegisterPage'));
+const RoomListPage = lazy(() => import('./features/room/RoomListPage'));
+const RoomDetailPage = lazy(() => import('./features/room/RoomDetailPage'));
+const ContractRequestPage = lazy(() => import('./features/contract/ContractRequestPage'));
+const RoomManagerPage = lazy(() => import('./features/admin/rooms/RoomManagerPage'));
+const BuildingManagerPage = lazy(() => import('./features/admin/buildings/BuildingManagerPage'));
+const TenantProfilePage = lazy(() => import('./features/tenant/TenantProfilePage'));
+const AccountPage = lazy(() => import('./features/account/AccountPage'));
+const MyContractsPage = lazy(() => import('./features/contract/MyContractsPage'));
+const ContractManagerPage = lazy(() => import('./features/admin/contracts/ContractManagerPage'));
+const MyInvoicesPage = lazy(() => import('./features/invoice/MyInvoicesPage'));
+const InvoiceManagerPage = lazy(() => import('./features/admin/invoices/InvoiceManagerPage'));
+const InvoiceCreatePage = lazy(() => import('./features/admin/invoices/InvoiceCreatePage'));
+const InvoiceBulkCreatePage = lazy(() => import('./features/admin/invoices/InvoiceBulkCreatePage'));
+const MaintenanceRequestPage = lazy(() => import('./features/maintenance/MaintenanceRequestPage'));
+const MyMaintenanceRequestsPage = lazy(() => import('./features/maintenance/MyMaintenanceRequestsPage'));
+const MaintenanceManagerPage = lazy(() => import('./features/admin/maintenance/MaintenanceManagerPage'));
+const NotificationsPage = lazy(() => import('./features/notification/NotificationsPage'));
+const AdminLayout = lazy(() => import('./features/admin/AdminLayout'));
+const AdminIndexRedirect = lazy(() => import('./features/admin/AdminLayout').then((module) => ({ default: module.AdminIndexRedirect })));
+const UserManagerPage = lazy(() => import('./features/admin/users/UserManagerPage'));
+const NotificationManagerPage = lazy(() => import('./features/admin/notifications/NotificationManagerPage'));
+const SystemConfigPage = lazy(() => import('./features/admin/systemConfig/SystemConfigPage'));
+const ReportDashboardPage = lazy(() => import('./features/admin/report/ReportDashboardPage'));
+const ActivityLogPage = lazy(() => import('./features/admin/report/ActivityLogPage'));
 
-// Rental pages (nhóm Room + Building)
-import RoomListPage from './features/room/RoomListPage';
-import RoomDetailPage from './features/room/RoomDetailPage';
-import ContractRequestPage from './features/contract/ContractRequestPage';
-import RoomManagerPage from './features/admin/rooms/RoomManagerPage';
-import BuildingManagerPage from './features/admin/buildings/BuildingManagerPage';
-
-// Rental pages (nhóm Auth/Tenant profile)
-import TenantProfilePage from './features/tenant/TenantProfilePage';
-import AccountPage from './features/account/AccountPage';
-
-// Rental pages (nhóm Contract)
-import MyContractsPage from './features/contract/MyContractsPage';
-import ContractManagerPage from './features/admin/contracts/ContractManagerPage';
-
-// Rental pages (nhóm Invoice + Payment)
-import MyInvoicesPage from './features/invoice/MyInvoicesPage';
-import InvoiceManagerPage from './features/admin/invoices/InvoiceManagerPage';
-import InvoiceCreatePage from './features/admin/invoices/InvoiceCreatePage';
-
-// Rental pages (nhóm Maintenance)
-import MaintenanceRequestPage from './features/maintenance/MaintenanceRequestPage';
-import MyMaintenanceRequestsPage from './features/maintenance/MyMaintenanceRequestsPage';
-import MaintenanceManagerPage from './features/admin/maintenance/MaintenanceManagerPage';
-
-// Rental pages (nhóm Notification)
-import NotificationsPage from './features/notification/NotificationsPage';
-
-// Rental pages (nhóm User/SystemConfig/Report) — khu vực Admin, dùng chung AdminLayout (sidebar)
-import AdminLayout, { AdminIndexRedirect } from './features/admin/AdminLayout';
-import UserManagerPage from './features/admin/users/UserManagerPage';
-import SystemConfigPage from './features/admin/systemConfig/SystemConfigPage';
-import ReportDashboardPage from './features/admin/report/ReportDashboardPage';
-import ActivityLogPage from './features/admin/report/ActivityLogPage';
+const RouteLoadingFallback = () => (
+  <div role="status" aria-live="polite" className="min-h-[45vh] flex items-center justify-center">
+    <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+    <span className="sr-only">Đang tải trang...</span>
+  </div>
+);
 
 // Component bảo vệ Route dành cho User đăng nhập (bất kỳ role nào)
 const PrivateRoute = ({ children }: { children: ReactNode }) => {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  const location = useLocation();
+  return isAuthenticated ? children : <Navigate to="/login" replace state={{ from: location }} />;
 };
 
 // Component bảo vệ Route theo danh sách role được phép (dùng cho các trang nhà trọ:
 // Admin/Staff/Tenant có quyền khác nhau ở từng trang)
 const RoleRoute = ({ children, roles }: { children: ReactNode; roles: Role[] }) => {
   const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   if (!roles.includes(user.role)) {
-    alert('Bạn không có quyền truy cập chức năng này!');
-    return <Navigate to="/" replace />;
+    return (
+      <div role="alert" className="container mx-auto max-w-2xl px-4 py-24 text-center">
+        <ShieldCheck className="mx-auto mb-5 h-12 w-12 text-orange-400" aria-hidden="true" />
+        <h1 className="text-3xl font-black text-white">Bạn không có quyền truy cập</h1>
+        <p className="mt-3 text-sm leading-relaxed text-slate-400">
+          Trang này dành cho {roles.join(', ')}. Tài khoản hiện tại của bạn là {user.role}.
+        </p>
+        <Link to="/" className="mt-6 inline-flex rounded-xl bg-orange-500 px-5 py-3 font-bold text-white hover:bg-orange-600">
+          Về trang chủ
+        </Link>
+      </div>
+    );
   }
 
   return children;
@@ -77,6 +86,9 @@ const Header = () => {
   const { user, logout, isAdmin } = useAuth();
   const location = useLocation();
   const myMenu = getMenuForRole(tenantMenu, user?.role);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => setMobileOpen(false), [location.pathname]);
 
   return (
     <header className="bg-slate-900 text-white sticky top-0 z-50 shadow-md">
@@ -98,7 +110,16 @@ const Header = () => {
         </nav>
 
         {/* User Actions */}
-        <div className="flex items-center space-x-5">
+        <div className="flex items-center space-x-2 sm:space-x-5">
+          <button
+            type="button"
+            onClick={() => setMobileOpen((open) => !open)}
+            className="md:hidden p-2 rounded-lg text-slate-300 hover:bg-slate-800"
+            aria-label={mobileOpen ? 'Đóng menu' : 'Mở menu'}
+            aria-expanded={mobileOpen}
+          >
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
           {/* Admin/Staff Link -> vào sidebar quản trị, tự chuyển tới mục đầu tiên được phép xem */}
           {(isAdmin || user?.role === 'Staff') && (
             <Link to="/admin" className="text-orange-400 hover:text-orange-300 font-semibold text-xs flex items-center gap-1 bg-orange-500/10 px-3 py-1.5 rounded-full border border-orange-500/20 transition-all duration-300">
@@ -148,6 +169,18 @@ const Header = () => {
           )}
         </div>
       </div>
+      {mobileOpen && (
+        <div className="md:hidden border-t border-slate-800 bg-slate-900 px-4 py-3 space-y-2">
+          <Link to="/" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"><HomeIcon size={16} /> Trang chủ</Link>
+          <Link to="/rooms" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"><DoorOpen size={16} /> Danh sách phòng</Link>
+          {user && myMenu.map((item) => {
+            const Icon = item.icon;
+            return <Link key={item.path} to={item.path} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"><Icon size={16} /> {item.label}</Link>;
+          })}
+          {(isAdmin || user?.role === 'Staff') && <Link to="/admin" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-orange-300 hover:bg-slate-800"><ShieldCheck size={16} /> Trang quản trị</Link>}
+          {!user && <Link to="/login" className="block rounded-lg px-3 py-2 text-sm text-orange-300 hover:bg-slate-800">Đăng nhập</Link>}
+        </div>
+      )}
     </header>
   );
 };
@@ -176,11 +209,7 @@ const Footer = () => {
         </div>
         <div id="lien-he">
           <h4 className="text-white font-bold text-base mb-4 tracking-wider uppercase">Liên hệ tư vấn</h4>
-          <ul className="space-y-3 text-sm">
-            <li className="text-slate-300">Hotline: 1900 8198</li>
-            <li className="text-slate-300">Email: support@trohub.vn</li>
-            <li className="text-slate-300">Địa chỉ: 123 Đường Ba Tháng Hai, Quận 10, TP. Hồ Chí Minh</li>
-          </ul>
+          <p className="text-sm leading-relaxed">Thông tin hỗ trợ đang được cập nhật. Với phòng cụ thể, hãy xem thông tin liên hệ do chủ trọ cung cấp trên trang chi tiết phòng.</p>
         </div>
       </div>
     </footer>
@@ -195,10 +224,12 @@ function App() {
         <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
           <Header />
           <main className="flex-grow">
-            <Routes>
+            <Suspense fallback={<RouteLoadingFallback />}>
+              <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/dang-ky" element={<Register />} />
 
               {/* Nhà trọ: danh sách/chi tiết phòng trống (công khai) */}
               <Route path="/rooms" element={<RoomListPage />} />
@@ -286,6 +317,7 @@ function App() {
                 <Route path="contracts" element={<ContractManagerPage />} />
                 <Route path="invoices" element={<InvoiceManagerPage />} />
                 <Route path="invoices/tao-moi" element={<InvoiceCreatePage />} />
+                <Route path="invoices/tao-hang-loat" element={<InvoiceBulkCreatePage />} />
                 <Route path="maintenance" element={<MaintenanceManagerPage />} />
                 <Route
                   path="buildings"
@@ -327,11 +359,19 @@ function App() {
                     </RoleRoute>
                   }
                 />
+                <Route
+                  path="notifications"
+                  element={
+                    <RoleRoute roles={['Admin', 'Staff']}>
+                      <NotificationManagerPage />
+                    </RoleRoute>
+                  }
+                />
               </Route>
 
-              {/* Fallback - Điều hướng về trang chủ */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+              <Route path="*" element={<div className="container mx-auto px-4 py-24 text-center"><h1 className="text-4xl font-black text-white">Không tìm thấy trang</h1><p className="mt-3 text-slate-400">Đường dẫn có thể đã thay đổi hoặc không tồn tại.</p><Link className="inline-block mt-6 rounded-xl bg-orange-500 px-5 py-3 font-bold text-white" to="/">Về trang chủ</Link></div>} />
+              </Routes>
+            </Suspense>
           </main>
 
           <Footer />

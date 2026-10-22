@@ -12,6 +12,7 @@ export interface RoomDto {
   id: number;
   buildingId: number;
   buildingName?: string | null;
+  buildingAddress?: string | null;
   ownerPhone?: string | null;
   roomNumber: string;
   area: number;

@@ -108,6 +108,20 @@ namespace ShopAPI.Services
             return GetById(contract.Id);
         }
 
+        public bool CancelRequest(int contractId, int userId)
+        {
+            var contract = _contractRepository.GetById(contractId);
+            if (contract == null || contract.Tenant?.UserId != userId || contract.Status != ContractStatus.ChoDuyet)
+            {
+                return false;
+            }
+
+            contract.Status = ContractStatus.DaHuy;
+            _contractRepository.Update(contract);
+            _notificationService.NotifyRole("Admin", "Khách thuê đã hủy yêu cầu", $"Yêu cầu thuê phòng #{contract.Id} đã được khách thuê hủy.", "HopDong", relatedContractId: contract.Id);
+            return true;
+        }
+
         public bool Approve(int contractId, ApproveContractDto dto, int approverUserId)
         {
             var contract = _contractRepository.GetById(contractId);
@@ -189,6 +203,31 @@ namespace ShopAPI.Services
 
             _activityLogService.Log(actorUserId, "TerminateContract", "Contract", contract.Id, null);
 
+            return true;
+        }
+
+        public bool Extend(int contractId, ExtendContractDto dto, int actorUserId)
+        {
+            var contract = _contractRepository.GetById(contractId);
+            if (contract == null || contract.Status != ContractStatus.DangHieuLuc || dto.EndDate <= contract.EndDate)
+            {
+                return false;
+            }
+
+            contract.EndDate = dto.EndDate;
+            _contractRepository.Update(contract);
+            if (contract.Tenant?.UserId is int tenantUserId)
+            {
+                _notificationService.Create(new CreateNotificationDto
+                {
+                    UserId = tenantUserId,
+                    Title = "Hợp đồng đã được gia hạn",
+                    Content = $"Thời hạn hợp đồng #{contract.Id} được cập nhật đến {contract.EndDate:dd/MM/yyyy}.",
+                    Type = "HopDong",
+                    RelatedContractId = contract.Id
+                }, actorUserId);
+            }
+            _activityLogService.Log(actorUserId, "ExtendContract", "Contract", contract.Id, $"EndDate={contract.EndDate:O}");
             return true;
         }
 

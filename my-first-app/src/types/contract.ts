@@ -1,6 +1,6 @@
 import type { UpsertTenantProfilePayload } from './tenant';
 
-export type ContractStatus = 'ChoDuyet' | 'ChoCoc' | 'DangHieuLuc' | 'DaKetThuc' | 'TuChoi';
+export type ContractStatus = 'ChoDuyet' | 'ChoCoc' | 'DangHieuLuc' | 'DaKetThuc' | 'TuChoi' | 'DaHuy';
 
 export interface OccupantDto {
   id: number;
@@ -68,4 +68,8 @@ export interface RejectContractPayload {
 export interface SetContractUnitPricePayload {
   electricUnitPrice: number;
   waterUnitPrice: number;
+}
+
+export interface ExtendContractPayload {
+  endDate: string;
 }

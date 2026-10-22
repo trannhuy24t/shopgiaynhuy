@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { getMyInvoices } from '../../api/invoice';
-import { getPaymentQr } from '../../api/payment';
+import { getPaymentQr, getPaymentsByInvoice, submitTransfer } from '../../api/payment';
 import { getApiErrorMessage } from '../../api/client';
 import StatusBadge from '../../components/Common/StatusBadge';
 import type { InvoiceDto } from '../../types/invoice';
+import type { PaymentDto } from '../../types/payment';
 import { Receipt, QrCode, X, Clock, AlertTriangle } from 'lucide-react';
 
 const DUE_SOON_DAYS = 3;
@@ -33,6 +34,12 @@ const MyInvoicesPage = () => {
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError, setQrError] = useState('');
+  const [qrInfo, setQrInfo] = useState('');
+  const [paymentHistory, setPaymentHistory] = useState<PaymentDto[]>([]);
+  const [transactionRef, setTransactionRef] = useState('');
+  const [transferMessage, setTransferMessage] = useState('');
+  const [transferError, setTransferError] = useState('');
+  const [submittingTransfer, setSubmittingTransfer] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -55,11 +62,30 @@ const MyInvoicesPage = () => {
     setQrInvoice(invoice);
     setQrDataUrl('');
     setQrError('');
+    setQrInfo('');
+    setPaymentHistory([]);
+    setTransactionRef('');
+    setTransferMessage('');
+    setTransferError('');
     setQrLoading(true);
     try {
-      const res = await getPaymentQr(invoice.id);
-      const dataUrl = await QRCode.toDataURL(res.data.payload, { width: 280, margin: 1 });
-      setQrDataUrl(dataUrl);
+      const [qrResult, paymentsResult] = await Promise.allSettled([
+        getPaymentQr(invoice.id),
+        getPaymentsByInvoice(invoice.id),
+      ]);
+
+      if (paymentsResult.status === 'fulfilled') {
+        setPaymentHistory(paymentsResult.value.data);
+      }
+
+      if (qrResult.status === 'rejected') {
+        setQrError(getApiErrorMessage(qrResult.reason, 'Không tạo được mã QR thanh toán.'));
+      } else if (!qrResult.value.data.isAvailable || !qrResult.value.data.payload.trim()) {
+        setQrInfo(qrResult.value.data.message || 'Tài khoản nhận chuyển khoản chưa được cấu hình. Vui lòng liên hệ ban quản lý.');
+      } else {
+        const dataUrl = await QRCode.toDataURL(qrResult.value.data.payload, { width: 280, margin: 1 });
+        setQrDataUrl(dataUrl);
+      }
     } catch (err) {
       setQrError(getApiErrorMessage(err, 'Không tạo được mã QR thanh toán.'));
     } finally {
@@ -67,10 +93,33 @@ const MyInvoicesPage = () => {
     }
   };
 
+  const handleSubmitTransfer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!qrInvoice || !transactionRef.trim()) return;
+    setSubmittingTransfer(true);
+    setTransferError('');
+    setTransferMessage('');
+    try {
+      const res = await submitTransfer({ invoiceId: qrInvoice.id, amount: qrInvoice.totalAmount, transactionRef: transactionRef.trim() });
+      setTransferMessage(res.data.message);
+      const history = await getPaymentsByInvoice(qrInvoice.id);
+      setPaymentHistory(history.data);
+      setTransactionRef('');
+    } catch (err) {
+      setTransferError(getApiErrorMessage(err, 'Không gửi được mã giao dịch.'));
+    } finally {
+      setSubmittingTransfer(false);
+    }
+  };
+
   const closeQrModal = () => {
     setQrInvoice(null);
     setQrDataUrl('');
     setQrError('');
+    setQrInfo('');
+    setPaymentHistory([]);
+    setTransferMessage('');
+    setTransferError('');
   };
 
   const dueSoonCount = invoices.filter(
@@ -130,6 +179,7 @@ const MyInvoicesPage = () => {
             return (
             <div
               key={inv.id}
+              id={`invoice-${inv.id}`}
               className={`bg-slate-900 p-5 sm:p-6 rounded-2xl border ${
                 isDueSoon ? 'border-amber-500/40 ring-1 ring-amber-500/10' : 'border-slate-850'
               }`}
@@ -214,7 +264,7 @@ const MyInvoicesPage = () => {
               <X size={20} />
             </button>
 
-            <h3 className="font-bold text-lg text-white uppercase tracking-wide mb-1">Quét mã để thanh toán</h3>
+            <h3 className="font-bold text-lg text-white uppercase tracking-wide mb-1">Thanh toán hóa đơn</h3>
             <p className="text-xs text-slate-500 mb-6">
               Hóa đơn kỳ {qrInvoice.month}/{qrInvoice.year} — {formatPrice(qrInvoice.totalAmount)}
             </p>
@@ -231,16 +281,36 @@ const MyInvoicesPage = () => {
               </div>
             )}
 
+            {qrInfo && (
+              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold p-3 rounded-xl">
+                {qrInfo}
+              </div>
+            )}
+
             {qrDataUrl && !qrLoading && (
               <>
                 <div className="bg-white p-4 rounded-2xl inline-block mb-4">
                   <img src={qrDataUrl} alt="Mã QR thanh toán" className="w-full max-w-[240px]" />
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Mở app ngân hàng, quét mã VietQR ở trên. Sau khi chuyển khoản, nhân viên sẽ xác nhận thanh toán trong hệ thống — trạng thái hóa đơn sẽ tự cập nhật.
+                  Mở ứng dụng ngân hàng, quét mã VietQR và chuyển đúng số tiền. Đây là QR chuyển khoản; hệ thống chưa tự đối soát ngân hàng.
                 </p>
               </>
             )}
+
+            {!qrLoading && (paymentHistory.some((payment) => payment.status === 'ChoXacNhan') ? (
+              <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-left text-xs text-amber-300">Giao dịch đã gửi và đang chờ ban quản lý xác nhận.</div>
+            ) : (
+              <form onSubmit={handleSubmitTransfer} className="mt-4 space-y-3 text-left">
+                {!qrDataUrl && <p className="text-xs text-slate-400">Nếu bạn đã nhận thông tin tài khoản từ ban quản lý và chuyển khoản, hãy gửi mã giao dịch tại đây để được xác nhận thủ công.</p>}
+                <label className="block text-xs font-semibold text-slate-400">Mã giao dịch trên biên lai ngân hàng
+                  <input required maxLength={100} value={transactionRef} onChange={(e) => setTransactionRef(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-orange-500" placeholder="VD: FT... hoặc mã tham chiếu" />
+                </label>
+                {transferError && <p className="text-xs text-red-400">{transferError}</p>}
+                {transferMessage && <p className="text-xs text-green-400">{transferMessage}</p>}
+                <button type="submit" disabled={submittingTransfer} className="w-full rounded-xl bg-orange-500 py-3 text-sm font-bold text-white disabled:opacity-50">{submittingTransfer ? 'Đang gửi...' : 'Tôi đã chuyển khoản'}</button>
+              </form>
+            ))}
           </div>
         </div>
       )}

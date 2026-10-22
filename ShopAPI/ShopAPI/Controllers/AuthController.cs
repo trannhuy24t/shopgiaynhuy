@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Authorization;
 using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
+using System.Security.Claims;
 
 namespace ShopAPI.Controllers
 {
@@ -14,6 +16,11 @@ namespace ShopAPI.Controllers
         public AuthController(IAuthService authService)
         {
             _authService = authService;
+        }
+
+        private int GetUserId()
+        {
+            return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         }
 
         [HttpPost("register")]
@@ -76,6 +83,14 @@ namespace ShopAPI.Controllers
                 refreshToken = result.RefreshToken,
                 user = result.User
             });
+        }
+
+        [Authorize]
+        [HttpPost("change-password")]
+        public IActionResult ChangePassword(ChangePasswordDto dto)
+        {
+            var (success, message) = _authService.ChangePassword(GetUserId(), dto);
+            return success ? Ok(new { message }) : BadRequest(new { message });
         }
     }
 }

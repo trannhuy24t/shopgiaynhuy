@@ -5,6 +5,7 @@ import { getPublicRates } from '../../api/systemConfig';
 import { getApiErrorMessage, resolveImageUrl } from '../../api/client';
 import { useAuth } from '../../context/useAuth';
 import StatusBadge from '../../components/Common/StatusBadge';
+import ImageWithFallback from '../../components/Common/ImageWithFallback';
 import type { RoomDto } from '../../types/room';
 import type { PublicRatesDto } from '../../types/systemConfig';
 import { ArrowLeft, Building2, Ruler, Phone, Zap, MessageCircle, PhoneCall, X } from 'lucide-react';
@@ -23,6 +24,7 @@ const RoomDetailPage = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [publicRates, setPublicRates] = useState<PublicRatesDto | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [requestError, setRequestError] = useState('');
 
   useEffect(() => {
     const loadRoom = async () => {
@@ -52,13 +54,10 @@ const RoomDetailPage = () => {
       return;
     }
     if (user?.role !== 'Tenant') {
-      alert(
-        'Tài khoản của bạn chưa có quyền đăng ký thuê phòng (role hiện tại: ' +
-          user?.role +
-          '). Vui lòng liên hệ quản trị viên để được cấp quyền Tenant.'
-      );
+      setRequestError(`Tài khoản ${user?.role ?? ''} chưa có quyền đăng ký thuê phòng. Vui lòng liên hệ quản trị viên.`);
       return;
     }
+    setRequestError('');
     navigate(`/thue/${id}`);
   };
 
@@ -106,8 +105,8 @@ const RoomDetailPage = () => {
         {/* Ảnh phòng */}
         <div className="space-y-4">
           <div className="aspect-video lg:aspect-square bg-slate-900 rounded-3xl overflow-hidden border border-slate-850">
-            <img
-              src={resolveImageUrl(selectedImage) || 'https://via.placeholder.com/600x600?text=Ph%C3%B2ng+tr%E1%BB%8D'}
+            <ImageWithFallback
+              src={resolveImageUrl(selectedImage)}
               alt={room.roomNumber}
               className="w-full h-full object-cover"
             />
@@ -125,7 +124,7 @@ const RoomDetailPage = () => {
                       selectedImage === m.url ? 'border-orange-500 shadow-md' : 'border-slate-800 opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={resolveImageUrl(m.url)} alt={`${room.roomNumber} ${m.id}`} className="w-full h-full object-cover" />
+                    <ImageWithFallback src={resolveImageUrl(m.url)} alt={`${room.roomNumber} ${m.id}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
             </div>
@@ -138,6 +137,7 @@ const RoomDetailPage = () => {
             <div className="flex items-center gap-2 text-orange-500 font-extrabold text-xs uppercase tracking-widest">
               <Building2 size={14} /> {room.buildingName || `Tòa nhà #${room.buildingId}`}
             </div>
+            {room.buildingAddress && <p className="text-sm text-slate-400">{room.buildingAddress}</p>}
             <div className="flex items-center gap-3">
               <h1 className="text-3xl md:text-4xl font-black text-white leading-tight uppercase tracking-tight">
                 Phòng {room.roomNumber}
@@ -179,16 +179,27 @@ const RoomDetailPage = () => {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-900">
+          <div className="pt-4 border-t border-slate-900 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
-              onClick={() => setShowContactModal(true)}
+              onClick={handleRequestContract}
               disabled={room.status !== 'Trong'}
               className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed active:scale-98 text-white font-bold py-4 rounded-2xl shadow-lg shadow-orange-500/20 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
             >
-              <Phone size={18} />
-              {room.status === 'Trong' ? 'Liên hệ với chủ trọ' : 'Phòng hiện không còn trống'}
+              {room.status === 'Trong' ? 'Đăng ký thuê phòng' : 'Phòng hiện không còn trống'}
+            </button>
+            <button
+              onClick={() => setShowContactModal(true)}
+              disabled={room.status !== 'Trong'}
+              className="w-full bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold py-4 rounded-2xl border border-slate-800 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+            >
+              <Phone size={18} /> Liên hệ chủ trọ
             </button>
           </div>
+          {requestError && (
+            <p role="alert" className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-200">
+              {requestError}
+            </p>
+          )}
         </div>
       </div>
       {showContactModal && <ContactModal phone={room.ownerPhone ?? null} onClose={() => setShowContactModal(false)} />}
