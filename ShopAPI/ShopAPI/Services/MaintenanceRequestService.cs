@@ -99,9 +99,9 @@ namespace ShopAPI.Services
 
             var result = GetById(request.Id);
 
-            var content = $"KhĂ¡ch thuĂª {tenant.FullName} bĂ¡o sá»± cá»‘ táº¡i phĂ²ng {result?.RoomNumber}: {dto.Title}";
-            _notificationService.NotifyRole("Admin", "YĂªu cáº§u báº£o trĂ¬ má»›i", content, "BaoTri");
-            _notificationService.NotifyRole("Staff", "YĂªu cáº§u báº£o trĂ¬ má»›i", content, "BaoTri");
+            var content = $"Khách thuê {tenant.FullName} báo sự cố tại phòng {result?.RoomNumber}: {dto.Title}";
+            _notificationService.NotifyRole("Admin", "Yêu cầu bảo trì mới", content, "BaoTri");
+            _notificationService.NotifyRole("Staff", "Yêu cầu bảo trì mới", content, "BaoTri");
 
             _activityLogService.Log(userId, "CreateMaintenanceRequest", "MaintenanceRequest", request.Id, dto.Title);
 

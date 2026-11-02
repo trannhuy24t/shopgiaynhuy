@@ -43,7 +43,7 @@ const invoiceStatusMap: Record<InvoiceStatus, StatusMeta> = {
 };
 
 const invoiceTypeMap: Record<InvoiceType, StatusMeta> = {
-  Coc: { label: 'Hóa đơn cọc', className: PURPLE },
+  Coc: { label: 'Hóa đơn cọc & nhận phòng', className: PURPLE },
   HangThang: { label: 'Hóa đơn hàng tháng', className: BLUE },
 };
 

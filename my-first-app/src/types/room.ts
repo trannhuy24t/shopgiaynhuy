@@ -15,12 +15,16 @@ export interface RoomDto {
   buildingAddress?: string | null;
   ownerPhone?: string | null;
   roomNumber: string;
+  roomType?: string | null;
   area: number;
   price: number;
   serviceFee: number;
   status: RoomStatus;
+  amenities?: string | null;
   description?: string | null;
   imageUrl?: string | null;
+  image?: string | null;
+  images?: string[];
   createdAt: string;
   media: RoomMediaDto[];
   currentOccupants: number | null;
@@ -29,9 +33,11 @@ export interface RoomDto {
 export interface CreateRoomPayload {
   buildingId: number;
   roomNumber: string;
+  roomType?: string | null;
   area?: number;
   price: number;
   serviceFee?: number;
+  amenities?: string | null;
   description?: string | null;
   imageUrl?: string | null;
 }
@@ -39,9 +45,11 @@ export interface CreateRoomPayload {
 export interface UpdateRoomPayload {
   id: number;
   roomNumber: string;
+  roomType?: string | null;
   area?: number;
   price: number;
   serviceFee?: number;
+  amenities?: string | null;
   description?: string | null;
   imageUrl?: string | null;
 }

@@ -45,6 +45,19 @@ namespace ShopAPI.Services
             _context.Users.Add(user);
             _context.SaveChanges();
 
+            // Auto-create a Tenant profile for the new user so they can immediately act as a Tenant
+            if (!_context.Tenants.Any(t => t.UserId == user.Id))
+            {
+                _context.Tenants.Add(new Tenant
+                {
+                    UserId = user.Id,
+                    FullName = user.FullName,
+                    Email = user.Email,
+                    CreatedAt = DateTime.UtcNow
+                });
+                _context.SaveChanges();
+            }
+
             return new AuthResponseDto
             {
                 Success = true,
@@ -81,10 +94,21 @@ namespace ShopAPI.Services
             }
 
             // Accounts created by older public registration used the legacy "User" role.
-            // The public portal is for renters, so normalize those accounts on next login.
+            // Normalize those accounts to "Tenant" and ensure a Tenant profile exists.
             if (user.Role == "User")
             {
                 user.Role = "Tenant";
+            }
+
+            if (user.Role == "Tenant" && !_context.Tenants.Any(t => t.UserId == user.Id))
+            {
+                _context.Tenants.Add(new Tenant
+                {
+                    UserId = user.Id,
+                    FullName = user.FullName,
+                    Email = user.Email,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
 
             var token = _jwtService.GenerateToken(user);

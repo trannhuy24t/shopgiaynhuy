@@ -1,4 +1,4 @@
-﻿using ShopAPI.DTOs;
+using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
 
@@ -52,9 +52,11 @@ namespace ShopAPI.Services
             {
                 BuildingId = dto.BuildingId,
                 RoomNumber = dto.RoomNumber,
+                RoomType = dto.RoomType,
                 Area = dto.Area,
                 Price = dto.Price,
                 ServiceFee = dto.ServiceFee,
+                Amenities = dto.Amenities,
                 Description = dto.Description,
                 ImageUrl = dto.ImageUrl,
                 Status = RoomStatus.Trong,
@@ -76,9 +78,11 @@ namespace ShopAPI.Services
             }
 
             room.RoomNumber = dto.RoomNumber;
+            room.RoomType = dto.RoomType;
             room.Area = dto.Area;
             room.Price = dto.Price;
             room.ServiceFee = dto.ServiceFee;
+            room.Amenities = dto.Amenities;
             room.Description = dto.Description;
             room.ImageUrl = dto.ImageUrl;
 
@@ -146,7 +150,7 @@ namespace ShopAPI.Services
                 });
             }
 
-            // Náº¿u phĂ²ng chÆ°a cĂ³ áº£nh Ä‘áº¡i diá»‡n, láº¥y áº£nh Ä‘áº§u tiĂªn vá»«a thĂªm lĂ m áº£nh Ä‘áº¡i diá»‡n
+            // Nếu phòng chưa có ảnh đại diện, lấy ảnh đầu tiên vừa thêm làm ảnh đại diện
             if (string.IsNullOrEmpty(room.ImageUrl))
             {
                 var firstImage = items.FirstOrDefault(i => i.Type == "Image");
@@ -231,12 +235,16 @@ namespace ShopAPI.Services
                 BuildingAddress = room.Building?.Address,
                 OwnerPhone = room.Building?.Owner?.PhoneNumber,
                 RoomNumber = room.RoomNumber,
+                RoomType = room.RoomType,
                 Area = room.Area,
                 Price = room.Price,
                 ServiceFee = room.ServiceFee,
                 Status = room.Status.ToString(),
+                Amenities = room.Amenities,
                 Description = room.Description,
                 ImageUrl = room.ImageUrl,
+                Image = room.ImageUrl ?? room.Media.FirstOrDefault(m => m.Type == "Image")?.Url,
+                Images = room.Media.Where(m => m.Type == "Image").OrderBy(m => m.SortOrder).Select(m => m.Url).ToList(),
                 CreatedAt = room.CreatedAt,
                 Media = room.Media.OrderBy(m => m.SortOrder).Select(MapMediaToDto).ToList(),
                 CurrentOccupants = activeContract == null ? null : activeContract.NumberOfOccupants

@@ -3,17 +3,17 @@
 namespace ShopAPI.Services
 {
     /// <summary>
-    /// Background service cháº¡y má»—i ngĂ y lĂºc 8:00 sĂ¡ng, tá»± Ä‘á»™ng:
-    /// 1. ÄĂ¡nh dáº¥u hĂ³a Ä‘Æ¡n quĂ¡ háº¡n â†’ QuaHan vĂ  gá»­i nháº¯c nhá»Ÿ
-    /// 2. Nháº¯c hĂ³a Ä‘Æ¡n sáº¯p Ä‘áº¿n háº¡n (trong 3 ngĂ y tá»›i)
-    /// 3. Nháº¯c há»£p Ä‘á»“ng sáº¯p háº¿t háº¡n (trong 7 ngĂ y tá»›i)
+    /// Background service chạy mỗi ngày lúc 8:00 sáng, tự động:
+    /// 1. Đánh dấu hóa đơn quá hạn → QuaHan và gửi nhắc nhở
+    /// 2. Nhắc hóa đơn sắp đến hạn (trong 3 ngày tới)
+    /// 3. Nhắc hợp đồng sắp hết hạn (trong 7 ngày tới)
     /// </summary>
     public class DailyReminderService : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<DailyReminderService> _logger;
 
-        // ID "user há»‡ thá»‘ng" dĂ¹ng khi ghi ActivityLog cho cĂ¡c tĂ¡c vá»¥ tá»± Ä‘á»™ng (0 = system)
+        // ID "user hệ thống" dùng khi ghi ActivityLog cho các tác vụ tự động (0 = system)
         private const int SystemUserId = 0;
 
         public DailyReminderService(IServiceScopeFactory scopeFactory, ILogger<DailyReminderService> logger)
@@ -29,7 +29,7 @@ namespace ShopAPI.Services
             while (!stoppingToken.IsCancellationRequested)
             {
                 var now = DateTime.UtcNow;
-                // TĂ­nh thá»i Ä‘iá»ƒm cháº¡y tiáº¿p theo: 8:00 sĂ¡ng ngĂ y hĂ´m sau (hoáº·c hĂ´m nay náº¿u chÆ°a qua 8h)
+                // Tính thời điểm chạy tiếp theo: 8:00 sáng ngày hôm sau (hoặc hôm nay nếu chưa qua 8h)
                 var nextRun = now.Hour < 8
                     ? now.Date.AddHours(8)
                     : now.Date.AddDays(1).AddHours(8);
@@ -61,17 +61,17 @@ namespace ShopAPI.Services
                 using var scope = _scopeFactory.CreateScope();
                 var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
 
-                // 1. HĂ³a Ä‘Æ¡n quĂ¡ háº¡n
+                // 1. Hóa đơn quá hạn
                 var overdueCount = notificationService.RemindOverdue(SystemUserId);
-                _logger.LogInformation("DailyReminderService: RemindOverdue = {Count} hĂ³a Ä‘Æ¡n", overdueCount);
+                _logger.LogInformation("DailyReminderService: RemindOverdue = {Count} hóa đơn", overdueCount);
 
-                // 2. HĂ³a Ä‘Æ¡n sáº¯p Ä‘áº¿n háº¡n (3 ngĂ y)
+                // 2. Hóa đơn sắp đến hạn (3 ngày)
                 var upcomingInvoiceCount = notificationService.RemindUpcomingInvoices(SystemUserId, daysBefore: 3);
-                _logger.LogInformation("DailyReminderService: RemindUpcomingInvoices = {Count} hĂ³a Ä‘Æ¡n", upcomingInvoiceCount);
+                _logger.LogInformation("DailyReminderService: RemindUpcomingInvoices = {Count} hóa đơn", upcomingInvoiceCount);
 
-                // 3. Há»£p Ä‘á»“ng sáº¯p háº¿t háº¡n (7 ngĂ y)
+                // 3. Hợp đồng sắp hết hạn (7 ngày)
                 var upcomingContractCount = notificationService.RemindUpcomingContracts(SystemUserId, daysBefore: 7);
-                _logger.LogInformation("DailyReminderService: RemindUpcomingContracts = {Count} há»£p Ä‘á»“ng", upcomingContractCount);
+                _logger.LogInformation("DailyReminderService: RemindUpcomingContracts = {Count} hợp đồng", upcomingContractCount);
             }
             catch (Exception ex)
             {

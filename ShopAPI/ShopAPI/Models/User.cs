@@ -16,7 +16,7 @@ namespace ShopAPI.Models
         [MinLength(6)]
         public string Password { get; set; } = string.Empty;
         [Required]
-        public string Role { get; set; } = "User"; // Default role is "User"
+        public string Role { get; set; } = "Tenant"; // Default role is "Tenant"
         [MaxLength(20)]
         public string? PhoneNumber { get; set; }
         public string? RefreshToken { get; set; }

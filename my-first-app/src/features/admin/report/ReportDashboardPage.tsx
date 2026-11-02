@@ -69,13 +69,7 @@ const ReportDashboardPage = () => {
   ];
 
   return (
-    <div className="max-w-7xl space-y-8">
-      <div className="pb-4 border-b border-slate-900">
-        <span className="text-orange-500 text-xs font-black uppercase tracking-wider block mb-1">
-          Tổng quan vận hành
-        </span>
-        <h1 className="text-3xl font-black text-white tracking-tight uppercase">Dashboard báo cáo</h1>
-      </div>
+    <div className="w-full space-y-6">
 
       {(data.overdueInvoiceCount > 0) && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-300 text-xs font-semibold p-4 rounded-xl flex items-center gap-2">

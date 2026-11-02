@@ -28,3 +28,8 @@ export const confirmTransfer = (paymentId: number) => {
 export const rejectTransfer = (paymentId: number) => {
     return api.put<ApiMessageResponse>(`/Payment/${paymentId}/reject-transfer`, {});
 };
+
+// Giả lập Webhook SePay ngân hàng chuyển khoản thành công (dành cho test & demo)
+export const simulateTransfer = (invoiceId: number) => {
+    return api.post<ApiMessageResponse>(`/Payment/simulate-transfer/${invoiceId}`);
+};

@@ -17,27 +17,61 @@ import { useAuth } from '../../../context/useAuth';
 import StatusBadge from '../../../components/Common/StatusBadge';
 import ImageWithFallback from '../../../components/Common/ImageWithFallback';
 import OccupantManager from '../../../components/Common/OccupantManager';
+import TablePagination from '../../../components/Common/TablePagination';
 import { statusMaps } from '../../../constants/statusLabels';
 import type { RoomDto, RoomStatus, RoomMediaDto } from '../../../types/room';
 import type { BuildingDto } from '../../../types/building';
 import type { ContractDto } from '../../../types/contract';
-import { Plus, Edit2, Trash2, X, DoorOpen, Star, ImagePlus, Users } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, DoorOpen, Star, ImagePlus, Users, Check, Armchair, Search } from 'lucide-react';
+
+export const ROOM_TYPE_OPTIONS = [
+  'Phòng đơn',
+  'Phòng gác xép',
+  'Phòng Studio',
+  'Phòng 1 ngủ 1 khách',
+  'Phòng 2 ngủ 1 khách',
+  'Phòng Duplex',
+  'Khác (tự nhập)',
+];
+
+export const POPULAR_AMENITIES = [
+  'Điều hòa',
+  'Bình nóng lạnh',
+  'Tủ lạnh',
+  'Máy giặt',
+  'Giường nệm',
+  'Tủ quần áo',
+  'Kệ bếp / Bếp từ',
+  'Bàn ghế làm việc',
+  'Sofa',
+  'Ban công / Cửa sổ thoáng',
+  'Khóa vân tay',
+  'Wifi riêng',
+];
 
 interface RoomFormData {
   buildingId: string;
   roomNumber: string;
+  roomType: string;
+  customRoomType: string;
   area: string;
   price: string;
   serviceFee: string;
+  selectedAmenities: string[];
+  otherAmenities: string;
   description: string;
 }
 
 const emptyFormData: RoomFormData = {
   buildingId: '',
   roomNumber: '',
+  roomType: 'Phòng đơn',
+  customRoomType: '',
   area: '',
   price: '',
   serviceFee: '',
+  selectedAmenities: ['Điều hòa', 'Bình nóng lạnh', 'Giường nệm', 'Tủ quần áo'],
+  otherAmenities: '',
   description: '',
 };
 
@@ -62,12 +96,21 @@ const RoomManagerPage = () => {
   // Bộ lọc
   const [filterBuildingId, setFilterBuildingId] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterRoomType, setFilterRoomType] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterBuildingId, filterStatus, filterRoomType, searchTerm]);
 
   // Modal thêm/sửa (Admin)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState<RoomFormData>(emptyFormData);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [editingRoomImageUrl, setEditingRoomImageUrl] = useState<string | null>(null);
 
   // Thư viện ảnh (chỉ áp dụng khi sửa phòng đã tồn tại — thao tác tức thời, không qua nút Lưu)
@@ -130,6 +173,7 @@ const RoomManagerPage = () => {
     setEditingId(null);
     setFormError('');
     setImageFile(null);
+    setSelectedFiles([]);
     setEditingRoomImageUrl(null);
     setGalleryMedia([]);
     setGalleryError('');
@@ -144,15 +188,32 @@ const RoomManagerPage = () => {
     setEditingId(room.id);
     setFormError('');
     setImageFile(null);
+    setSelectedFiles([]);
     setEditingRoomImageUrl(room.imageUrl || null);
     setGalleryMedia(room.media || []);
     setGalleryError('');
+
+    // Parse RoomType
+    const presetTypes = ROOM_TYPE_OPTIONS.filter((t) => t !== 'Khác (tự nhập)');
+    const isPreset = presetTypes.includes(room.roomType || '');
+    const roomType = isPreset ? (room.roomType || 'Phòng đơn') : (room.roomType ? 'Khác (tự nhập)' : 'Phòng đơn');
+    const customRoomType = isPreset ? '' : (room.roomType || '');
+
+    // Parse Amenities
+    const rawAmenities = room.amenities ? room.amenities.split(',').map((s) => s.trim()).filter(Boolean) : [];
+    const selectedAmenities = rawAmenities.filter((item) => POPULAR_AMENITIES.includes(item));
+    const otherAmenities = rawAmenities.filter((item) => !POPULAR_AMENITIES.includes(item)).join(', ');
+
     setFormData({
       buildingId: String(room.buildingId),
       roomNumber: room.roomNumber,
+      roomType,
+      customRoomType,
       area: room.area ? String(room.area) : '',
       price: String(room.price),
       serviceFee: room.serviceFee ? String(room.serviceFee) : '',
+      selectedAmenities,
+      otherAmenities,
       description: room.description || '',
     });
     setIsModalOpen(true);
@@ -218,6 +279,26 @@ const RoomManagerPage = () => {
     }
   };
 
+  const handleSelectFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const newFiles = Array.from(e.target.files);
+    setSelectedFiles((prev) => [...prev, ...newFiles]);
+    e.target.value = '';
+  };
+
+  const handleRemoveSelectedFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleSetPrimaryIndex = (index: number) => {
+    if (index === 0) return;
+    setSelectedFiles((prev) => {
+      const chosen = prev[index];
+      const remaining = prev.filter((_, idx) => idx !== index);
+      return [chosen, ...remaining];
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
@@ -231,6 +312,17 @@ const RoomManagerPage = () => {
     const areaNum = formData.area ? Number(formData.area) : undefined;
     const serviceFeeNum = formData.serviceFee ? Number(formData.serviceFee) : undefined;
 
+    const finalRoomType =
+      formData.roomType === 'Khác (tự nhập)'
+        ? (formData.customRoomType.trim() || 'Phòng khác')
+        : formData.roomType;
+
+    const otherList = formData.otherAmenities
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const allAmenities = Array.from(new Set([...formData.selectedAmenities, ...otherList])).join(', ');
+
     try {
       setSaving(true);
 
@@ -238,29 +330,37 @@ const RoomManagerPage = () => {
         await updateRoomWithImage({
           id: editingId,
           roomNumber: formData.roomNumber,
+          roomType: finalRoomType,
           area: areaNum,
           price: priceNum,
           serviceFee: serviceFeeNum,
+          amenities: allAmenities || null,
           description: formData.description || null,
           image: imageFile,
+          files: selectedFiles.length > 0 ? selectedFiles : undefined,
         });
-      } else if (imageFile) {
+      } else if (selectedFiles.length > 0 || imageFile) {
         await createRoomWithImage({
           buildingId: Number(formData.buildingId),
           roomNumber: formData.roomNumber,
+          roomType: finalRoomType,
           area: areaNum,
           price: priceNum,
           serviceFee: serviceFeeNum,
+          amenities: allAmenities || null,
           description: formData.description || null,
-          image: imageFile,
+          image: selectedFiles[0] || imageFile,
+          files: selectedFiles.length > 0 ? selectedFiles : (imageFile ? [imageFile] : undefined),
         });
       } else {
         await createRoom({
           buildingId: Number(formData.buildingId),
           roomNumber: formData.roomNumber,
+          roomType: finalRoomType,
           area: areaNum,
           price: priceNum,
           serviceFee: serviceFeeNum,
+          amenities: allAmenities || null,
           description: formData.description || null,
           imageUrl: null,
         });
@@ -276,50 +376,80 @@ const RoomManagerPage = () => {
   };
 
   return (
-    <div className="max-w-7xl space-y-8">
-      {/* Tiêu đề & Nút thêm */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-900">
-        <div>
-          <span className="text-orange-500 text-xs font-black uppercase tracking-wider block mb-1">
-            Kho phòng nhà trọ
-          </span>
-          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Quản lý phòng</h1>
+    <div className="w-full space-y-6">
+      {/* Thanh công cụ: Ô tìm kiếm + Bộ lọc bên trái & Nút thêm phòng mới bên phải cùng hàng */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 bg-slate-900/60 p-3 sm:p-4 rounded-2xl border border-slate-850">
+        <div className="flex flex-wrap items-center gap-2.5 flex-1">
+          {/* Ô tìm kiếm */}
+          <div className="relative flex-1 min-w-[180px] sm:min-w-[240px] max-w-sm">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Tìm theo số phòng, tòa nhà..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none hover:border-slate-700 focus:border-orange-500 transition-colors"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-0.5 cursor-pointer"
+                title="Xóa tìm kiếm"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          {/* Lọc tòa nhà */}
+          <select
+            value={filterBuildingId}
+            onChange={(e) => setFilterBuildingId(e.target.value)}
+            className="bg-slate-950 border border-slate-800 text-slate-300 text-xs font-semibold rounded-xl px-3 py-2.5 outline-none cursor-pointer hover:border-slate-700 transition-colors"
+          >
+            <option value="all">Tất cả tòa nhà</option>
+            {buildings.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+
+          {/* Lọc trạng thái */}
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="bg-slate-950 border border-slate-800 text-slate-300 text-xs font-semibold rounded-xl px-3 py-2.5 outline-none cursor-pointer hover:border-slate-700 transition-colors"
+          >
+            <option value="all">Tất cả trạng thái</option>
+            {Object.entries(statusMaps.room).map(([value, meta]) => (
+              <option key={value} value={value}>{meta.label}</option>
+            ))}
+          </select>
+
+          {/* Lọc loại phòng */}
+          <select
+            value={filterRoomType}
+            onChange={(e) => setFilterRoomType(e.target.value)}
+            className="bg-slate-950 border border-slate-800 text-slate-300 text-xs font-semibold rounded-xl px-3 py-2.5 outline-none cursor-pointer hover:border-slate-700 transition-colors"
+          >
+            <option value="all">Tất cả loại phòng</option>
+            {ROOM_TYPE_OPTIONS.filter((t) => t !== 'Khác (tự nhập)').map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
         </div>
+
+        {/* Nút thêm phòng mới nằm cùng hàng bên phải */}
         {isAdmin && (
           <button
             onClick={handleOpenAddModal}
             disabled={!buildings.length || Boolean(buildingsError)}
             title={buildingsError ? 'Tải danh sách tòa nhà thành công rồi thử lại.' : !buildings.length ? 'Cần tạo tòa nhà trước khi thêm phòng.' : undefined}
-            className="bg-orange-500 hover:bg-orange-600 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold px-5 py-3 rounded-2xl flex items-center gap-1.5 transition-all shadow-lg shadow-orange-500/10 cursor-pointer"
+            className="bg-orange-500 hover:bg-orange-600 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold px-4 sm:px-5 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-orange-500/20 cursor-pointer shrink-0 ml-auto xl:ml-0"
           >
             <Plus size={16} /> Thêm phòng mới
           </button>
         )}
-      </div>
-
-      {/* Bộ lọc */}
-      <div className="flex flex-col sm:flex-row gap-3 bg-slate-900/40 p-4 rounded-2xl border border-slate-850">
-        <select
-          value={filterBuildingId}
-          onChange={(e) => setFilterBuildingId(e.target.value)}
-          className="bg-slate-950 border border-slate-800 text-slate-300 text-xs font-semibold rounded-xl px-3 py-2.5 outline-none cursor-pointer"
-        >
-          <option value="all">Tất cả tòa nhà</option>
-          {buildings.map((b) => (
-            <option key={b.id} value={b.id}>{b.name}</option>
-          ))}
-        </select>
-
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="bg-slate-950 border border-slate-800 text-slate-300 text-xs font-semibold rounded-xl px-3 py-2.5 outline-none cursor-pointer"
-        >
-          <option value="all">Tất cả trạng thái</option>
-          {Object.entries(statusMaps.room).map(([value, meta]) => (
-            <option key={value} value={value}>{meta.label}</option>
-          ))}
-        </select>
       </div>
 
       {(buildingsError || (!buildings.length && isAdmin)) && (
@@ -373,87 +503,159 @@ const RoomManagerPage = () => {
         </div>
       )}
 
-      {!loading && !error && rooms.length > 0 && (
-        <div className="bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden shadow-2xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider bg-slate-950/20">
-                  <th className="p-5">Ảnh</th>
-                  <th className="p-5">Phòng</th>
-                  <th className="p-5">Tòa nhà</th>
-                  <th className="p-5">Diện tích</th>
-                  <th className="p-5">Giá thuê</th>
-                  <th className="p-5">Số người ở</th>
-                  <th className="p-5">Trạng thái</th>
-                  {isAdmin && <th className="p-5 text-center">Hành động</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-850/50">
-                {rooms.map((room) => (
-                  <tr key={room.id} className="text-slate-300 hover:bg-slate-950/10 transition-colors">
-                    <td className="p-5 shrink-0">
-                      <ImageWithFallback
-                        src={resolveImageUrl(room.imageUrl)}
-                        alt={room.roomNumber}
-                        className="w-12 h-12 rounded-xl object-cover bg-slate-950 border border-slate-800"
-                      />
-                    </td>
-                    <td className="p-5 font-bold text-white">{room.roomNumber}</td>
-                    <td className="p-5 font-semibold text-slate-400">{room.buildingName || `#${room.buildingId}`}</td>
-                    <td className="p-5 font-medium text-slate-500">{room.area ? `${room.area} m²` : '—'}</td>
-                    <td className="p-5 font-extrabold text-orange-500">{formatPrice(room.price)}</td>
-                    <td className="p-5 font-medium text-slate-400">
-                      {room.currentOccupants != null ? (
-                        <button
-                          onClick={() => setOccupantsModalRoom(room)}
-                          className="inline-flex items-center gap-1.5 hover:text-orange-400 transition-colors cursor-pointer underline decoration-dotted underline-offset-2"
+      {(() => {
+        const displayedRooms = rooms.filter((r) => {
+          if (filterRoomType !== 'all') {
+            const currentType = r.roomType || 'Phòng đơn';
+            if (currentType !== filterRoomType) return false;
+          }
+          if (searchTerm.trim()) {
+            const term = searchTerm.toLowerCase().trim();
+            const roomNum = (r.roomNumber || '').toLowerCase();
+            const bName = (r.buildingName || '').toLowerCase();
+            const rType = (r.roomType || '').toLowerCase();
+            const desc = (r.description || '').toLowerCase();
+            const amenities = (r.amenities || '').toLowerCase();
+            const priceStr = String(r.price || '');
+            return (
+              roomNum.includes(term) ||
+              bName.includes(term) ||
+              rType.includes(term) ||
+              desc.includes(term) ||
+              amenities.includes(term) ||
+              priceStr.includes(term)
+            );
+          }
+          return true;
+        });
+
+        if (loading || error || rooms.length === 0) return null;
+
+        if (displayedRooms.length === 0) {
+          return (
+            <div className="text-center py-16 bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl">
+              <DoorOpen className="w-8 h-8 text-slate-700 mx-auto mb-2" />
+              <p className="text-slate-400 text-sm">
+                {searchTerm
+                  ? `Không tìm thấy phòng nào khớp với từ khóa "${searchTerm}".`
+                  : filterRoomType !== 'all'
+                  ? `Không tìm thấy phòng thuộc loại "${filterRoomType}".`
+                  : 'Không tìm thấy phòng nào khớp với bộ lọc.'}
+              </p>
+            </div>
+          );
+        }
+
+        const totalItems = displayedRooms.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+        const startIndex = totalItems > 0 ? (safeCurrentPage - 1) * pageSize : 0;
+        const endIndex = Math.min(startIndex + pageSize, totalItems);
+        const paginatedRooms = displayedRooms.slice(startIndex, endIndex);
+
+        return (
+          <div className="bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+            <div className="overflow-x-auto overflow-y-auto max-h-[560px] table-scroll-container">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead className="sticky top-0 z-10 shadow-md">
+                  <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider bg-slate-900/95 backdrop-blur-md">
+                    <th className="p-5">Ảnh</th>
+                    <th className="p-5">Phòng & Loại</th>
+                    <th className="p-5">Tòa nhà</th>
+                    <th className="p-5">Diện tích</th>
+                    <th className="p-5">Giá thuê</th>
+                    <th className="p-5">Số người ở</th>
+                    <th className="p-5">Trạng thái</th>
+                    {isAdmin && <th className="p-5 text-center">Hành động</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-850/50">
+                  {paginatedRooms.map((room) => (
+                    <tr key={room.id} className="text-slate-300 hover:bg-slate-950/10 transition-colors">
+                      <td className="p-5 shrink-0">
+                        <ImageWithFallback
+                          src={resolveImageUrl(room.imageUrl)}
+                          alt={room.roomNumber}
+                          className="w-12 h-12 rounded-xl object-cover bg-slate-950 border border-slate-800"
+                        />
+                      </td>
+                      <td className="p-5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-sm">{room.roomNumber}</span>
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 whitespace-nowrap">
+                            {room.roomType || 'Phòng đơn'}
+                          </span>
+                        </div>
+                        {room.amenities && (
+                          <div className="text-[10px] text-slate-400 mt-1 line-clamp-1 max-w-[200px]" title={room.amenities}>
+                            🛋️ {room.amenities}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-5 font-semibold text-slate-400">{room.buildingName || `#${room.buildingId}`}</td>
+                      <td className="p-5 font-medium text-slate-500">{room.area ? `${room.area} m²` : '—'}</td>
+                      <td className="p-5 font-extrabold text-orange-500">{formatPrice(room.price)}</td>
+                      <td className="p-5 font-medium text-slate-400">
+                        {room.currentOccupants != null ? (
+                          <button
+                            onClick={() => setOccupantsModalRoom(room)}
+                            className="inline-flex items-center gap-1.5 hover:text-orange-400 transition-colors cursor-pointer underline decoration-dotted underline-offset-2"
+                          >
+                            <Users size={12} /> {room.currentOccupants} người
+                          </button>
+                        ) : '—'}
+                      </td>
+                      <td className="p-5">
+                        <select
+                          value={room.status}
+                          onChange={(e) => handleStatusChange(room, e.target.value as RoomStatus)}
+                          className="bg-slate-950 border border-slate-800 text-[10px] font-bold rounded-lg px-2 py-1 outline-none cursor-pointer text-slate-300"
                         >
-                          <Users size={12} /> {room.currentOccupants} người
-                        </button>
-                      ) : '—'}
-                    </td>
-                    <td className="p-5">
-                      <select
-                        value={room.status}
-                        onChange={(e) => handleStatusChange(room, e.target.value as RoomStatus)}
-                        className="bg-slate-950 border border-slate-800 text-[10px] font-bold rounded-lg px-2 py-1 outline-none cursor-pointer text-slate-300"
-                      >
-                        {Object.entries(statusMaps.room).map(([value, meta]) => (
-                          <option key={value} value={value}>{meta.label}</option>
-                        ))}
-                      </select>
-                      <div className="mt-1.5">
-                        <StatusBadge entity="room" value={room.status} />
-                      </div>
-                    </td>
-                    {isAdmin && (
-                      <td className="p-5 text-center">
-                        <div className="flex justify-center gap-2">
-                          <button
-                            onClick={() => handleOpenEditModal(room)}
-                            className="p-2 hover:bg-slate-850 text-slate-400 hover:text-white rounded-xl transition-all border border-transparent hover:border-slate-800 cursor-pointer"
-                            title="Chỉnh sửa phòng"
-                          >
-                            <Edit2 size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(room)}
-                            className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-xl transition-all border border-transparent hover:border-red-500/10 cursor-pointer"
-                            title="Xóa phòng"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          {Object.entries(statusMaps.room).map(([value, meta]) => (
+                            <option key={value} value={value}>{meta.label}</option>
+                          ))}
+                        </select>
+                        <div className="mt-1.5">
+                          <StatusBadge entity="room" value={room.status} />
                         </div>
                       </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      {isAdmin && (
+                        <td className="p-5 text-center">
+                          <div className="flex justify-center gap-2">
+                            <button
+                              onClick={() => handleOpenEditModal(room)}
+                              className="p-2 hover:bg-blue-500/10 text-slate-400 hover:text-blue-500 rounded-xl transition-all border border-transparent hover:border-blue-500/30 cursor-pointer"
+                              title="Chỉnh sửa phòng"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(room)}
+                              className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-xl transition-all border border-transparent hover:border-red-500/20 cursor-pointer"
+                              title="Xóa phòng"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <TablePagination
+              currentPage={safeCurrentPage}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+              itemLabel="phòng"
+            />
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* MODAL DANH SÁCH NGƯỜI Ở */}
       {occupantsModalRoom && (
@@ -551,16 +753,58 @@ const RoomManagerPage = () => {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Diện tích (m²)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={formData.area}
-                    onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                    placeholder="20"
-                    className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-xs text-white outline-none"
-                  />
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Loại phòng *</label>
+                  <select
+                    required
+                    value={formData.roomType}
+                    onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-3 py-3 text-xs text-white outline-none cursor-pointer"
+                  >
+                    {ROOM_TYPE_OPTIONS.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
                 </div>
+
+                {formData.roomType === 'Khác (tự nhập)' ? (
+                  <div>
+                    <label className="text-[10px] font-bold text-orange-400 uppercase tracking-wider block mb-2">Tên loại phòng tự nhập *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.customRoomType}
+                      onChange={(e) => setFormData({ ...formData, customRoomType: e.target.value })}
+                      placeholder="VD: Căn hộ 3 ngủ, Penthouse mini..."
+                      className="w-full bg-slate-950 border border-orange-500/50 focus:border-orange-500 rounded-xl px-4 py-3 text-xs text-white outline-none"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Diện tích (m²)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={formData.area}
+                      onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                      placeholder="20"
+                      className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-xs text-white outline-none"
+                    />
+                  </div>
+                )}
+
+                {formData.roomType === 'Khác (tự nhập)' && (
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Diện tích (m²)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={formData.area}
+                      onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                      placeholder="20"
+                      className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-xs text-white outline-none"
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Giá thuê / tháng (VNĐ) *</label>
@@ -588,13 +832,82 @@ const RoomManagerPage = () => {
                 </div>
               </div>
 
+              {/* Ô NHẬP ĐỒ ĐẠC / TIỆN NGHI TRONG PHÒNG */}
+              <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Armchair size={16} className="text-orange-400" />
+                    <label className="text-xs font-bold text-white uppercase tracking-wider">
+                      Đồ đạc & Trang thiết bị trong phòng
+                    </label>
+                  </div>
+                  <span className="text-[10px] text-slate-400 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg">
+                    Đã chọn: <strong className="text-orange-400 font-bold">{formData.selectedAmenities.length}</strong> món
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-400">
+                  Chọn nhanh các đồ đạc có sẵn trang bị cho khách thuê:
+                </p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {POPULAR_AMENITIES.map((amenity) => {
+                    const isSelected = formData.selectedAmenities.includes(amenity);
+                    return (
+                      <button
+                        type="button"
+                        key={amenity}
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            selectedAmenities: isSelected
+                              ? prev.selectedAmenities.filter((a) => a !== amenity)
+                              : [...prev.selectedAmenities, amenity],
+                          }));
+                        }}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-left border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-orange-500/15 border-orange-500/50 text-orange-300 shadow-sm'
+                            : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                        }`}
+                      >
+                        <span
+                          className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 border ${
+                            isSelected ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-700 bg-slate-900'
+                          }`}
+                        >
+                          {isSelected && <Check size={11} strokeWidth={3} />}
+                        </span>
+                        <span className="truncate">{amenity}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-2.5 border-t border-slate-850">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Đồ đạc khác (nếu có — phân cách bằng dấu phẩy)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.otherAmenities}
+                    onChange={(e) => setFormData({ ...formData, otherAmenities: e.target.value })}
+                    placeholder="VD: Quạt trần, Lò vi sóng, Rèm cửa chống nắng, Bàn ăn..."
+                    className="w-full bg-slate-900 border border-slate-800 focus:border-orange-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Các trang thiết bị này sẽ hiển thị ở trang Chi tiết phòng và tự động đưa vào Hợp đồng bàn giao tài sản.
+                  </p>
+                </div>
+              </div>
+
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Mô tả</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Mô tả bổ sung</label>
                 <textarea
                   rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Nội thất, tiện ích đi kèm..."
+                  placeholder="Ghi chú thêm về giờ giấc, an ninh, view phòng..."
                   className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-xs text-white outline-none"
                 />
               </div>
@@ -670,17 +983,104 @@ const RoomManagerPage = () => {
                   <p className="text-[10px] text-slate-500 mt-1.5">Thao tác ảnh có hiệu lực ngay, không cần bấm "Cập nhật phòng" bên dưới.</p>
                 </div>
               ) : (
-                <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                    Ảnh đại diện (tùy chọn)
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Ảnh & Video phòng (chọn được nhiều file cùng lúc)
+                    </label>
+                    {selectedFiles.length > 0 && (
+                      <span className="text-[11px] font-bold text-orange-400 bg-orange-500/10 px-2.5 py-0.5 rounded-full border border-orange-500/20">
+                        Đã chọn {selectedFiles.length} file
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Thumbnail Previews */}
+                  {selectedFiles.length > 0 && (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 p-3 bg-slate-950/70 border border-slate-850 rounded-2xl max-h-56 overflow-y-auto">
+                      {selectedFiles.map((file, idx) => {
+                        const previewUrl = URL.createObjectURL(file);
+                        const isPrimary = idx === 0;
+                        const isVideo = file.type.startsWith('video/');
+
+                        return (
+                          <div
+                            key={`${file.name}-${idx}`}
+                            className={`relative group rounded-xl overflow-hidden aspect-video bg-slate-900 border ${
+                              isPrimary ? 'border-orange-500 ring-2 ring-orange-500/30' : 'border-slate-800'
+                            }`}
+                          >
+                            {isVideo ? (
+                              <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400 bg-slate-900 font-bold p-1 text-center">
+                                🎬 {file.name}
+                              </div>
+                            ) : (
+                              <img
+                                src={previewUrl}
+                                alt={file.name}
+                                className="w-full h-full object-cover"
+                                onLoad={() => URL.revokeObjectURL(previewUrl)}
+                              />
+                            )}
+
+                            {/* Badge ảnh đại diện */}
+                            {isPrimary && (
+                              <span className="absolute top-1 left-1 bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-0.5 shadow-md">
+                                <Star size={9} fill="white" /> Đại diện
+                              </span>
+                            )}
+
+                            {/* Overlay actions */}
+                            <div className="absolute inset-0 bg-slate-950/75 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-1">
+                              {!isPrimary && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSetPrimaryIndex(idx)}
+                                  className="text-[9px] font-bold text-white bg-orange-500 hover:bg-orange-600 px-2 py-1 rounded-md transition-colors cursor-pointer"
+                                  title="Đặt làm ảnh đại diện"
+                                >
+                                  Làm ảnh chính
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSelectedFile(idx)}
+                                className="text-[9px] font-bold text-red-300 hover:text-white bg-red-500/80 hover:bg-red-600 px-2 py-0.5 rounded-md transition-colors cursor-pointer flex items-center gap-0.5"
+                                title="Xóa file này"
+                              >
+                                <Trash2 size={10} /> Xóa
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Nút chọn tệp cho phép chọn nhiều file */}
+                  <label className="w-full bg-slate-950 border border-dashed border-slate-800 hover:border-orange-500 rounded-xl px-4 py-3.5 text-xs text-slate-300 outline-none flex flex-col sm:flex-row items-center justify-center gap-2 cursor-pointer transition-colors group">
+                    <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-400 group-hover:bg-orange-500 group-hover:text-white transition-colors flex items-center justify-center shrink-0">
+                      <ImagePlus size={16} />
+                    </div>
+                    <div className="text-center sm:text-left">
+                      <span className="font-bold text-orange-400 group-hover:text-orange-300 block">
+                        {selectedFiles.length > 0 ? '+ Thêm ảnh/video khác...' : 'Bấm vào đây để chọn nhiều ảnh/video cùng lúc'}
+                      </span>
+                      <span className="text-[10px] text-slate-500 block">
+                        Hỗ trợ JPG, PNG, WebP, MP4... Có thể chọn nhiều tệp trong một lần.
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      multiple
+                      onChange={handleSelectFiles}
+                      className="hidden"
+                    />
                   </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-                    className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-orange-500 file:text-white file:text-xs file:font-bold file:cursor-pointer cursor-pointer"
-                  />
-                  <p className="text-[10px] text-slate-500 mt-1.5">Thêm nhiều ảnh vào thư viện sau khi đã tạo phòng, trong màn hình Sửa phòng.</p>
+                  <p className="text-[10px] text-slate-500">
+                    Ảnh đầu tiên sẽ được đặt làm ảnh đại diện. Toàn bộ ảnh sẽ được tải trực tiếp lên MinIO khi bấm "Lưu phòng mới".
+                  </p>
                 </div>
               )}
 

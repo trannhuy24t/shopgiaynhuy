@@ -3,10 +3,10 @@ import { getMyContracts, getContract, cancelContractRequest } from '../../api/co
 import { getRoom } from '../../api/room';
 import { getApiErrorMessage } from '../../api/client';
 import StatusBadge from '../../components/Common/StatusBadge';
-import OccupantManager from '../../components/Common/OccupantManager';
+import RentalContractWordModal from '../../components/Contract/RentalContractWordModal';
 import type { ContractDto } from '../../types/contract';
 import type { RoomDto } from '../../types/room';
-import { FileText, X, Printer } from 'lucide-react';
+import { FileText, ShieldCheck } from 'lucide-react';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -109,9 +109,18 @@ const MyContractsPage = () => {
           {contracts.map((c) => (
             <div key={c.id} id={`contract-${c.id}`} className="bg-slate-900 border border-slate-850 p-5 sm:p-6 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div>
-                <div className="flex items-center gap-2 mb-1.5">
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                   <h4 className="font-bold text-white text-sm sm:text-base">Phòng {c.roomNumber || `#${c.roomId}`}</h4>
                   <StatusBadge entity="contract" value={c.status} />
+                  {c.tenantSignatureUrl ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                      <ShieldCheck size={11} /> Đã ký số
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-800/40 px-2 py-0.5 rounded-md">
+                      Chưa ký số
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-slate-500 font-medium">
                   {formatDate(c.startDate)} — {formatDate(c.endDate)}
@@ -135,95 +144,38 @@ const MyContractsPage = () => {
         </div>
       )}
 
-      {/* Modal chi tiết */}
-      {(detailLoading || detail || detailError) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setDetail(null); setDetailRoom(null); setDetailError(''); }} />
-          <div className="print-contract relative bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl animate-scale-up max-h-[90vh] overflow-y-auto">
+      {/* Loading Modal */}
+      {detailLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {detailError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md text-center shadow-2xl">
+            <p className="text-red-400 font-medium mb-4 text-sm">{detailError}</p>
             <button
-              onClick={() => { setDetail(null); setDetailRoom(null); setDetailError(''); }}
-              className="print-hide absolute top-4 right-4 p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+              onClick={() => setDetailError('')}
+              className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold cursor-pointer transition-colors"
             >
-              <X size={20} />
+              Đóng
             </button>
-
-            {detailLoading && (
-              <div className="py-10 flex items-center justify-center">
-                <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
-
-            {detailError && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold p-3 rounded-xl">
-                {detailError}
-              </div>
-            )}
-
-            {detail && !detailLoading && (
-              <div className="space-y-4 text-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-lg text-white">Hợp đồng #{detail.id}</h3>
-                  <StatusBadge entity="contract" value={detail.status} />
-                  </div>
-                  <button onClick={() => window.print()} className="print-hide flex items-center gap-1 rounded-lg border border-slate-700 px-2.5 py-2 text-xs text-slate-300 hover:text-white"><Printer size={14} /> In</button>
-                </div>
-                <div className="bg-slate-950 p-4 rounded-xl space-y-2 border border-slate-850 text-slate-300">
-                  <p><span className="text-slate-500 font-bold uppercase block text-[10px] tracking-wider mb-0.5">Phòng</span> {detail.roomNumber || `#${detail.roomId}`}</p>
-                  <p><span className="text-slate-500 font-bold uppercase block text-[10px] tracking-wider mb-0.5">Thời hạn</span> {formatDate(detail.startDate)} — {formatDate(detail.endDate)}</p>
-                  <p><span className="text-slate-500 font-bold uppercase block text-[10px] tracking-wider mb-0.5">Số người ở</span> {detail.numberOfOccupants || 1} người</p>
-                  <p><span className="text-slate-500 font-bold uppercase block text-[10px] tracking-wider mb-0.5">Ngày tạo</span> {formatDate(detail.createdAt)}</p>
-                </div>
-
-                <div className="print-hide bg-slate-950 p-4 rounded-xl border border-slate-850">
-                  <span className="text-slate-500 font-bold uppercase block text-[10px] tracking-wider mb-2.5">Các khoản tiền</span>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Tiền cọc</span>
-                      <span className="font-bold text-white">{formatPrice(detail.deposit)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Giá thuê / tháng</span>
-                      <span className="font-bold text-white">{formatPrice(detail.monthlyRent)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Đơn giá dịch vụ</span>
-                      <span className="font-bold text-white">
-                        {detailRoom ? `${formatPrice(detailRoom.serviceFee)} / người` : '—'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Đơn giá điện</span>
-                      <span className="font-bold text-white">
-                        {detail.electricUnitPrice > 0 ? `${formatPrice(detail.electricUnitPrice)} / kWh` : '—'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Đơn giá nước</span>
-                      <span className="font-bold text-white">
-                        {detail.waterUnitPrice > 0 ? `${formatPrice(detail.waterUnitPrice)} / m³` : '—'}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-slate-500 mt-3 pt-3 border-t border-slate-850">
-                    Đây là đơn giá chốt trong hợp đồng. Tiền điện/nước hàng tháng = số dùng thực tế × đơn giá; phí dịch vụ hàng tháng = đơn giá × số người ở tại thời điểm lập hóa đơn ({detail.numberOfOccupants || 1} người hiện tại) — xem số tiền chính xác ở từng hóa đơn.
-                  </p>
-                </div>
-
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-850">
-                  <OccupantManager
-                    contractId={detail.id}
-                    numberOfOccupants={detail.numberOfOccupants || 1}
-                    contractStatus={detail.status}
-                  />
-                  {detail.status !== 'DangHieuLuc' && (
-                    <p className="text-[10px] text-slate-600 mt-2">Chỉ quản lý được người ở cùng khi hợp đồng đang hiệu lực.</p>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
+      )}
+
+      {/* Modal xem hợp đồng dưới dạng bản Word thực sự */}
+      {detail && (
+        <RentalContractWordModal
+          contract={detail}
+          room={detailRoom}
+          onClose={() => {
+            setDetail(null);
+            setDetailRoom(null);
+          }}
+        />
       )}
     </div>
   );

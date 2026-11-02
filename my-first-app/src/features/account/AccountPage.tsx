@@ -93,7 +93,7 @@ const AccountPage = () => {
             <label className="block text-xs text-slate-400">Số điện thoại<input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-sm text-white" /></label>
             {profileError && <p className="text-sm text-red-400">{profileError}</p>}
             {profileSuccess && <p className="flex items-center gap-2 text-sm text-green-400"><CheckCircle size={15} /> Đã cập nhật hồ sơ.</p>}
-            <button disabled={savingProfile} className="rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">{savingProfile ? 'Đang lưu...' : 'Lưu hồ sơ'}</button>
+            <button disabled={savingProfile} className="rounded-xl bg-orange-500 hover:bg-orange-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50 cursor-pointer">{savingProfile ? 'Đang lưu...' : 'Lưu hồ sơ'}</button>
           </form>
         )}
 

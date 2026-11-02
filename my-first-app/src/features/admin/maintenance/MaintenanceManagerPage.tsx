@@ -10,6 +10,7 @@ import { getApiErrorMessage, resolveImageUrl } from '../../../api/client';
 import { notifyTenant } from '../../../utils/notifyTenant';
 import StatusBadge from '../../../components/Common/StatusBadge';
 import ImageWithFallback from '../../../components/Common/ImageWithFallback';
+import TablePagination from '../../../components/Common/TablePagination';
 import { statusMaps } from '../../../constants/statusLabels';
 import type { MaintenanceRequestDto, MaintenanceStatus } from '../../../types/maintenance';
 import type { StaffOptionDto } from '../../../types/user';
@@ -25,6 +26,12 @@ const MaintenanceManagerPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus]);
 
   const [staffUsers, setStaffUsers] = useState<StaffOptionDto[] | null>(null);
   const [staffListNote, setStaffListNote] = useState('');
@@ -158,13 +165,7 @@ const MaintenanceManagerPage = () => {
   };
 
   return (
-    <div className="max-w-7xl space-y-8">
-      <div className="pb-4 border-b border-slate-900">
-        <span className="text-orange-500 text-xs font-black uppercase tracking-wider block mb-1">
-          Sự cố &amp; sửa chữa
-        </span>
-        <h1 className="text-3xl font-black text-white tracking-tight uppercase">Quản lý bảo trì</h1>
-      </div>
+    <div className="w-full space-y-6">
 
       {staffListNote && (
         <div role="alert" className="bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs font-semibold p-4 rounded-xl flex items-start gap-2">
@@ -220,63 +221,83 @@ const MaintenanceManagerPage = () => {
         </div>
       )}
 
-      {!loading && !error && requests.length > 0 && (
-        <div className="bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden shadow-2xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider bg-slate-950/20">
-                  <th className="p-5">Phòng</th>
-                  <th className="p-5">Khách thuê</th>
-                  <th className="p-5">Tiêu đề</th>
-                  <th className="p-5">Ưu tiên</th>
-                  <th className="p-5">Trạng thái</th>
-                  <th className="p-5">Phụ trách</th>
-                  <th className="p-5 text-center">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-850/50">
-                {requests.map((r) => (
-                  <tr key={r.id} className="text-slate-300 hover:bg-slate-950/10 transition-colors">
-                    <td className="p-5 font-bold text-white">{r.roomNumber || `#${r.roomId}`}</td>
-                    <td className="p-5 font-semibold text-slate-400">{r.tenantName || `#${r.tenantId}`}</td>
-                    <td className="p-5 font-medium text-slate-300 max-w-[220px] truncate">{r.title}</td>
-                    <td className="p-5"><StatusBadge entity="maintenancePriority" value={r.priority} /></td>
-                    <td className="p-5"><StatusBadge entity="maintenanceStatus" value={r.status} /></td>
-                    <td className="p-5 font-medium text-slate-500">{r.assignedToUserName || '—'}</td>
-                    <td className="p-5 text-center">
-                      <div className="flex justify-center gap-2 flex-wrap">
-                        <button
-                          onClick={() => openDetailModal(r)}
-                          className="bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer flex items-center gap-1"
-                        >
-                          <Eye size={11} /> Chi tiết
-                        </button>
-                        {(r.status === 'Moi' || r.status === 'DaPhanCong') && (
-                          <button
-                            onClick={() => openAssignModal(r)}
-                            className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
-                          >
-                            Phân công
-                          </button>
-                        )}
-                        {r.status !== 'HoanThanh' && r.status !== 'DaHuy' && (
-                          <button
-                            onClick={() => openStatusModal(r)}
-                            className="bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
-                          >
-                            Cập nhật
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {(() => {
+        const totalItems = requests.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+        const startIndex = totalItems > 0 ? (safeCurrentPage - 1) * pageSize : 0;
+        const endIndex = Math.min(startIndex + pageSize, totalItems);
+        const paginatedRequests = requests.slice(startIndex, endIndex);
+
+        return (
+          !loading && !error && requests.length > 0 && (
+            <div className="bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+              <div className="overflow-x-auto overflow-y-auto max-h-[560px] table-scroll-container">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead className="sticky top-0 z-10 shadow-md">
+                    <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider bg-slate-900/95 backdrop-blur-md">
+                      <th className="p-5">Phòng</th>
+                      <th className="p-5">Khách thuê</th>
+                      <th className="p-5">Tiêu đề</th>
+                      <th className="p-5">Ưu tiên</th>
+                      <th className="p-5">Trạng thái</th>
+                      <th className="p-5">Phụ trách</th>
+                      <th className="p-5 text-center">Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-850/50">
+                    {paginatedRequests.map((r) => (
+                      <tr key={r.id} className="text-slate-300 hover:bg-slate-950/10 transition-colors">
+                        <td className="p-5 font-bold text-white">{r.roomNumber || `#${r.roomId}`}</td>
+                        <td className="p-5 font-semibold text-slate-400">{r.tenantName || `#${r.tenantId}`}</td>
+                        <td className="p-5 font-medium text-slate-300 max-w-[220px] truncate">{r.title}</td>
+                        <td className="p-5"><StatusBadge entity="maintenancePriority" value={r.priority} /></td>
+                        <td className="p-5"><StatusBadge entity="maintenanceStatus" value={r.status} /></td>
+                        <td className="p-5 font-medium text-slate-500">{r.assignedToUserName || '—'}</td>
+                        <td className="p-5 text-center">
+                          <div className="flex justify-center gap-2 flex-wrap">
+                            <button
+                              onClick={() => openDetailModal(r)}
+                              className="bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer flex items-center gap-1"
+                            >
+                              <Eye size={11} /> Chi tiết
+                            </button>
+                            {(r.status === 'Moi' || r.status === 'DaPhanCong') && (
+                              <button
+                                onClick={() => openAssignModal(r)}
+                                className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
+                              >
+                                Phân công
+                              </button>
+                            )}
+                            {r.status !== 'HoanThanh' && r.status !== 'DaHuy' && (
+                              <button
+                                onClick={() => openStatusModal(r)}
+                                className="bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
+                              >
+                                Cập nhật
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <TablePagination
+                currentPage={safeCurrentPage}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+                itemLabel="yêu cầu"
+              />
+            </div>
+          )
+        );
+      })()}
 
       {/* MODAL CHI TIẾT */}
       {detailTarget && (

@@ -1,4 +1,4 @@
-﻿using ShopAPI.DTOs;
+using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
 using ShopAPI.Data;
@@ -86,7 +86,7 @@ namespace ShopAPI.Services
                 UserEmail = tenant.User?.Email,
                 FullName = tenant.FullName,
                 IdCardNumber = tenant.IdCardNumber,
-                Phone = tenant.Phone,
+                Phone = tenant.Phone ?? tenant.User?.PhoneNumber,
                 Email = tenant.Email,
                 EmergencyContact = tenant.EmergencyContact,
                 CreatedAt = tenant.CreatedAt

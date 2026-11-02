@@ -3,6 +3,7 @@ import { getBuildings, createBuilding, updateBuilding, deleteBuilding } from '..
 import { getUsers } from '../../../api/user';
 import { getApiErrorMessage } from '../../../api/client';
 import { useAuth } from '../../../context/useAuth';
+import TablePagination from '../../../components/Common/TablePagination';
 import type { BuildingDto } from '../../../types/building';
 import { Plus, Edit2, Trash2, X, Building2 } from 'lucide-react';
 
@@ -30,6 +31,8 @@ const BuildingManagerPage = () => {
   const [editingOwnerName, setEditingOwnerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -174,15 +177,9 @@ const BuildingManagerPage = () => {
   };
 
   return (
-    <div className="max-w-7xl space-y-8">
+    <div className="w-full space-y-6">
       {/* Tiêu đề & Nút thêm */}
-      <div className="flex justify-between items-center pb-4 border-b border-slate-900">
-        <div>
-          <span className="text-orange-500 text-xs font-black uppercase tracking-wider block mb-1">
-            Cơ sở vật chất
-          </span>
-          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Quản lý tòa nhà</h1>
-        </div>
+      <div className="flex justify-end items-center pb-4 border-b border-slate-900">
         <button
           onClick={handleOpenAddModal}
           className="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-bold px-5 py-3 rounded-2xl flex items-center gap-1.5 transition-all shadow-lg shadow-orange-500/10 cursor-pointer"
@@ -210,53 +207,73 @@ const BuildingManagerPage = () => {
         </div>
       )}
 
-      {!loading && !error && buildings.length > 0 && (
-        <div className="bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden shadow-2xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider bg-slate-950/20">
-                  <th className="p-5">Tên tòa nhà</th>
-                  <th className="p-5">Địa chỉ</th>
-                  <th className="p-5">Chủ sở hữu</th>
-                  <th className="p-5">Số phòng</th>
-                  <th className="p-5">Mô tả</th>
-                  <th className="p-5 text-center">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-850/50">
-                {buildings.map((building) => (
-                  <tr key={building.id} className="text-slate-300 hover:bg-slate-950/10 transition-colors">
-                    <td className="p-5 font-bold text-white">{building.name}</td>
-                    <td className="p-5 font-medium text-slate-400 max-w-[220px] truncate">{building.address}</td>
-                    <td className="p-5 font-semibold text-slate-400">{building.ownerName || `#${building.ownerId}`}</td>
-                    <td className="p-5 font-semibold text-orange-500">{building.roomCount}</td>
-                    <td className="p-5 font-medium text-slate-500 max-w-[200px] truncate">{building.description || '—'}</td>
-                    <td className="p-5 text-center">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          onClick={() => handleOpenEditModal(building)}
-                          className="p-2 hover:bg-slate-850 text-slate-400 hover:text-white rounded-xl transition-all border border-transparent hover:border-slate-800 cursor-pointer"
-                          title="Chỉnh sửa tòa nhà"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(building)}
-                          className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-xl transition-all border border-transparent hover:border-red-500/10 cursor-pointer"
-                          title="Xóa tòa nhà"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {(() => {
+        const totalItems = buildings.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+        const startIndex = totalItems > 0 ? (safeCurrentPage - 1) * pageSize : 0;
+        const endIndex = Math.min(startIndex + pageSize, totalItems);
+        const paginatedBuildings = buildings.slice(startIndex, endIndex);
+
+        return (
+          !loading && !error && buildings.length > 0 && (
+            <div className="bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+              <div className="overflow-x-auto overflow-y-auto max-h-[560px] table-scroll-container">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead className="sticky top-0 z-10 shadow-md">
+                    <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider bg-slate-900/95 backdrop-blur-md">
+                      <th className="p-5">Tên tòa nhà</th>
+                      <th className="p-5">Địa chỉ</th>
+                      <th className="p-5">Chủ sở hữu</th>
+                      <th className="p-5">Số phòng</th>
+                      <th className="p-5">Mô tả</th>
+                      <th className="p-5 text-center">Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-850/50">
+                    {paginatedBuildings.map((building) => (
+                      <tr key={building.id} className="text-slate-300 hover:bg-slate-950/10 transition-colors">
+                        <td className="p-5 font-bold text-white">{building.name}</td>
+                        <td className="p-5 font-medium text-slate-400 max-w-[220px] truncate">{building.address}</td>
+                        <td className="p-5 font-semibold text-slate-400">{building.ownerName || `#${building.ownerId}`}</td>
+                        <td className="p-5 font-semibold text-orange-500">{building.roomCount}</td>
+                        <td className="p-5 font-medium text-slate-500 max-w-[200px] truncate">{building.description || '—'}</td>
+                        <td className="p-5 text-center">
+                          <div className="flex justify-center gap-2">
+                            <button
+                              onClick={() => handleOpenEditModal(building)}
+                              className="p-2 hover:bg-blue-500/10 text-slate-400 hover:text-blue-500 rounded-xl transition-all border border-transparent hover:border-blue-500/30 cursor-pointer"
+                              title="Chỉnh sửa tòa nhà"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(building)}
+                              className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-xl transition-all border border-transparent hover:border-red-500/20 cursor-pointer"
+                              title="Xóa tòa nhà"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <TablePagination
+                currentPage={safeCurrentPage}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+                itemLabel="tòa nhà"
+              />
+            </div>
+          )
+        );
+      })()}
 
       {/* FORM MODAL */}
       {isModalOpen && (

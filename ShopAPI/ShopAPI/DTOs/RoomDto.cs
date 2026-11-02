@@ -23,12 +23,16 @@ namespace ShopAPI.DTOs
         public string? BuildingAddress { get; set; }
         public string? OwnerPhone { get; set; }
         public string RoomNumber { get; set; } = string.Empty;
+        public string? RoomType { get; set; }
         public decimal Area { get; set; }
         public decimal Price { get; set; }
         public decimal ServiceFee { get; set; }
         public string Status { get; set; } = string.Empty;
+        public string? Amenities { get; set; }
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
+        public string? Image { get; set; }
+        public List<string> Images { get; set; } = new();
         public DateTime CreatedAt { get; set; }
         public List<RoomMediaDto> Media { get; set; } = new();
 

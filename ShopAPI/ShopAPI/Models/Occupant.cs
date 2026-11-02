@@ -20,7 +20,7 @@ namespace ShopAPI.Models
         [MaxLength(20)]
         public string? Phone { get; set; }
 
-        // Quan há»‡ vá»›i ngÆ°á»i thuĂª chĂ­nh, vĂ­ dá»¥: "Vá»£/chá»“ng", "Con", "NgÆ°á»i thĂ¢n", "Báº¡n á»Ÿ cĂ¹ng"
+        // Quan hệ với người thuê chính, ví dụ: "Vợ/chồng", "Con", "Người thân", "Bạn ở cùng"
         [Required]
         [MaxLength(50)]
         public string Relationship { get; set; } = string.Empty;

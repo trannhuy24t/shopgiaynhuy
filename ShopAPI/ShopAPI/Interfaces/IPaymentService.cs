@@ -15,5 +15,9 @@ namespace ShopAPI.Interfaces
         bool ConfirmTransfer(int paymentId, int confirmedByUserId);
 
         bool RejectTransfer(int paymentId, int actorUserId);
+
+        (bool Success, string Message, int? InvoiceId) ProcessSePayWebhook(SePayWebhookDto dto);
+
+        (bool Success, string Message) SimulateTransfer(int invoiceId);
     }
 }

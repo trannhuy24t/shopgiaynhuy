@@ -5,6 +5,7 @@ import { getApiErrorMessage } from '../../api/client';
 import { useNotificationCount } from '../../context/NotificationContext';
 import { useAuth } from '../../context/useAuth';
 import { getNotificationTarget } from '../../utils/notificationTarget';
+import { sanitizeVietnamese } from '../../utils/textUtils';
 import StatusBadge from './StatusBadge';
 import type { NotificationDto } from '../../types/notification';
 import { Bell, CheckCheck } from 'lucide-react';
@@ -185,10 +186,10 @@ const NotificationDropdown = () => {
                     {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />}
                     <div className={`min-w-0 flex-1 ${n.isRead ? 'pl-3.5' : ''}`}>
                       <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                        <h4 className="font-bold text-white text-xs">{n.title}</h4>
+                        <h4 className="font-bold text-white text-xs">{sanitizeVietnamese(n.title)}</h4>
                         <StatusBadge entity="notificationType" value={n.type} />
                       </div>
-                      <p className="text-slate-400 text-[11px] leading-snug line-clamp-2">{n.content}</p>
+                      <p className="text-slate-400 text-[11px] leading-snug line-clamp-2">{sanitizeVietnamese(n.content)}</p>
                       <p className="text-slate-600 text-[10px] font-semibold mt-1">{formatRelativeTime(n.createdAt)}</p>
                     </div>
                   </div>

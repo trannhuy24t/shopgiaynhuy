@@ -14,6 +14,8 @@ namespace ShopAPI.Interfaces
 
         ContractDto? Request(int userId, RequestContractDto dto);
 
+        ContractDto? SignContract(int contractId, string signatureBase64, int userId);
+
         bool CancelRequest(int contractId, int userId);
 
         bool Approve(int contractId, ApproveContractDto dto, int approverUserId);

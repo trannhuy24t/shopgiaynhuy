@@ -1,7 +1,19 @@
 import axios, { type AxiosError } from "axios";
 
+export const getBaseApiUrl = (): string => {
+    const envBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:5141";
+    if (typeof window !== "undefined") {
+        const hostname = window.location.hostname;
+        // Nếu điện thoại hoặc thiết bị khác kết nối qua IP mạng LAN (ví dụ 192.168.x.x)
+        if (hostname && hostname !== "localhost" && hostname !== "127.0.0.1") {
+            return envBase.replace(/localhost|127\.0\.0\.1/g, hostname);
+        }
+    }
+    return envBase;
+};
+
 const api = axios.create({
-    baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`,
+    baseURL: `${getBaseApiUrl()}/api`,
 });
 
 api.interceptors.request.use((config) => {
@@ -74,7 +86,7 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/Auth/refresh-token`, {
+                const response = await axios.post(`${getBaseApiUrl()}/api/Auth/refresh-token`, {
                     accessToken,
                     refreshToken,
                 });
@@ -133,6 +145,15 @@ export function isNotFoundError(error: unknown): boolean {
 // domain backend (không phải domain FE) thì ảnh mới load được.
 export function resolveImageUrl(url: string | null | undefined): string | undefined {
     if (!url) return undefined;
+    
+    // Nếu truy cập từ điện thoại qua IP mạng LAN, thay localhost thành IP đó để ảnh load được
+    if (typeof window !== "undefined") {
+        const hostname = window.location.hostname;
+        if (hostname && hostname !== "localhost" && hostname !== "127.0.0.1") {
+            url = url.replace(/https?:\/\/(localhost|127\.0\.0\.1)/g, `http://${hostname}`);
+        }
+    }
+
     if (/^https?:\/\//i.test(url)) return url;
-    return `${import.meta.env.VITE_API_BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+    return `${getBaseApiUrl()}${url.startsWith("/") ? "" : "/"}${url}`;
 }

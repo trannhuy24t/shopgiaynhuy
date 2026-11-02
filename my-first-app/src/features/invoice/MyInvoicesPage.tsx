@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { getMyInvoices } from '../../api/invoice';
-import { getPaymentQr, getPaymentsByInvoice, submitTransfer } from '../../api/payment';
+import { getMyInvoices, getInvoice } from '../../api/invoice';
+import { getPaymentQr, getPaymentsByInvoice, submitTransfer, simulateTransfer } from '../../api/payment';
 import { getApiErrorMessage } from '../../api/client';
 import StatusBadge from '../../components/Common/StatusBadge';
 import type { InvoiceDto } from '../../types/invoice';
 import type { PaymentDto } from '../../types/payment';
-import { Receipt, QrCode, X, Clock, AlertTriangle } from 'lucide-react';
+import { Receipt, QrCode, X, Clock, AlertTriangle, CheckCircle2, Sparkles, RefreshCw } from 'lucide-react';
 
 const DUE_SOON_DAYS = 3;
 
@@ -40,6 +40,37 @@ const MyInvoicesPage = () => {
   const [transferMessage, setTransferMessage] = useState('');
   const [transferError, setTransferError] = useState('');
   const [submittingTransfer, setSubmittingTransfer] = useState(false);
+
+  // Trạng thái tự động nhận diện thanh toán (Direction 1)
+  const [isAutoPaidSuccess, setIsAutoPaidSuccess] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(false);
+
+  // Tự động kiểm tra (Polling) biến động số dư khi đang mở mã QR
+  useEffect(() => {
+    if (!qrInvoice || isAutoPaidSuccess) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await getInvoice(qrInvoice.id);
+        if (res.data.status === 'DaThanhToan') {
+          setIsAutoPaidSuccess(true);
+          // Cập nhật lại danh sách hóa đơn trên màn hình
+          setInvoices((prev) =>
+            prev.map((item) => (item.id === qrInvoice.id ? { ...item, status: 'DaThanhToan' } : item))
+          );
+          // Tự động đóng modal sau 3.2 giây
+          setTimeout(() => {
+            closeQrModal();
+          }, 3200);
+        }
+      } catch {
+        // Bỏ qua lỗi polling nếu mạng rớt tạm thời
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [qrInvoice, isAutoPaidSuccess]);
 
   useEffect(() => {
     const load = async () => {
@@ -120,6 +151,21 @@ const MyInvoicesPage = () => {
     setPaymentHistory([]);
     setTransferMessage('');
     setTransferError('');
+    setIsAutoPaidSuccess(false);
+    setShowManualForm(false);
+  };
+
+  const handleSimulatePayment = async () => {
+    if (!qrInvoice || isSimulating) return;
+    setIsSimulating(true);
+    try {
+      await simulateTransfer(qrInvoice.id);
+      // Backend kích hoạt SePay Webhook giả lập, polling trong 1-2s sẽ chuyển sang trạng thái thành công!
+    } catch (err) {
+      alert(getApiErrorMessage(err, 'Lỗi mô phỏng chuyển khoản.'));
+    } finally {
+      setIsSimulating(false);
+    }
   };
 
   const dueSoonCount = invoices.filter(
@@ -269,48 +315,141 @@ const MyInvoicesPage = () => {
               Hóa đơn kỳ {qrInvoice.month}/{qrInvoice.year} — {formatPrice(qrInvoice.totalAmount)}
             </p>
 
-            {qrLoading && (
-              <div className="py-10 flex items-center justify-center">
-                <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
-
-            {qrError && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold p-3 rounded-xl">
-                {qrError}
-              </div>
-            )}
-
-            {qrInfo && (
-              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold p-3 rounded-xl">
-                {qrInfo}
-              </div>
-            )}
-
-            {qrDataUrl && !qrLoading && (
-              <>
-                <div className="bg-white p-4 rounded-2xl inline-block mb-4">
-                  <img src={qrDataUrl} alt="Mã QR thanh toán" className="w-full max-w-[240px]" />
+            {/* TRƯỜNG HỢP: TỰ ĐỘNG NHẬN DIỆN THANH TOÁN THÀNH CÔNG (DIRECTION 1) */}
+            {isAutoPaidSuccess ? (
+              <div className="py-6 space-y-4 animate-scale-up">
+                <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
+                  <CheckCircle2 className="w-10 h-10 text-emerald-400 animate-bounce" />
                 </div>
-                <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Mở ứng dụng ngân hàng, quét mã VietQR và chuyển đúng số tiền. Đây là QR chuyển khoản; hệ thống chưa tự đối soát ngân hàng.
-                </p>
+                <div>
+                  <span className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                    Ngân hàng xác nhận
+                  </span>
+                  <h3 className="text-xl font-black text-white mt-2">THANH TOÁN THÀNH CÔNG!</h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Hệ thống đã tự động đối soát và ghi nhận chuyển khoản cho hóa đơn kỳ {qrInvoice.month}/{qrInvoice.year}.
+                  </p>
+                </div>
+                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs text-left space-y-1">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Số tiền:</span>
+                    <strong className="text-emerald-400 font-bold text-sm">{formatPrice(qrInvoice.totalAmount)}</strong>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Trạng thái:</span>
+                    <span className="text-white font-semibold">Đã thanh toán (Hoàn tất)</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500 italic">Cửa sổ sẽ tự động đóng sau giây lát...</p>
+              </div>
+            ) : (
+              <>
+                {qrLoading && (
+                  <div className="py-10 flex items-center justify-center">
+                    <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+
+                {qrError && (
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4">
+                    {qrError}
+                  </div>
+                )}
+
+                {qrInfo && (
+                  <div className="bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold p-3 rounded-xl mb-4">
+                    {qrInfo}
+                  </div>
+                )}
+
+                {qrDataUrl && !qrLoading && (
+                  <>
+                    <div className="bg-white p-4 rounded-2xl inline-block mb-3 shadow-md">
+                      <img src={qrDataUrl} alt="Mã QR thanh toán" className="w-full max-w-[230px]" />
+                    </div>
+
+                    {qrInvoice.items && qrInvoice.items.length > 0 && (
+                      <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 mb-3 text-left space-y-1.5 text-xs">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                          Chi tiết các khoản thu
+                        </div>
+                        {qrInvoice.items.map((it, idx) => (
+                          <div key={idx} className="flex justify-between text-slate-300">
+                            <span>• {it.itemName}:</span>
+                            <span className="font-semibold text-white">{formatPrice(it.amount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Thanh trạng thái tự động chờ tiền vào */}
+                    <div className="flex items-center justify-center gap-2 text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 py-2.5 px-3 rounded-xl mb-3 font-medium">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping inline-block" />
+                      <span>Đang chờ nhận chuyển khoản tự động từ ngân hàng...</span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 leading-relaxed mb-4">
+                      Quét mã VietQR trên ứng dụng ngân hàng. Sau khi chuyển tiền, hệ thống sẽ <strong>tự động nhận biết và gạch nợ</strong> ngay tức thì.
+                    </p>
+
+                    {/* Nút giả lập chuyển tiền (Dành cho Dev & Demo tính năng tự động nhận diện) */}
+                    <div className="pt-2 pb-1 border-t border-slate-800/80">
+                      <button
+                        type="button"
+                        onClick={handleSimulatePayment}
+                        disabled={isSimulating}
+                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 border border-blue-500/30 text-blue-300 font-bold py-2.5 px-3 rounded-xl text-xs transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                        title="Bấm để kích hoạt Webhook giả lập chuyển khoản thành công"
+                      >
+                        <Sparkles size={14} className="text-amber-400" />
+                        <span>{isSimulating ? 'Đang gửi giao dịch...' : '⚡ Giả lập chuyển khoản ngay (Test tự động)'}</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {!qrLoading && (paymentHistory.some((payment) => payment.status === 'ChoXacNhan') ? (
+                  <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-left text-xs text-amber-300">
+                    Giao dịch đã gửi và đang chờ ban quản lý xác nhận.
+                  </div>
+                ) : (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowManualForm(!showManualForm)}
+                      className="text-[11px] text-slate-500 hover:text-slate-300 underline transition-colors cursor-pointer block mx-auto mb-2"
+                    >
+                      {showManualForm ? 'Ẩn nhập mã thủ công' : 'Hoặc nhập mã giao dịch thủ công (dự phòng)'}
+                    </button>
+
+                    {showManualForm && (
+                      <form onSubmit={handleSubmitTransfer} className="mt-2 space-y-3 text-left pt-2 border-t border-slate-800">
+                        <label className="block text-xs font-semibold text-slate-400">
+                          Mã giao dịch trên biên lai ngân hàng
+                          <input
+                            required
+                            maxLength={100}
+                            value={transactionRef}
+                            onChange={(e) => setTransactionRef(e.target.value)}
+                            className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-orange-500"
+                            placeholder="VD: FT... hoặc mã tham chiếu"
+                          />
+                        </label>
+                        {transferError && <p className="text-xs text-red-400">{transferError}</p>}
+                        {transferMessage && <p className="text-xs text-green-400">{transferMessage}</p>}
+                        <button
+                          type="submit"
+                          disabled={submittingTransfer}
+                          className="w-full rounded-xl bg-orange-500 hover:bg-orange-600 py-2.5 text-xs font-bold text-white disabled:opacity-50 transition-colors"
+                        >
+                          {submittingTransfer ? 'Đang gửi...' : 'Gửi mã xác nhận thủ công'}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                ))}
               </>
             )}
-
-            {!qrLoading && (paymentHistory.some((payment) => payment.status === 'ChoXacNhan') ? (
-              <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-left text-xs text-amber-300">Giao dịch đã gửi và đang chờ ban quản lý xác nhận.</div>
-            ) : (
-              <form onSubmit={handleSubmitTransfer} className="mt-4 space-y-3 text-left">
-                {!qrDataUrl && <p className="text-xs text-slate-400">Nếu bạn đã nhận thông tin tài khoản từ ban quản lý và chuyển khoản, hãy gửi mã giao dịch tại đây để được xác nhận thủ công.</p>}
-                <label className="block text-xs font-semibold text-slate-400">Mã giao dịch trên biên lai ngân hàng
-                  <input required maxLength={100} value={transactionRef} onChange={(e) => setTransactionRef(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-orange-500" placeholder="VD: FT... hoặc mã tham chiếu" />
-                </label>
-                {transferError && <p className="text-xs text-red-400">{transferError}</p>}
-                {transferMessage && <p className="text-xs text-green-400">{transferMessage}</p>}
-                <button type="submit" disabled={submittingTransfer} className="w-full rounded-xl bg-orange-500 py-3 text-sm font-bold text-white disabled:opacity-50">{submittingTransfer ? 'Đang gửi...' : 'Tôi đã chuyển khoản'}</button>
-              </form>
-            ))}
           </div>
         </div>
       )}

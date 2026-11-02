@@ -18,7 +18,10 @@ namespace ShopAPI.Repositories
         {
             return _context.Contracts
                 .Include(x => x.Room)
+                    .ThenInclude(r => r.Building)
+                        .ThenInclude(b => b.Owner)
                 .Include(x => x.Tenant)
+                    .ThenInclude(t => t.User)
                 .Include(x => x.Occupants);
         }
 

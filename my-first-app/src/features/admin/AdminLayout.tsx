@@ -8,7 +8,7 @@ const AdminLayout = () => {
   const items = getMenuForRole(adminMenu, user?.role);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-[1600px] flex flex-col lg:flex-row gap-8">
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-6 flex flex-col lg:flex-row gap-6">
       <aside className="lg:w-64 shrink-0">
         <nav className="bg-slate-900 border border-slate-850 rounded-2xl p-3 space-y-1 lg:sticky lg:top-24">
           {items.map((item) => {

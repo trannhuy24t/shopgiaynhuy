@@ -19,6 +19,11 @@ namespace ShopAPI.DTOs
         [Required]
         public UpsertTenantProfileDto TenantProfile { get; set; } = new();
 
+        public List<CreateOccupantDto>? Occupants { get; set; } = new();
+
+        // Chữ ký số khách thuê (Base64 data URL từ canvas / chữ ký ảnh)
+        public string? TenantSignature { get; set; }
+
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             if (EndDate <= StartDate)

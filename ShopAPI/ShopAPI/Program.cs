@@ -55,16 +55,12 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options 
 });
 
 
-// CORS — đọc từ appsettings.json thay vì hardcode
-var allowedOrigins = builder.Configuration
-    .GetSection("Cors:AllowedOrigins")
-    .Get<string[]>() ?? ["http://localhost:5173"];
-
+// CORS — Cho phép cả localhost và IP mạng LAN (đáp ứng khi test trên điện thoại)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactApp", policy =>
     {
-        policy.WithOrigins(allowedOrigins)
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -133,6 +129,7 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ISystemConfigService, SystemConfigService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddSingleton<IStorageService, MinioStorageService>();
 
 // Background Service — tự động nhắc nhở hóa đơn/hợp đồng mỗi ngày lúc 8h sáng
 builder.Services.AddHostedService<DailyReminderService>();
@@ -179,6 +176,14 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        context.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        Log.Warning(ex, "Could not automatically migrate database on startup.");
+    }
 
     var defaults = new (string Key, string Value, string Description)[]
     {
@@ -200,6 +205,26 @@ using (var scope = app.Services.CreateScope())
                 Value = value,
                 Description = description
             });
+        }
+    }
+
+    // Migrate any legacy users with role "User" to "Tenant"
+    var legacyUsers = context.Users.Where(u => u.Role == "User").ToList();
+    if (legacyUsers.Count > 0)
+    {
+        foreach (var u in legacyUsers)
+        {
+            u.Role = "Tenant";
+            if (!context.Tenants.Any(t => t.UserId == u.Id))
+            {
+                context.Tenants.Add(new ShopAPI.Models.Tenant
+                {
+                    UserId = u.Id,
+                    FullName = u.FullName,
+                    Email = u.Email,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
         }
     }
 

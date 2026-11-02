@@ -79,6 +79,47 @@
   border-radius: 9999px;
 }
 
+/* Custom scrollbar cho Form đăng ký rộng */
+.form-scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #090d16;
+}
+.form-scroll-container::-webkit-scrollbar {
+  width: 8px;
+}
+.form-scroll-container::-webkit-scrollbar-track {
+  background: #090d16;
+  border-radius: 8px;
+}
+.form-scroll-container::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 8px;
+}
+.form-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #ea580c;
+}
+
+/* Custom scrollbar cho các bảng dữ liệu quản lý */
+.table-scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #090d16;
+}
+.table-scroll-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.table-scroll-container::-webkit-scrollbar-track {
+  background: #090d16;
+  border-radius: 8px;
+}
+.table-scroll-container::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 8px;
+}
+.table-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #f97316;
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: #f97316; /* orange-500 */
 }
@@ -89,7 +130,7 @@
 body {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   background-color: #020617;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Styles shared by the small reusable learning/demo components. */
@@ -208,3 +249,119 @@ body {
 .song-row-favorite--active {
   color: #1db954;
 }
+
+/* --- THEME SYSTEM: DARK & LIGHT MODE --- */
+:root, html.dark {
+  color-scheme: dark;
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  color: #f8fafc;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b;
+}
+
+html.light {
+  color-scheme: light;
+  --color-slate-950: #f8fafc;
+  --color-slate-900: #ffffff;
+  --color-slate-850: #e2e8f0;
+  --color-slate-800: #e2e8f0;
+  --color-slate-700: #cbd5e1;
+  --color-slate-600: #94a3b8;
+  
+  --color-slate-100: #0f172a;
+  --color-slate-200: #1e293b;
+  --color-slate-300: #334155;
+  --color-slate-400: #64748b;
+  --color-slate-500: #64748b;
+}
+
+html.light body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html.light .table-scroll-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html.light .table-scroll-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+html.light .table-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #f97316;
+}
+
+/* Trong light mode: chuyển đổi text-white trên card/nền sáng thành text tối */
+::selection {
+  background-color: #f97316;
+  color: #ffffff;
+}
+
+html.light .text-white:not(
+  [class*="bg-orange"],
+  [class*="bg-amber"],
+  [class*="bg-red"],
+  [class*="bg-emerald"],
+  [class*="bg-green"],
+  [class*="bg-blue"],
+  [class*="bg-indigo"],
+  [class*="bg-violet"],
+  [class*="bg-purple"]
+) {
+  color: #0f172a;
+}
+
+/* Đảm bảo chữ trắng bên trong các khối có nền màu rực rỡ luôn giữ màu trắng */
+html.light [class*="bg-orange"] .text-white,
+html.light [class*="bg-amber"] .text-white,
+html.light [class*="bg-red"] .text-white,
+html.light [class*="bg-emerald"] .text-white,
+html.light [class*="bg-green"] .text-white,
+html.light [class*="bg-blue"] .text-white {
+  color: #ffffff !important;
+}
+
+/* Trong light mode: đảm bảo TẤT CẢ các ô input, textarea, select luôn có chữ màu tối rõ ràng khi nhập */
+html.light input,
+html.light textarea,
+html.light select {
+  color: #0f172a !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Trong light mode: tránh trường hợp hover:text-white làm chữ/icon màu trắng chìm vào nền sáng */
+html.light .hover\:text-white:hover:not(
+  [class*="bg-orange"],
+  [class*="bg-amber"],
+  [class*="bg-red"],
+  [class*="bg-emerald"],
+  [class*="bg-green"],
+  [class*="bg-blue"],
+  [class*="bg-indigo"],
+  [class*="bg-violet"],
+  [class*="bg-purple"],
+  [class*="hover:bg-orange"],
+  [class*="hover:bg-blue"],
+  [class*="hover:bg-red"],
+  [class*="hover:bg-green"],
+  [class*="hover:bg-emerald"]
+) {
+  color: #0f172a;
+}
+
+

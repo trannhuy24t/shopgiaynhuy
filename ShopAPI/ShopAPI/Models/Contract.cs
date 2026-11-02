@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ShopAPI.Models
@@ -25,8 +25,8 @@ namespace ShopAPI.Models
 
         public int NumberOfOccupants { get; set; } = 1;
 
-        // ÄÆ¡n giĂ¡ Ä‘iá»‡n/nÆ°á»›c chá»‘t trong há»£p Ä‘á»“ng â€” hĂ³a Ä‘Æ¡n hĂ ng thĂ¡ng máº·c Ä‘á»‹nh dĂ¹ng Ä‘Ăºng giĂ¡ nĂ y
-        // Ä‘á»ƒ tĂ­nh tiá»n Ä‘iá»‡n/nÆ°á»›c (usage x Ä‘Æ¡n giĂ¡), Staff váº«n nháº­p tay Ä‘Æ°á»£c giĂ¡ khĂ¡c náº¿u cáº§n.
+        // Đơn giá điện/nước chốt trong hợp đồng — hóa đơn hàng tháng mặc định dùng đúng giá này
+        // để tính tiền điện/nước (usage x đơn giá), Staff vẫn nhập tay được giá khác nếu cần.
         [Column(TypeName = "decimal(18,2)")]
         public decimal ElectricUnitPrice { get; set; }
 
@@ -36,6 +36,14 @@ namespace ShopAPI.Models
         public ContractStatus Status { get; set; } = ContractStatus.ChoDuyet;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Chữ ký điện tử / Chữ ký số
+        public string? TenantSignatureUrl { get; set; }
+        public DateTime? SignedAt { get; set; }
+        [MaxLength(255)]
+        public string? SignatureHash { get; set; }
+        public string? LandlordSignatureUrl { get; set; }
+        public DateTime? LandlordSignedAt { get; set; }
 
         public List<Invoice> Invoices { get; set; } = new();
         public List<Occupant> Occupants { get; set; } = new();

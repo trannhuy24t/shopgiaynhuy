@@ -333,9 +333,9 @@ const InvoiceBulkCreatePage = () => {
         ) : !loadError && contracts.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-700 py-12 text-center text-sm text-slate-400">Chưa có hợp đồng nào đang hiệu lực.</div>
         ) : !loadError && (
-          <div className="overflow-x-auto rounded-2xl border border-slate-800">
+          <div className="overflow-x-auto overflow-y-auto max-h-[560px] table-scroll-container rounded-2xl border border-slate-800">
             <table className="min-w-[1050px] w-full text-left text-xs">
-              <thead className="bg-slate-950/70 text-[10px] uppercase tracking-wider text-slate-500">
+              <thead className="sticky top-0 z-10 shadow-md bg-slate-900/95 backdrop-blur-md text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-800">
                 <tr>
                   <th className="p-3">Chọn</th>
                   <th className="p-3">Phòng / người thuê</th>

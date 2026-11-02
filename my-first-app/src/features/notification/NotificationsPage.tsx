@@ -5,6 +5,7 @@ import { getApiErrorMessage } from '../../api/client';
 import { useNotificationCount } from '../../context/NotificationContext';
 import { useAuth } from '../../context/useAuth';
 import { getNotificationTarget } from '../../utils/notificationTarget';
+import { sanitizeVietnamese } from '../../utils/textUtils';
 import StatusBadge from '../../components/Common/StatusBadge';
 import type { NotificationDto } from '../../types/notification';
 import { Bell, Check, CheckCheck } from 'lucide-react';
@@ -139,10 +140,10 @@ const NotificationsPage = () => {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                   {!n.isRead && <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />}
-                  <button onClick={() => handleOpenNotification(n)} className="font-bold text-white text-sm text-left hover:text-orange-300">{n.title}</button>
+                  <button onClick={() => handleOpenNotification(n)} className="font-bold text-white text-sm text-left hover:text-orange-300">{sanitizeVietnamese(n.title)}</button>
                   <StatusBadge entity="notificationType" value={n.type} />
                 </div>
-                <p className="text-sm text-slate-400 leading-relaxed">{n.content}</p>
+                <p className="text-sm text-slate-400 leading-relaxed">{sanitizeVietnamese(n.content)}</p>
                 <p className="text-[10px] text-slate-600 font-semibold mt-2">{formatDateTime(n.createdAt)}</p>
                 {getNotificationTarget(n, isStaff) && <button onClick={() => handleOpenNotification(n)} className="mt-2 text-xs font-bold text-orange-400 hover:text-orange-300">Mở nội dung liên quan →</button>}
               </div>

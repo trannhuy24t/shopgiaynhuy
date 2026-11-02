@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getContracts, approveContract, rejectContract, terminateContract, setContractUnitPrice, extendContract } from '../../../api/contract';
+import { getRoom } from '../../../api/room';
 import { remindUpcomingContracts } from '../../../api/notification';
 import { getSystemConfigs } from '../../../api/systemConfig';
 import { getApiErrorMessage } from '../../../api/client';
@@ -7,9 +8,26 @@ import { notifyTenant } from '../../../utils/notifyTenant';
 import { useAuth } from '../../../context/useAuth';
 import StatusBadge from '../../../components/Common/StatusBadge';
 import OccupantManager from '../../../components/Common/OccupantManager';
+import RentalContractWordModal from '../../../components/Contract/RentalContractWordModal';
+import TablePagination from '../../../components/Common/TablePagination';
 import { statusMaps } from '../../../constants/statusLabels';
 import type { ContractDto } from '../../../types/contract';
-import { FileText, Info, X, BellRing, Users, AlertTriangle, Zap } from 'lucide-react';
+import {
+  FileText,
+  Info,
+  X,
+  BellRing,
+  Users,
+  AlertTriangle,
+  Zap,
+  ShieldCheck,
+  MoreVertical,
+  CheckCircle2,
+  XCircle,
+  CalendarPlus,
+  PowerOff,
+  Search,
+} from 'lucide-react';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -27,6 +45,22 @@ const ContractManagerPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [viewingContract, setViewingContract] = useState<ContractDto | null>(null);
+  const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.action-menu-container')) {
+        setOpenActionMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   const [modal, setModal] = useState<ModalMode>(null);
   const [deposit, setDeposit] = useState('');
@@ -101,8 +135,27 @@ const ContractManagerPage = () => {
 
   const openApproveModal = (contract: ContractDto) => {
     setModal({ type: 'approve', contract });
-    setDeposit('');
-    setMonthlyRent('');
+
+    // Tiền phòng và tiền cọc tự động điền, tiền cọc bằng với tiền phòng
+    const rentAmount = contract.monthlyRent > 0 ? contract.monthlyRent : ((contract as any).roomPrice > 0 ? (contract as any).roomPrice : 0);
+    const depositAmount = contract.deposit > 0 ? contract.deposit : rentAmount;
+
+    setMonthlyRent(rentAmount > 0 ? String(rentAmount) : '');
+    setDeposit(depositAmount > 0 ? String(depositAmount) : '');
+
+    // Nếu hợp đồng chưa có giá phòng, gọi API getRoom để tự động lấy giá phòng điền vào
+    if (rentAmount <= 0 && contract.roomId) {
+      getRoom(contract.roomId)
+        .then((res) => {
+          if (res.data?.price) {
+            const priceStr = String(res.data.price);
+            setMonthlyRent((prev) => prev || priceStr);
+            setDeposit((prev) => prev || priceStr);
+          }
+        })
+        .catch(() => {});
+    }
+
     setNumberOfOccupants(String(contract.numberOfOccupants || 1));
     setElectricUnitPrice(defaultUnitPrices.electric);
     setWaterUnitPrice(defaultUnitPrices.water);
@@ -171,9 +224,13 @@ const ContractManagerPage = () => {
         waterUnitPrice: Number(waterUnitPrice),
         endDate: endDate ? new Date(endDate).toISOString() : null,
       });
+      const serviceFeePerPerson = modal.contract.roomServiceFee || 0;
+      const totalServiceFee = serviceFeePerPerson * occupantsNum;
+      const totalFirstPayment = depositNum + rentNum + totalServiceFee;
+
       notifyTenant(modal.contract.tenantId, {
         title: 'Hợp đồng đã được duyệt',
-        content: `Hợp đồng phòng ${modal.contract.roomNumber || modal.contract.roomId} đã được duyệt. Vui lòng thanh toán tiền cọc (${formatPrice(depositNum)}) để kích hoạt hợp đồng.`,
+        content: `Hợp đồng phòng ${modal.contract.roomNumber || modal.contract.roomId} đã được duyệt. Vui lòng thanh toán hóa đơn nhận phòng (${formatPrice(totalFirstPayment)} gồm cọc, tiền phòng tháng đầu & phí dịch vụ) để kích hoạt hợp đồng.`,
         type: 'HopDong',
       });
       setModal(null);
@@ -289,22 +346,81 @@ const ContractManagerPage = () => {
     }
   };
 
+  const filteredContracts = contracts.filter((c) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase().trim();
+    const roomStr = String(c.roomNumber || c.roomId || '').toLowerCase();
+    const tenantName = (c.tenantName || '').toLowerCase();
+    const tenantPhone = (c.tenantPhone || '').toLowerCase();
+    const buildingName = (c.buildingName || '').toLowerCase();
+    const idStr = `#${c.id}`.toLowerCase();
+    return (
+      roomStr.includes(term) ||
+      tenantName.includes(term) ||
+      tenantPhone.includes(term) ||
+      buildingName.includes(term) ||
+      idStr.includes(term)
+    );
+  });
+
+  const totalItems = filteredContracts.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = totalItems > 0 ? (safeCurrentPage - 1) * pageSize : 0;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const paginatedContracts = filteredContracts.slice(startIndex, endIndex);
+
   return (
-    <div className="max-w-7xl space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-900">
-        <div>
-          <span className="text-orange-500 text-xs font-black uppercase tracking-wider block mb-1">
-            Vòng đời thuê phòng
-          </span>
-          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Quản lý hợp đồng</h1>
+    <div className="w-full space-y-6">
+      {/* Thanh công cụ: Ô tìm kiếm + Select trạng thái bên trái & Nút nhắc nhở hợp đồng bên phải cùng hàng */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 p-3 sm:p-4 rounded-2xl border border-slate-850">
+        <div className="flex flex-wrap items-center gap-3 flex-1">
+          {/* Ô tìm kiếm */}
+          <div className="relative flex-1 min-w-[200px] sm:min-w-[280px] max-w-md">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Tìm theo tên khách, SĐT, số phòng..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none hover:border-slate-700 focus:border-orange-500 transition-colors"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-0.5 cursor-pointer"
+                title="Xóa tìm kiếm"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          {/* Ô Select trạng thái */}
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="bg-slate-950 border border-slate-800 text-slate-300 text-xs font-semibold rounded-xl px-3.5 py-2.5 outline-none cursor-pointer hover:border-slate-700 transition-colors"
+          >
+            <option value="all">Tất cả trạng thái</option>
+            {Object.entries(statusMaps.contract).map(([value, meta]) => (
+              <option key={value} value={value}>
+                {meta.label}
+              </option>
+            ))}
+          </select>
         </div>
+
+        {/* Nút nhắc nhở hợp đồng nằm cùng hàng bên phải */}
         <button
           onClick={handleRemindUpcoming}
           disabled={reminding}
-          className="bg-slate-900 border border-slate-800 hover:border-slate-700 disabled:opacity-50 text-slate-300 hover:text-white font-bold px-4 py-3 rounded-2xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+          className="bg-slate-950 border border-slate-800 hover:border-slate-700 active:scale-95 disabled:opacity-50 text-slate-300 hover:text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ml-auto sm:ml-0 shadow-sm"
           title="Nhắc hợp đồng đang hiệu lực sắp hết hạn trong 7 ngày tới"
         >
-          <BellRing size={14} /> {reminding ? 'Đang gửi...' : 'Nhắc hợp đồng sắp hết hạn'}
+          <BellRing size={14} className="text-orange-400" />
+          <span>{reminding ? 'Đang gửi...' : 'Nhắc hợp đồng sắp hết hạn'}</span>
         </button>
       </div>
 
@@ -352,29 +468,6 @@ const ContractManagerPage = () => {
         </div>
       )}
 
-      {/* Bộ lọc trạng thái */}
-      <div className="flex flex-wrap gap-2 bg-slate-900/40 p-4 rounded-2xl border border-slate-850">
-        <button
-          onClick={() => setFilterStatus('all')}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-            filterStatus === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
-          }`}
-        >
-          Tất cả
-        </button>
-        {Object.entries(statusMaps.contract).map(([value, meta]) => (
-          <button
-            key={value}
-            onClick={() => setFilterStatus(value)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-              filterStatus === value ? 'bg-orange-500 text-white' : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
-            }`}
-          >
-            {meta.label}
-          </button>
-        ))}
-      </div>
-
       {loading && (
         <div className="min-h-[30vh] flex items-center justify-center">
           <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
@@ -387,19 +480,21 @@ const ContractManagerPage = () => {
         </div>
       )}
 
-      {!loading && !error && contracts.length === 0 && (
-        <div className="text-center py-20 bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl">
+      {!loading && !error && filteredContracts.length === 0 && (
+        <div className="text-center py-20 bg-slate-900/20 border border-dashed border-slate-850 rounded-3xl">
           <FileText className="w-10 h-10 text-slate-700 mx-auto mb-3" />
-          <p className="text-slate-400 font-medium text-lg">Không có hợp đồng nào khớp với bộ lọc.</p>
+          <p className="text-slate-400 font-medium text-lg">
+            {searchTerm ? `Không tìm thấy hợp đồng nào khớp với "${searchTerm}".` : 'Không có hợp đồng nào khớp với bộ lọc.'}
+          </p>
         </div>
       )}
 
-      {!loading && !error && contracts.length > 0 && (
-        <div className="bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden shadow-2xl">
-          <div className="overflow-x-auto">
+      {!loading && !error && filteredContracts.length > 0 && (
+        <div className="bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+          <div className="overflow-x-auto overflow-y-auto max-h-[560px] table-scroll-container">
             <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider bg-slate-950/20">
+              <thead className="sticky top-0 z-10 shadow-md">
+                <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider bg-slate-900/95 backdrop-blur-md">
                   <th className="p-5">Khách thuê</th>
                   <th className="p-5">Phòng</th>
                   <th className="p-5">Thời hạn</th>
@@ -408,13 +503,22 @@ const ContractManagerPage = () => {
                   <th className="p-5">Số người</th>
                   <th className="p-5">Điện / Nước</th>
                   <th className="p-5">Trạng thái</th>
-                  <th className="p-5 text-center">Hành động</th>
+                  <th className="p-5 text-center w-24">Hành động</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-850/50">
-                {contracts.map((c) => (
+                {paginatedContracts.map((c, index) => (
                   <tr key={c.id} className="text-slate-300 hover:bg-slate-950/10 transition-colors">
-                    <td className="p-5 font-bold text-white">{c.tenantName || `#${c.tenantId}`}</td>
+                    <td className="p-5 font-bold text-white">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span>{c.tenantName || `#${c.tenantId}`}</span>
+                        {c.tenantSignatureUrl && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" title="Khách thuê đã ký số điện tử">
+                            <ShieldCheck size={10} /> Đã ký số
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="p-5 font-semibold text-slate-400">{c.roomNumber || `#${c.roomId}`}</td>
                     <td className="p-5 font-medium text-slate-500">{formatDate(c.startDate)} — {formatDate(c.endDate)}</td>
                     <td className="p-5 font-medium text-slate-400">{c.deposit > 0 ? formatPrice(c.deposit) : '—'}</td>
@@ -427,50 +531,132 @@ const ContractManagerPage = () => {
                     </td>
                     <td className="p-5"><StatusBadge entity="contract" value={c.status} /></td>
                     <td className="p-5 text-center">
-                      <div className="flex justify-center gap-2 flex-wrap">
-                        {isAdmin && c.status === 'ChoDuyet' && (
-                          <>
-                            <button
-                              onClick={() => openApproveModal(c)}
-                              className="bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
-                            >
-                              Duyệt
-                            </button>
-                            <button
-                              onClick={() => openRejectModal(c)}
-                              className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
-                            >
-                              Từ chối
-                            </button>
-                          </>
-                        )}
-                        {c.status === 'DangHieuLuc' && (
-                          <>
-                            {isAdmin && <button onClick={() => openExtendModal(c)} className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/20 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer">Gia hạn</button>}
-                            {isAdmin && (c.electricUnitPrice <= 0 || c.waterUnitPrice <= 0) && (
+                      <div className="relative inline-block text-left action-menu-container">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenActionMenuId((prev) => (prev === c.id ? null : c.id));
+                          }}
+                          className={`p-2 rounded-xl transition-all cursor-pointer ${
+                            openActionMenuId === c.id
+                              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25 scale-105'
+                              : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60'
+                          }`}
+                          title="Tùy chọn hành động"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+
+                        {openActionMenuId === c.id && (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className={`absolute right-0 w-48 bg-slate-900 border border-slate-750 rounded-2xl shadow-2xl py-1.5 z-50 divide-y divide-slate-850 backdrop-blur-md animate-scale-up ${
+                              index >= paginatedContracts.length - 2 && paginatedContracts.length >= 3
+                                ? 'bottom-full mb-2 origin-bottom-right'
+                                : 'top-full mt-2 origin-top-right'
+                            }`}
+                          >
+                            <div className="p-1 space-y-0.5">
+                              {/* Xem HĐ Word */}
                               <button
-                                onClick={() => openSetPriceModal(c)}
-                                className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 font-bold px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                                type="button"
+                                onClick={() => {
+                                  setViewingContract(c);
+                                  setOpenActionMenuId(null);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-blue-400 hover:bg-blue-500/10 rounded-xl transition-colors cursor-pointer text-left"
                               >
-                                <Zap size={11} /> Gán giá
+                                <FileText size={14} className="shrink-0 text-blue-400" />
+                                <span>Xem hợp đồng (Word)</span>
                               </button>
+                            </div>
+
+                            {/* Các thao tác khi Chờ duyệt */}
+                            {isAdmin && c.status === 'ChoDuyet' && (
+                              <div className="p-1 space-y-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openApproveModal(c);
+                                    setOpenActionMenuId(null);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition-colors cursor-pointer text-left"
+                                >
+                                  <CheckCircle2 size={14} className="shrink-0 text-emerald-400" />
+                                  <span>Duyệt hợp đồng</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openRejectModal(c);
+                                    setOpenActionMenuId(null);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer text-left"
+                                >
+                                  <XCircle size={14} className="shrink-0 text-rose-400" />
+                                  <span>Từ chối hợp đồng</span>
+                                </button>
+                              </div>
                             )}
-                            <button
-                              onClick={() => openOccupantsModal(c)}
-                              className="bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white font-bold px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 transition-all cursor-pointer"
-                            >
-                              <Users size={11} /> Người ở
-                            </button>
-                            <button
-                              onClick={() => handleTerminate(c)}
-                              className="bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
-                            >
-                              Kết thúc
-                            </button>
-                          </>
-                        )}
-                        {!(isAdmin && c.status === 'ChoDuyet') && c.status !== 'DangHieuLuc' && (
-                          <span className="text-slate-600 text-[10px]">—</span>
+
+                            {/* Các thao tác khi Đang hiệu lực */}
+                            {c.status === 'DangHieuLuc' && (
+                              <div className="p-1 space-y-0.5">
+                                {isAdmin && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      openExtendModal(c);
+                                      setOpenActionMenuId(null);
+                                    }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-blue-300 hover:bg-blue-500/10 rounded-xl transition-colors cursor-pointer text-left"
+                                  >
+                                    <CalendarPlus size={14} className="shrink-0 text-blue-400" />
+                                    <span>Gia hạn hợp đồng</span>
+                                  </button>
+                                )}
+
+                                {isAdmin && (c.electricUnitPrice <= 0 || c.waterUnitPrice <= 0) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      openSetPriceModal(c);
+                                      setOpenActionMenuId(null);
+                                    }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-amber-400 hover:bg-amber-500/10 rounded-xl transition-colors cursor-pointer text-left"
+                                  >
+                                    <Zap size={14} className="shrink-0 text-amber-400" />
+                                    <span>Gán giá điện / nước</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openOccupantsModal(c);
+                                    setOpenActionMenuId(null);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-purple-300 hover:bg-purple-500/10 rounded-xl transition-colors cursor-pointer text-left"
+                                >
+                                  <Users size={14} className="shrink-0 text-purple-400" />
+                                  <span>Danh sách người ở</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handleTerminate(c);
+                                    setOpenActionMenuId(null);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer text-left"
+                                >
+                                  <PowerOff size={14} className="shrink-0 text-rose-400" />
+                                  <span>Kết thúc hợp đồng</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </td>
@@ -479,6 +665,15 @@ const ContractManagerPage = () => {
               </tbody>
             </table>
           </div>
+
+          <TablePagination
+            currentPage={safeCurrentPage}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            itemLabel="hợp đồng"
+          />
         </div>
       )}
 
@@ -491,7 +686,28 @@ const ContractManagerPage = () => {
               <X size={20} />
             </button>
             <h3 className="font-bold text-xl text-white uppercase tracking-wide mb-2">Duyệt hợp đồng</h3>
-            <p className="text-xs text-slate-500 mb-6">Phòng {modal.contract.roomNumber || modal.contract.roomId} — {modal.contract.tenantName || `Khách #${modal.contract.tenantId}`}</p>
+            <p className="text-xs text-slate-500 mb-4">Phòng {modal.contract.roomNumber || modal.contract.roomId} — {modal.contract.tenantName || `Khách #${modal.contract.tenantId}`}</p>
+
+            {modal.contract.tenantSignatureUrl ? (
+              <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="text-emerald-300 font-semibold">Khách thuê đã ký số điện tử</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setViewingContract(modal.contract)}
+                  className="text-[11px] text-blue-400 hover:text-blue-300 underline font-semibold cursor-pointer"
+                >
+                  Xem hợp đồng & chữ ký
+                </button>
+              </div>
+            ) : (
+              <div className="mb-4 p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 flex items-center gap-2 text-xs text-slate-400">
+                <Info className="w-4 h-4 text-slate-500 shrink-0" />
+                <span>Hợp đồng chưa có chữ ký số điện tử của khách thuê.</span>
+              </div>
+            )}
 
             {modalError && (
               <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4">
@@ -501,7 +717,21 @@ const ContractManagerPage = () => {
 
             <form onSubmit={handleApprove} className="space-y-5">
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Tiền cọc (VNĐ) *</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Tiền cọc (VNĐ) *
+                  </label>
+                  {monthlyRent && (
+                    <button
+                      type="button"
+                      onClick={() => setDeposit(monthlyRent)}
+                      className="text-[10px] text-orange-400 hover:text-orange-300 font-semibold cursor-pointer underline"
+                      title="Đặt lại tiền cọc bằng đúng tiền phòng"
+                    >
+                      Bằng tiền phòng
+                    </button>
+                  )}
+                </div>
                 <input
                   type="number"
                   required
@@ -510,15 +740,25 @@ const ContractManagerPage = () => {
                   onChange={(e) => setDeposit(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-sm text-white outline-none"
                 />
+                <p className="text-[10px] text-slate-500 mt-1.5">
+                  Tự động điền bằng tiền phòng ({monthlyRent ? formatPrice(Number(monthlyRent) || 0) : '0 ₫'}).
+                </p>
               </div>
+
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Giá thuê / tháng (VNĐ) *</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                  Giá thuê / tháng (VNĐ) *
+                </label>
                 <input
                   type="number"
                   required
                   min={1}
                   value={monthlyRent}
-                  onChange={(e) => setMonthlyRent(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setMonthlyRent(val);
+                    setDeposit(val);
+                  }}
                   className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-sm text-white outline-none"
                 />
               </div>
@@ -568,6 +808,40 @@ const ContractManagerPage = () => {
                   className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-4 py-3 text-sm text-white outline-none"
                 />
               </div>
+
+              {/* Box tổng hợp chi phí nhận phòng đợt đầu */}
+              <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-2">
+                <div className="text-[11px] font-bold text-orange-400 uppercase tracking-wider mb-1">
+                  Dự kiến hóa đơn nhận phòng (đợt đầu)
+                </div>
+                <div className="flex justify-between text-xs text-slate-300">
+                  <span>• Tiền đặt cọc:</span>
+                  <span className="font-semibold text-white">{formatPrice(Number(deposit) || 0)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-slate-300">
+                  <span>• Tiền phòng (tháng đầu):</span>
+                  <span className="font-semibold text-white">{formatPrice(Number(monthlyRent) || 0)}</span>
+                </div>
+                {(modal.contract.roomServiceFee || 0) > 0 && (
+                  <div className="flex justify-between text-xs text-slate-300">
+                    <span>• Phí dịch vụ ({formatPrice(modal.contract.roomServiceFee || 0)} × {Number(numberOfOccupants) || 1} người):</span>
+                    <span className="font-semibold text-white">
+                      {formatPrice((modal.contract.roomServiceFee || 0) * (Number(numberOfOccupants) || 1))}
+                    </span>
+                  </div>
+                )}
+                <div className="border-t border-slate-800 pt-2 mt-2 flex justify-between items-center text-sm font-bold">
+                  <span className="text-orange-400">TỔNG HÓA ĐƠN NHẬN PHÒNG:</span>
+                  <span className="text-orange-400 text-base">
+                    {formatPrice(
+                      (Number(deposit) || 0) +
+                      (Number(monthlyRent) || 0) +
+                      ((modal.contract.roomServiceFee || 0) * (Number(numberOfOccupants) || 1))
+                    )}
+                  </span>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={saving}
@@ -713,6 +987,15 @@ const ContractManagerPage = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal xem hợp đồng dạng bản Word thực sự */}
+      {viewingContract && (
+        <RentalContractWordModal
+          contract={viewingContract}
+          isAdminOrStaff={true}
+          onClose={() => setViewingContract(null)}
+        />
       )}
     </div>
   );

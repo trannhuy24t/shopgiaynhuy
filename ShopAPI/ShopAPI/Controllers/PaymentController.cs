@@ -13,11 +13,13 @@ namespace ShopAPI.Controllers
     {
         private readonly IPaymentService _paymentService;
         private readonly IInvoiceService _invoiceService;
+        private readonly IConfiguration _configuration;
 
-        public PaymentController(IPaymentService paymentService, IInvoiceService invoiceService)
+        public PaymentController(IPaymentService paymentService, IInvoiceService invoiceService, IConfiguration configuration)
         {
             _paymentService = paymentService;
             _invoiceService = invoiceService;
+            _configuration = configuration;
         }
 
         private int GetUserId()
@@ -92,6 +94,48 @@ namespace ShopAPI.Controllers
         {
             var result = _paymentService.RejectTransfer(paymentId, GetUserId());
             return result ? Ok(new { message = "Đã từ chối giao dịch." }) : BadRequest(new { message = "Giao dịch không còn chờ xác nhận." });
+        }
+
+        // Endpoint Webhook nhận biến động số dư tự động từ SePay (sepay.vn)
+        [AllowAnonymous]
+        [HttpPost("sepay-webhook")]
+        public IActionResult SePayWebhook([FromBody] SePayWebhookDto dto)
+        {
+            var configuredApiKey = _configuration["SePay:ApiKey"];
+            if (!string.IsNullOrWhiteSpace(configuredApiKey))
+            {
+                var authHeader = Request.Headers.Authorization.ToString();
+                var expectedHeader = $"Apikey {configuredApiKey}";
+                if (!string.Equals(authHeader, expectedHeader, StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(authHeader, configuredApiKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    return Unauthorized(new { message = "Sai SePay API Key." });
+                }
+            }
+
+            var result = _paymentService.ProcessSePayWebhook(dto);
+            if (!result.Success)
+            {
+                return BadRequest(new { success = false, message = result.Message });
+            }
+
+            return Ok(new { success = true, message = result.Message, invoiceId = result.InvoiceId });
+        }
+
+        // Endpoint giả lập webhook SePay để test chức năng tự động nhận diện thanh toán ngay tại máy
+        [HttpPost("simulate-transfer/{invoiceId}")]
+        public IActionResult SimulateTransfer(int invoiceId)
+        {
+            var isStaffOrAdmin = User.IsInRole("Admin") || User.IsInRole("Staff");
+            if (!isStaffOrAdmin && !_invoiceService.IsOwnedByUser(invoiceId, GetUserId()))
+            {
+                return Forbid();
+            }
+
+            var result = _paymentService.SimulateTransfer(invoiceId);
+            return result.Success
+                ? Ok(new { success = true, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message });
         }
     }
 }

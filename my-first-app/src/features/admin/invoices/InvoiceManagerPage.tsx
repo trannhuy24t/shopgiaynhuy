@@ -6,6 +6,7 @@ import { remindOverdue, remindUpcomingInvoices } from '../../../api/notification
 import { getApiErrorMessage } from '../../../api/client';
 import { notifyTenantByContract } from '../../../utils/notifyTenant';
 import StatusBadge from '../../../components/Common/StatusBadge';
+import TablePagination from '../../../components/Common/TablePagination';
 import { statusMaps } from '../../../constants/statusLabels';
 import type { InvoiceDto } from '../../../types/invoice';
 import type { PaymentDto, PaymentMethod } from '../../../types/payment';
@@ -22,6 +23,12 @@ const InvoiceManagerPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus]);
 
   const [confirmTarget, setConfirmTarget] = useState<InvoiceDto | null>(null);
   const [method, setMethod] = useState<PaymentMethod>('TienMat');
@@ -163,15 +170,9 @@ const InvoiceManagerPage = () => {
   };
 
   return (
-    <div className="max-w-7xl space-y-8">
+    <div className="w-full space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-900">
-        <div>
-          <span className="text-orange-500 text-xs font-black uppercase tracking-wider block mb-1">
-            Thu chi hàng tháng
-          </span>
-          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Quản lý hóa đơn</h1>
-        </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleRemindOverdue}
             disabled={reminding}
@@ -187,17 +188,20 @@ const InvoiceManagerPage = () => {
           >
             <BellRing size={14} /> {remindingUpcoming ? 'Đang gửi...' : 'Nhắc hóa đơn sắp đến hạn'}
           </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            to="/admin/invoices/tao-hang-loat"
+            className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 text-xs font-bold px-4 py-3 rounded-2xl flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <Layers size={15} /> Tạo hàng loạt
+          </Link>
           <Link
             to="/admin/invoices/tao-moi"
             className="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-bold px-5 py-3 rounded-2xl flex items-center gap-1.5 transition-all shadow-lg shadow-orange-500/10 cursor-pointer"
           >
             <Plus size={16} /> Tạo hóa đơn mới
-          </Link>
-          <Link
-            to="/admin/invoices/tao-hang-loat"
-            className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-xs font-bold px-4 py-3 rounded-2xl flex items-center gap-1.5 transition-all cursor-pointer"
-          >
-            <Layers size={15} /> Tạo hàng loạt
           </Link>
         </div>
       </div>
@@ -250,67 +254,87 @@ const InvoiceManagerPage = () => {
         </div>
       )}
 
-      {!loading && !error && invoices.length > 0 && (
-        <div className="bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden shadow-2xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider bg-slate-950/20">
-                  <th className="p-5">Phòng</th>
-                  <th className="p-5">Khách thuê</th>
-                  <th className="p-5">Kỳ</th>
-                  <th className="p-5">Loại</th>
-                  <th className="p-5">Chỉ số điện / nước</th>
-                  <th className="p-5">Tổng tiền</th>
-                  <th className="p-5">Hạn TT</th>
-                  <th className="p-5">Trạng thái</th>
-                  <th className="p-5 text-center">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-850/50">
-                {invoices.map((inv) => (
-                  <tr key={inv.id} className="text-slate-300 hover:bg-slate-950/10 transition-colors">
-                    <td className="p-5 font-bold text-white">{inv.roomNumber || '—'}</td>
-                    <td className="p-5 font-semibold text-slate-400">{inv.tenantName || '—'}</td>
-                    <td className="p-5 font-medium text-slate-500">{inv.month}/{inv.year}</td>
-                    <td className="p-5"><StatusBadge entity="invoiceType" value={inv.type} /></td>
-                    <td className="p-5 font-medium text-slate-500 text-[10px]">
-                      {inv.type === 'HangThang' ? (
-                        <>
-                          {inv.electricNewReading > 0 || inv.electricOldReading > 0 ? `Đ: ${inv.electricOldReading}→${inv.electricNewReading} (${inv.electricUsage}kWh)` : 'Đ: —'}
-                          <br />
-                          {inv.waterNewReading > 0 || inv.waterOldReading > 0 ? `N: ${inv.waterOldReading}→${inv.waterNewReading} (${inv.waterUsage}m³)` : 'N: —'}
-                        </>
-                      ) : '—'}
-                    </td>
-                    <td className="p-5 font-extrabold text-orange-500">{formatPrice(inv.totalAmount)}</td>
-                    <td className="p-5 font-medium text-slate-500">{formatDate(inv.dueDate)}</td>
-                    <td className="p-5"><StatusBadge entity="invoiceStatus" value={inv.status} /></td>
-                    <td className="p-5 text-center">
-                      <div className="flex justify-center gap-2 flex-wrap">
-                        <button
-                          onClick={() => openHistoryModal(inv)}
-                          className="bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer flex items-center gap-1"
-                        >
-                          <History size={11} /> Lịch sử
-                        </button>
-                        {(inv.status === 'ChuaThanhToan' || inv.status === 'QuaHan') && (
-                          <button
-                            onClick={() => openConfirmModal(inv)}
-                            className="bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
-                          >
-                            Xác nhận TT
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {(() => {
+        const totalItems = invoices.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+        const startIndex = totalItems > 0 ? (safeCurrentPage - 1) * pageSize : 0;
+        const endIndex = Math.min(startIndex + pageSize, totalItems);
+        const paginatedInvoices = invoices.slice(startIndex, endIndex);
+
+        return (
+          !loading && !error && invoices.length > 0 && (
+            <div className="bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+              <div className="overflow-x-auto overflow-y-auto max-h-[560px] table-scroll-container">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead className="sticky top-0 z-10 shadow-md">
+                    <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider bg-slate-900/95 backdrop-blur-md">
+                      <th className="p-5">Phòng</th>
+                      <th className="p-5">Khách thuê</th>
+                      <th className="p-5">Kỳ</th>
+                      <th className="p-5">Loại</th>
+                      <th className="p-5">Chỉ số điện / nước</th>
+                      <th className="p-5">Tổng tiền</th>
+                      <th className="p-5">Hạn TT</th>
+                      <th className="p-5">Trạng thái</th>
+                      <th className="p-5 text-center">Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-850/50">
+                    {paginatedInvoices.map((inv) => (
+                      <tr key={inv.id} className="text-slate-300 hover:bg-slate-950/10 transition-colors">
+                        <td className="p-5 font-bold text-white">{inv.roomNumber || '—'}</td>
+                        <td className="p-5 font-semibold text-slate-400">{inv.tenantName || '—'}</td>
+                        <td className="p-5 font-medium text-slate-500">{inv.month}/{inv.year}</td>
+                        <td className="p-5"><StatusBadge entity="invoiceType" value={inv.type} /></td>
+                        <td className="p-5 font-medium text-slate-500 text-[10px]">
+                          {inv.type === 'HangThang' ? (
+                            <>
+                              {inv.electricNewReading > 0 || inv.electricOldReading > 0 ? `Đ: ${inv.electricOldReading}→${inv.electricNewReading} (${inv.electricUsage}kWh)` : 'Đ: —'}
+                              <br />
+                              {inv.waterNewReading > 0 || inv.waterOldReading > 0 ? `N: ${inv.waterOldReading}→${inv.waterNewReading} (${inv.waterUsage}m³)` : 'N: —'}
+                            </>
+                          ) : '—'}
+                        </td>
+                        <td className="p-5 font-extrabold text-orange-500">{formatPrice(inv.totalAmount)}</td>
+                        <td className="p-5 font-medium text-slate-500">{formatDate(inv.dueDate)}</td>
+                        <td className="p-5"><StatusBadge entity="invoiceStatus" value={inv.status} /></td>
+                        <td className="p-5 text-center">
+                          <div className="flex justify-center gap-2 flex-wrap">
+                            <button
+                              onClick={() => openHistoryModal(inv)}
+                              className="bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer flex items-center gap-1"
+                            >
+                              <History size={11} /> Lịch sử
+                            </button>
+                            {(inv.status === 'ChuaThanhToan' || inv.status === 'QuaHan') && (
+                              <button
+                                onClick={() => openConfirmModal(inv)}
+                                className="bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
+                              >
+                                Xác nhận TT
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <TablePagination
+                currentPage={safeCurrentPage}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+                itemLabel="hóa đơn"
+              />
+            </div>
+          )
+        );
+      })()}
 
       {/* Modal lịch sử thanh toán */}
       {historyTarget && (

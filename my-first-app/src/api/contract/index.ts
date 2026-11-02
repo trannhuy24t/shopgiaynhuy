@@ -14,6 +14,11 @@ export const requestContract = (data: RequestContractPayload) => {
     return api.post<ContractDto>("/Contract/request", data);
 };
 
+// Tenant — ký số điện tử cho hợp đồng
+export const signContract = (id: number, data: { signatureBase64: string }) => {
+    return api.post<ContractDto>(`/Contract/${id}/sign`, data);
+};
+
 // Tenant — hợp đồng của chính mình
 export const getMyContracts = () => {
     return api.get<ContractDto[]>("/Contract/my");

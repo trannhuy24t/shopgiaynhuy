@@ -27,11 +27,14 @@ export const createRoom = (data: CreateRoomPayload) => {
 export interface CreateRoomWithImagePayload {
     buildingId: number;
     roomNumber: string;
+    roomType?: string | null;
     area?: number;
     price: number;
     serviceFee?: number;
+    amenities?: string | null;
     description?: string | null;
     image?: File | null;
+    files?: File[] | null;
 }
 
 // Admin — tạo phòng kèm upload ảnh (multipart/form-data)
@@ -39,11 +42,16 @@ export const createRoomWithImage = (data: CreateRoomWithImagePayload) => {
     const formData = new FormData();
     formData.append("buildingId", String(data.buildingId));
     formData.append("roomNumber", data.roomNumber);
+    if (data.roomType) formData.append("roomType", data.roomType);
     if (data.area !== undefined) formData.append("area", String(data.area));
     formData.append("price", String(data.price));
     if (data.serviceFee !== undefined) formData.append("serviceFee", String(data.serviceFee));
+    if (data.amenities) formData.append("amenities", data.amenities);
     if (data.description) formData.append("description", data.description);
     if (data.image) formData.append("image", data.image);
+    if (data.files && data.files.length > 0) {
+        data.files.forEach((f) => formData.append("files", f));
+    }
 
     return api.post<RoomDto>("/Room/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -58,11 +66,14 @@ export const updateRoom = (data: UpdateRoomPayload) => {
 export interface UpdateRoomWithImagePayload {
     id: number;
     roomNumber: string;
+    roomType?: string | null;
     area?: number;
     price: number;
     serviceFee?: number;
+    amenities?: string | null;
     description?: string | null;
     image?: File | null;
+    files?: File[] | null;
 }
 
 // Admin — sửa phòng kèm upload ảnh mới (multipart/form-data). Không gửi field image thì backend
@@ -70,11 +81,16 @@ export interface UpdateRoomWithImagePayload {
 export const updateRoomWithImage = (data: UpdateRoomWithImagePayload) => {
     const formData = new FormData();
     formData.append("roomNumber", data.roomNumber);
+    if (data.roomType) formData.append("roomType", data.roomType);
     if (data.area !== undefined) formData.append("area", String(data.area));
     formData.append("price", String(data.price));
     if (data.serviceFee !== undefined) formData.append("serviceFee", String(data.serviceFee));
+    if (data.amenities) formData.append("amenities", data.amenities);
     if (data.description) formData.append("description", data.description);
     if (data.image) formData.append("image", data.image);
+    if (data.files && data.files.length > 0) {
+        data.files.forEach((f) => formData.append("files", f));
+    }
 
     return api.put<RoomDto>(`/Room/${data.id}/upload`, formData, {
         headers: { "Content-Type": "multipart/form-data" },

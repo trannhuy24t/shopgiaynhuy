@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react';
 import { getUsers, createStaff, createTenantAccount, updateUserRole, deleteUser } from '../../../api/user';
 import { getApiErrorMessage } from '../../../api/client';
+import TablePagination from '../../../components/Common/TablePagination';
 import type { UserDto } from '../../../types/user';
 import type { Role } from '../../../types/auth';
-import { Plus, X, Users as UsersIcon, UserPlus, Pencil, Trash2 } from 'lucide-react';
+import {
+  Plus,
+  X,
+  Users as UsersIcon,
+  UserPlus,
+  Pencil,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from 'lucide-react';
 
-const roleOptions: Role[] = ['Admin', 'Staff', 'Tenant', 'User'];
+const roleOptions: Role[] = ['Admin', 'Staff', 'Tenant'];
 
 const roleBadgeClass = (role: Role) => {
   switch (role) {
@@ -27,6 +39,8 @@ const UserManagerPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const [roleModalUser, setRoleModalUser] = useState<UserDto | null>(null);
   const [newRole, setNewRole] = useState<Role>('Tenant');
@@ -147,54 +161,55 @@ const UserManagerPage = () => {
     }
   };
 
+  const totalItems = users.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const paginatedUsers = users.slice(startIndex, endIndex);
+
   return (
-    <div className="max-w-6xl space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-900">
-        <div>
-          <span className="text-orange-500 text-xs font-black uppercase tracking-wider block mb-1">
-            Tài khoản hệ thống
-          </span>
-          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Quản lý người dùng</h1>
+    <div className="w-full space-y-4">
+      <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold p-3.5 rounded-xl">
+        Tài khoản tự đăng ký trên hệ thống mặc định có quyền <span className="font-black text-white">Khách thuê (Tenant)</span> — có thể đăng ký thuê phòng, ký hợp đồng số, xem hóa đơn và báo hỏng ngay lập tức mà không cần duyệt tay.
+      </div>
+
+      {/* Thanh công cụ: Bộ lọc role bên trái + 2 nút tạo tài khoản bên phải ngang hàng */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 p-3 sm:p-4 rounded-2xl border border-slate-850">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setFilterRole('all')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${filterRole === 'all' ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
+              }`}
+          >
+            Tất cả
+          </button>
+          {roleOptions.map((r) => (
+            <button
+              key={r}
+              onClick={() => setFilterRole(r)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${filterRole === r ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
+                }`}
+            >
+              {r}
+            </button>
+          ))}
         </div>
-        <div className="flex flex-wrap gap-3">
+
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => { setIsCreateTenantOpen(true); setTenantError(''); }}
-            className="bg-slate-900 border border-slate-800 hover:border-slate-700 active:scale-95 text-slate-200 hover:text-white text-xs font-bold px-5 py-3 rounded-2xl flex items-center gap-1.5 transition-all cursor-pointer"
+            className="bg-slate-950 border border-slate-800 hover:border-slate-700 active:scale-95 text-slate-200 hover:text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
           >
-            <UserPlus size={16} /> Tạo tài khoản khách thuê
+            <UserPlus size={15} /> Tạo tài khoản khách thuê
           </button>
           <button
             onClick={() => { setIsCreateOpen(true); setStaffError(''); }}
-            className="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-bold px-5 py-3 rounded-2xl flex items-center gap-1.5 transition-all shadow-lg shadow-orange-500/10 cursor-pointer"
+            className="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-orange-500/20 cursor-pointer"
           >
-            <Plus size={16} /> Tạo tài khoản nhân viên
+            <Plus size={15} /> Tạo tài khoản nhân viên
           </button>
         </div>
-      </div>
-
-      <div className="bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-semibold p-4 rounded-xl">
-        Tài khoản tự đăng ký (`/auth/register`) mặc định có role <span className="font-black">User</span>, chưa dùng được chức năng nào — dùng nút "Đổi role" bên dưới để cấp quyền Tenant/Staff/Admin.
-      </div>
-
-      {/* Bộ lọc role */}
-      <div className="flex flex-wrap gap-2 bg-slate-900/40 p-4 rounded-2xl border border-slate-850">
-        <button
-          onClick={() => setFilterRole('all')}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${filterRole === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
-            }`}
-        >
-          Tất cả
-        </button>
-        {roleOptions.map((r) => (
-          <button
-            key={r}
-            onClick={() => setFilterRole(r)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${filterRole === r ? 'bg-orange-500 text-white' : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
-              }`}
-          >
-            {r}
-          </button>
-        ))}
       </div>
 
       {loading && (
@@ -217,11 +232,11 @@ const UserManagerPage = () => {
       )}
 
       {!loading && !error && users.length > 0 && (
-        <div className="bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden shadow-2xl">
-          <div className="overflow-x-auto">
+        <div className="bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+          <div className="overflow-x-auto overflow-y-auto max-h-[560px] table-scroll-container">
             <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider bg-slate-950/20">
+              <thead className="sticky top-0 z-10 shadow-md">
+                <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider bg-slate-900/95 backdrop-blur-md">
                   <th className="p-5">Họ tên</th>
                   <th className="p-5">Email</th>
                   <th className="p-5">Role</th>
@@ -230,8 +245,8 @@ const UserManagerPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-850/50">
-                {users.map((u) => (
-                  <tr key={u.id} className="text-slate-300 hover:bg-slate-950/10 transition-colors">
+                {paginatedUsers.map((u) => (
+                  <tr key={u.id} className="text-slate-300 hover:bg-slate-950/20 transition-colors">
                     <td className="p-5 font-bold text-white">{u.fullName}</td>
                     <td className="p-5 font-medium text-slate-400">{u.email}</td>
                     <td className="p-5">
@@ -245,7 +260,7 @@ const UserManagerPage = () => {
                         <button
                           onClick={() => openRoleModal(u)}
                           title="Sửa role"
-                          className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
+                          className="flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/40 text-blue-400 hover:text-blue-300 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer"
                         >
                           <Pencil size={11} /> Sửa
                         </button>
@@ -263,6 +278,15 @@ const UserManagerPage = () => {
               </tbody>
             </table>
           </div>
+
+          <TablePagination
+            currentPage={safeCurrentPage}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            itemLabel="tài khoản"
+          />
         </div>
       )}
 

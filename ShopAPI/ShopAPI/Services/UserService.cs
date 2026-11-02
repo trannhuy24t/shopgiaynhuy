@@ -1,4 +1,4 @@
-﻿using ShopAPI.Data;
+using ShopAPI.Data;
 using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
@@ -77,7 +77,7 @@ namespace ShopAPI.Services
             _context.Users.Add(user);
             _context.SaveChanges();
 
-            _activityLogService.Log(null, "CreateStaff", "User", user.Id, $"Táº¡o tĂ i khoáº£n nhĂ¢n viĂªn {user.Email}");
+            _activityLogService.Log(null, "CreateStaff", "User", user.Id, $"Tạo tài khoản nhân viên {user.Email}");
 
             return MapToDto(user);
         }
@@ -103,7 +103,19 @@ namespace ShopAPI.Services
             _context.Users.Add(user);
             _context.SaveChanges();
 
-            _activityLogService.Log(null, "CreateTenantAccount", "User", user.Id, $"Táº¡o tĂ i khoáº£n khĂ¡ch thuĂª {user.Email}");
+            if (!_context.Tenants.Any(t => t.UserId == user.Id))
+            {
+                _context.Tenants.Add(new Tenant
+                {
+                    UserId = user.Id,
+                    FullName = user.FullName,
+                    Email = user.Email,
+                    CreatedAt = DateTime.UtcNow
+                });
+                _context.SaveChanges();
+            }
+
+            _activityLogService.Log(null, "CreateTenantAccount", "User", user.Id, $"Tạo tài khoản khách thuê {user.Email}");
 
             return MapToDto(user);
         }
@@ -118,9 +130,21 @@ namespace ShopAPI.Services
             }
 
             user.Role = dto.Role;
+
+            if (dto.Role == "Tenant" && !_context.Tenants.Any(t => t.UserId == user.Id))
+            {
+                _context.Tenants.Add(new Tenant
+                {
+                    UserId = user.Id,
+                    FullName = user.FullName,
+                    Email = user.Email,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
             _context.SaveChanges();
 
-            _activityLogService.Log(null, "UpdateUserRole", "User", user.Id, $"Äá»•i vai trĂ² thĂ nh {dto.Role}");
+            _activityLogService.Log(null, "UpdateUserRole", "User", user.Id, $"Đổi vai trò thành {dto.Role}");
 
             return true;
         }

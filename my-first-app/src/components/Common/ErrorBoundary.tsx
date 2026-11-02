@@ -53,7 +53,7 @@ class ErrorBoundary extends Component<Props, State> {
               </button>
               <button
                 onClick={() => window.location.replace('/')}
-                className="bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all"
+                className="bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-bold px-5 py-2.5 rounded-xl transition-all cursor-pointer"
               >
                 Về trang chủ
               </button>

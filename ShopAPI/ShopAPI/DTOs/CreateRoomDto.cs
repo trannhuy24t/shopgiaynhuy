@@ -12,6 +12,9 @@ namespace ShopAPI.DTOs
         [MaxLength(20, ErrorMessage = "Số phòng không quá 20 ký tự.")]
         public string RoomNumber { get; set; } = string.Empty;
 
+        [MaxLength(50)]
+        public string? RoomType { get; set; }
+
         [Range(0, 10000, ErrorMessage = "Diện tích phải từ 0 đến 10000 m².")]
         public decimal Area { get; set; }
 
@@ -21,6 +24,9 @@ namespace ShopAPI.DTOs
 
         [Range(0, double.MaxValue, ErrorMessage = "Phí dịch vụ không được âm.")]
         public decimal ServiceFee { get; set; }
+
+        [MaxLength(1000)]
+        public string? Amenities { get; set; }
 
         [MaxLength(1000)]
         public string? Description { get; set; }

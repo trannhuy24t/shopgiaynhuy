@@ -10,6 +10,8 @@ namespace ShopAPI.DTOs
         [Required]
         public string RoomNumber { get; set; } = string.Empty;
 
+        public string? RoomType { get; set; }
+
         public decimal Area { get; set; }
 
         [Required]
@@ -17,6 +19,7 @@ namespace ShopAPI.DTOs
 
         public decimal ServiceFee { get; set; }
 
+        public string? Amenities { get; set; }
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
     }
@@ -38,6 +41,8 @@ namespace ShopAPI.DTOs
         [Required]
         public string RoomNumber { get; set; } = string.Empty;
 
+        public string? RoomType { get; set; }
+
         public decimal Area { get; set; }
 
         [Required]
@@ -45,9 +50,11 @@ namespace ShopAPI.DTOs
 
         public decimal ServiceFee { get; set; }
 
+        public string? Amenities { get; set; }
         public string? Description { get; set; }
 
         public IFormFile? Image { get; set; }
+        public List<IFormFile>? Files { get; set; }
     }
 
     public class UpdateRoomWithImageDto
@@ -55,6 +62,8 @@ namespace ShopAPI.DTOs
         [Required]
         public string RoomNumber { get; set; } = string.Empty;
 
+        public string? RoomType { get; set; }
+
         public decimal Area { get; set; }
 
         [Required]
@@ -62,9 +71,11 @@ namespace ShopAPI.DTOs
 
         public decimal ServiceFee { get; set; }
 
+        public string? Amenities { get; set; }
         public string? Description { get; set; }
 
         // Bỏ trống nếu không muốn đổi ảnh — giữ nguyên ảnh cũ
         public IFormFile? Image { get; set; }
+        public List<IFormFile>? Files { get; set; }
     }
 }

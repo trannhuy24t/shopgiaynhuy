@@ -73,17 +73,6 @@ const SystemConfigPage = () => {
 
   return (
     <div className="max-w-2xl">
-      <div className="mb-8 flex items-center gap-3">
-        <div className="bg-orange-500/10 p-2.5 rounded-xl text-orange-500 border border-orange-500/20">
-          <Settings2 size={22} />
-        </div>
-        <div>
-          <span className="text-orange-500 text-xs font-black uppercase tracking-wider block mb-1">
-            Thiết lập chung
-          </span>
-          <h1 className="text-3xl font-black text-white tracking-tight uppercase">Cấu hình hệ thống</h1>
-        </div>
-      </div>
 
       <div className="bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-semibold p-4 rounded-xl mb-6">
         Đơn giá phí dịch vụ (theo đầu người) giờ cấu hình riêng cho từng phòng ở trang Quản lý phòng,

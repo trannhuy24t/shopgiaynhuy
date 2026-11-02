@@ -204,3 +204,7 @@ C:\Users\Admin\AppData\Local\Temp\trohub-api-broadcast-c59c206ba22f47cda23bcbf00
 C:\Users\Admin\AppData\Local\Temp\trohub-api-broadcast-c59c206ba22f47cda23bcbf00c9a8051\ShopAPI.runtimeconfig.json
 C:\Users\Admin\AppData\Local\Temp\trohub-api-broadcast-c59c206ba22f47cda23bcbf00c9a8051\ShopAPI.dll
 C:\Users\Admin\AppData\Local\Temp\trohub-api-broadcast-c59c206ba22f47cda23bcbf00c9a8051\ShopAPI.pdb
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\CommunityToolkit.HighPerformance.dll
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\Minio.dll
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\System.IO.Hashing.dll
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\System.Reactive.dll

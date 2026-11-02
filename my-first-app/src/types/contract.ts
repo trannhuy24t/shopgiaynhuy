@@ -30,8 +30,20 @@ export interface ContractDto {
   id: number;
   roomId: number;
   roomNumber?: string | null;
+  roomArea?: number;
+  roomServiceFee?: number;
+  buildingName?: string | null;
+  buildingAddress?: string | null;
+  landlordName?: string | null;
+  landlordPhone?: string | null;
+  roomImageUrl?: string | null;
+  image?: string | null;
+  roomImages?: string[];
   tenantId: number;
   tenantName?: string | null;
+  tenantPhone?: string | null;
+  tenantIdCard?: string | null;
+  tenantEmail?: string | null;
   startDate: string;
   endDate: string;
   deposit: number;
@@ -42,6 +54,13 @@ export interface ContractDto {
   status: ContractStatus;
   createdAt: string;
   occupants: OccupantDto[];
+
+  // Chữ ký số / Chữ ký điện tử
+  tenantSignatureUrl?: string | null;
+  signedAt?: string | null;
+  signatureHash?: string | null;
+  landlordSignatureUrl?: string | null;
+  landlordSignedAt?: string | null;
 }
 
 export interface RequestContractPayload {
@@ -50,6 +69,12 @@ export interface RequestContractPayload {
   endDate: string;
   numberOfOccupants: number;
   tenantProfile: UpsertTenantProfilePayload;
+  occupants?: CreateOccupantPayload[];
+  tenantSignature?: string | null;
+}
+
+export interface SignContractPayload {
+  signatureBase64: string;
 }
 
 export interface ApproveContractPayload {

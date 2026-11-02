@@ -8,4 +8,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    host: true, // Cho phép truy cập từ các thiết bị khác trong mạng LAN (điện thoại, máy tính bảng)
+    port: 5173,
+  },
 })

@@ -5,7 +5,8 @@ import { getApiErrorMessage, resolveImageUrl } from '../../api/client';
 import StatusBadge from '../../components/Common/StatusBadge';
 import ImageWithFallback from '../../components/Common/ImageWithFallback';
 import type { RoomDto } from '../../types/room';
-import { ArrowRight, Building2, DoorOpen, FileCheck2, HeadphonesIcon, Ruler, ShieldCheck } from 'lucide-react';
+import ContactModal from '../../components/Common/ContactModal';
+import { ArrowRight, Building2, DoorOpen, FileCheck2, HeadphonesIcon, Phone, Ruler, ShieldCheck } from 'lucide-react';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -15,6 +16,7 @@ const HomePage = () => {
   const [rooms, setRooms] = useState<RoomDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showContactModal, setShowContactModal] = useState(false);
 
   useEffect(() => {
     const loadRooms = async () => {
@@ -46,7 +48,7 @@ const HomePage = () => {
             <div className="inline-flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 px-3.5 py-1.5 rounded-full text-orange-500 text-xs font-bold tracking-wider uppercase">
               <Building2 size={14} /> Hệ thống quản lý nhà trọ &amp; chung cư mini
             </div>
-            <h1 className="text-4xl sm:text-6xl font-black text-white leading-tight uppercase tracking-tight">
+            <h1 className="text-4xl sm:text-6xl font-black text-slate-100 leading-tight uppercase tracking-tight">
               Thuê phòng <br />
               <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
                 Dễ Dàng &amp; Minh Bạch
@@ -63,12 +65,14 @@ const HomePage = () => {
                 Xem phòng trống
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link
-                to="/rooms"
-                className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-white font-bold px-8 py-4 rounded-2xl transition-all flex items-center justify-center cursor-pointer"
+              <button
+                type="button"
+                onClick={() => setShowContactModal(true)}
+                className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-100 font-bold px-8 py-4 rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 shadow-md"
               >
+                <Phone size={18} className="text-orange-400" />
                 Liên hệ chủ trọ
-              </Link>
+              </button>
             </div>
           </div>
 
@@ -93,7 +97,7 @@ const HomePage = () => {
               <ShieldCheck size={24} />
             </div>
             <div className="text-left">
-              <h4 className="font-bold text-white mb-2">Minh bạch giá thuê</h4>
+              <h4 className="font-bold text-slate-100 mb-2">Minh bạch giá thuê</h4>
               <p className="text-sm text-slate-400 leading-relaxed">
                 Giá thuê và phí dịch vụ được hiển thị riêng; khách xem giá điện, nước tham khảo trước khi đăng ký và giá chốt trong hợp đồng.
               </p>
@@ -104,7 +108,7 @@ const HomePage = () => {
               <FileCheck2 size={24} />
             </div>
             <div className="text-left">
-              <h4 className="font-bold text-white mb-2">Hợp đồng rõ ràng</h4>
+              <h4 className="font-bold text-slate-100 mb-2">Hợp đồng rõ ràng</h4>
               <p className="text-sm text-slate-400 leading-relaxed">
                 Đăng ký thuê, duyệt hợp đồng và theo dõi hiệu lực hợp đồng ngay trên hệ thống.
               </p>
@@ -115,7 +119,7 @@ const HomePage = () => {
               <HeadphonesIcon size={24} />
             </div>
             <div className="text-left">
-              <h4 className="font-bold text-white mb-2">Theo dõi yêu cầu hỗ trợ</h4>
+              <h4 className="font-bold text-slate-100 mb-2">Theo dõi yêu cầu hỗ trợ</h4>
               <p className="text-sm text-slate-400 leading-relaxed">
                 Gửi yêu cầu bảo trì, nhận thông báo nhắc nợ và phản hồi từ quản lý ngay trong ứng dụng.
               </p>
@@ -131,7 +135,7 @@ const HomePage = () => {
             <span className="text-orange-500 text-xs font-black uppercase tracking-wider block mb-1">
               Vừa cập nhật
             </span>
-            <h2 className="text-3xl font-black text-white tracking-tight uppercase">Phòng trống mới nhất</h2>
+            <h2 className="text-3xl font-black text-slate-100 tracking-tight uppercase">Phòng trống mới nhất</h2>
           </div>
           <Link
             to="/rooms"
@@ -183,7 +187,7 @@ const HomePage = () => {
                     <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black block mb-1">
                       {room.buildingName || `Tòa nhà #${room.buildingId}`}
                     </span>
-                    <h3 className="font-bold text-white group-hover:text-orange-500 text-sm sm:text-base leading-snug transition-colors">
+                    <h3 className="font-bold text-slate-100 group-hover:text-orange-500 text-sm sm:text-base leading-snug transition-colors">
                       Phòng {room.roomNumber}
                     </h3>
                     {room.area > 0 && (
@@ -201,6 +205,14 @@ const HomePage = () => {
           </div>
         )}
       </section>
+      {showContactModal && (
+        <ContactModal
+          phone={rooms.find((r) => r.ownerPhone)?.ownerPhone || '0988.123.456'}
+          title="Liên hệ chủ trọ & Ban quản lý"
+          subtitle="Hỗ trợ tư vấn thuê phòng, thủ tục hợp đồng và xem phòng trực tiếp"
+          onClose={() => setShowContactModal(false)}
+        />
+      )}
     </div>
   );
 };

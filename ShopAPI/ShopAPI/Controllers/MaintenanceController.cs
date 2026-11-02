@@ -13,11 +13,16 @@ namespace ShopAPI.Controllers
     {
         private readonly IMaintenanceRequestService _requestService;
         private readonly IUserService _userService;
+        private readonly IStorageService _storageService;
 
-        public MaintenanceController(IMaintenanceRequestService requestService, IUserService userService)
+        public MaintenanceController(
+            IMaintenanceRequestService requestService,
+            IUserService userService,
+            IStorageService storageService)
         {
             _requestService = requestService;
             _userService = userService;
+            _storageService = storageService;
         }
 
         private int GetUserId()
@@ -42,7 +47,7 @@ namespace ShopAPI.Controllers
 
         [Authorize(Roles = "Tenant")]
         [HttpPost("upload")]
-        public IActionResult CreateWithImage([FromForm] CreateMaintenanceRequestWithImageDto dto)
+        public async Task<IActionResult> CreateWithImage([FromForm] CreateMaintenanceRequestWithImageDto dto)
         {
             string? imageUrl = null;
 
@@ -57,13 +62,14 @@ namespace ShopAPI.Controllers
                 if (dto.Image.Length > 5 * 1024 * 1024)
                     return BadRequest(new { message = "Ảnh không được vượt quá 5MB." });
 
-                var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "maintenance");
-                Directory.CreateDirectory(folderPath);
-
-                var fileName = Guid.NewGuid() + ext;
-                using var stream = new FileStream(Path.Combine(folderPath, fileName), FileMode.Create);
-                dto.Image.CopyTo(stream);
-                imageUrl = "/images/maintenance/" + fileName;
+                try
+                {
+                    imageUrl = await _storageService.UploadFileAsync(dto.Image, "maintenance");
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, new { message = ex.Message });
+                }
             }
 
             var request = _requestService.Create(GetUserId(), new CreateMaintenanceRequestDto

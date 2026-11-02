@@ -1,4 +1,4 @@
-﻿using ShopAPI.Data;
+using ShopAPI.Data;
 using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
@@ -14,6 +14,7 @@ namespace ShopAPI.Services
         private readonly IRoomRepository _roomRepository;
         private readonly IVietQrService _vietQrService;
         private readonly IActivityLogService _activityLogService;
+        private readonly INotificationService _notificationService;
         private readonly AppDbContext _context;
 
         public PaymentService(
@@ -23,6 +24,7 @@ namespace ShopAPI.Services
             IRoomRepository roomRepository,
             IVietQrService vietQrService,
             IActivityLogService activityLogService,
+            INotificationService notificationService,
             AppDbContext context)
         {
             _paymentRepository = paymentRepository;
@@ -31,6 +33,7 @@ namespace ShopAPI.Services
             _roomRepository = roomRepository;
             _vietQrService = vietQrService;
             _activityLogService = activityLogService;
+            _notificationService = notificationService;
             _context = context;
         }
 
@@ -188,6 +191,130 @@ namespace ShopAPI.Services
             _context.SaveChanges();
             _activityLogService.Log(actorUserId, "RejectTransfer", "Payment", payment.Id, $"InvoiceId={payment.InvoiceId}, Ref={payment.TransactionRef}");
             return true;
+        }
+
+        public (bool Success, string Message, int? InvoiceId) ProcessSePayWebhook(SePayWebhookDto dto)
+        {
+            if (dto.TransferType != null && !dto.TransferType.Equals("in", StringComparison.OrdinalIgnoreCase))
+            {
+                return (false, "Giao dịch không phải là tiền vào (transferType != in).", null);
+            }
+
+            var text = $"{dto.Content} {dto.Code} {dto.Description}";
+            var match = System.Text.RegularExpressions.Regex.Match(text, @"(?i)(?:HD|HOADON|TROHUB)\s*(\d+)");
+            if (!match.Success)
+            {
+                match = System.Text.RegularExpressions.Regex.Match(text, @"\b(\d+)\b");
+            }
+
+            if (!match.Success || !int.TryParse(match.Groups[1].Value, out var invoiceId))
+            {
+                return (false, $"Không thể trích xuất mã hóa đơn từ nội dung chuyển khoản: '{dto.Content}'", null);
+            }
+
+            var invoice = _invoiceRepository.GetById(invoiceId);
+            if (invoice == null)
+            {
+                return (false, $"Không tìm thấy hóa đơn #{invoiceId}.", invoiceId);
+            }
+
+            if (invoice.Status == InvoiceStatus.DaThanhToan)
+            {
+                return (true, $"Hóa đơn #{invoiceId} đã được thanh toán trước đó.", invoiceId);
+            }
+
+            if (dto.TransferAmount < invoice.TotalAmount)
+            {
+                return (false, $"Số tiền chuyển ({dto.TransferAmount:N0} đ) nhỏ hơn tổng tiền hóa đơn #{invoiceId} ({invoice.TotalAmount:N0} đ).", invoiceId);
+            }
+
+            using var transaction = _context.Database.BeginTransaction();
+            try
+            {
+                var existingPending = _context.Payments.FirstOrDefault(p => p.InvoiceId == invoice.Id && p.Status == "ChoXacNhan");
+                if (existingPending != null)
+                {
+                    existingPending.Status = "DaXacNhan";
+                    existingPending.TransactionRef = !string.IsNullOrWhiteSpace(dto.ReferenceCode) ? dto.ReferenceCode : $"SEPAY_{dto.Id}";
+                    existingPending.PaymentDate = DateTime.UtcNow;
+                }
+                else
+                {
+                    var payment = new Payment
+                    {
+                        InvoiceId = invoice.Id,
+                        Amount = dto.TransferAmount,
+                        Method = "QR",
+                        Status = "DaXacNhan",
+                        TransactionRef = !string.IsNullOrWhiteSpace(dto.ReferenceCode) ? dto.ReferenceCode : $"SEPAY_{dto.Id}",
+                        PaymentDate = DateTime.UtcNow
+                    };
+                    _context.Payments.Add(payment);
+                }
+
+                invoice.Status = InvoiceStatus.DaThanhToan;
+                _invoiceRepository.Update(invoice);
+                ActivateDepositContract(invoice);
+
+                _activityLogService.Log(1, "SePayWebhook", "Payment", invoice.Id, $"Auto-confirmed invoice #{invoice.Id} via SePay. Gateway={dto.Gateway}, Ref={dto.ReferenceCode}, Amount={dto.TransferAmount}");
+
+                if (invoice.Contract?.Tenant?.UserId != null)
+                {
+                    _notificationService.Create(new CreateNotificationDto
+                    {
+                        UserId = invoice.Contract.Tenant.UserId,
+                        Title = "Thanh toán thành công!",
+                        Content = $"Hóa đơn #{invoice.Id} kỳ {invoice.Month}/{invoice.Year} ({invoice.TotalAmount:N0} đ) đã được tự động xác nhận qua ngân hàng.",
+                        Type = "HoaDon",
+                        RelatedInvoiceId = invoice.Id
+                    }, 1);
+                }
+
+                _notificationService.NotifyRole(
+                    "Admin",
+                    "Nhận thanh toán tự động",
+                    $"Hệ thống đã nhận {dto.TransferAmount:N0} đ từ {dto.Gateway} cho hóa đơn #{invoice.Id}.",
+                    "HoaDon",
+                    invoice.Id
+                );
+
+                transaction.Commit();
+                return (true, $"Tự động xác nhận hóa đơn #{invoiceId} thành công.", invoiceId);
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        public (bool Success, string Message) SimulateTransfer(int invoiceId)
+        {
+            var invoice = _invoiceRepository.GetById(invoiceId);
+            if (invoice == null)
+            {
+                return (false, $"Không tìm thấy hóa đơn #{invoiceId}.");
+            }
+
+            if (invoice.Status == InvoiceStatus.DaThanhToan)
+            {
+                return (true, $"Hóa đơn #{invoiceId} đã được thanh toán trước đó.");
+            }
+
+            var mockSePayDto = new SePayWebhookDto
+            {
+                Id = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                Gateway = "MBBank (Simulated)",
+                TransactionDate = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
+                AccountNumber = "0123456789",
+                Content = $"HD{invoice.Id} TROHUB SIMULATED TRANSFER",
+                TransferType = "in",
+                TransferAmount = invoice.TotalAmount,
+                ReferenceCode = $"SIM_{Guid.NewGuid().ToString("N")[..8].ToUpper()}"
+            };
+
+            var (success, message, _) = ProcessSePayWebhook(mockSePayDto);
+            return (success, message);
         }
 
         private void ActivateDepositContract(Invoice invoice)

@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } f
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { User, LogOut, ShieldCheck, Home as HomeIcon, DoorOpen, Menu, X } from 'lucide-react';
 import NotificationDropdown from './components/Common/NotificationDropdown';
+import { ThemeProvider } from './context/ThemeContext';
+import ThemeToggle from './components/Common/ThemeToggle';
 
 // Context Providers
 import { AuthProvider } from './context/AuthContext';
@@ -91,8 +93,8 @@ const Header = () => {
   useEffect(() => setMobileOpen(false), [location.pathname]);
 
   return (
-    <header className="bg-slate-900 text-white sticky top-0 z-50 shadow-md">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center max-w-7xl">
+    <header className="bg-slate-900 text-slate-100 sticky top-0 z-50 shadow-md h-[72px] flex items-center border-b border-slate-800">
+      <div className="container mx-auto px-4 flex justify-between items-center max-w-7xl w-full">
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2 text-2xl font-black tracking-wider text-orange-500 hover:text-orange-400 transition-colors">
           <span className="bg-orange-500 text-white px-2.5 py-1 rounded-lg text-lg font-bold shadow-lg shadow-orange-500/35 mr-1">T</span>
@@ -110,7 +112,8 @@ const Header = () => {
         </nav>
 
         {/* User Actions */}
-        <div className="flex items-center space-x-2 sm:space-x-5">
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <ThemeToggle />
           <button
             type="button"
             onClick={() => setMobileOpen((open) => !open)}
@@ -218,10 +221,11 @@ const Footer = () => {
 
 function App() {
   return (
-    <AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
       <NotificationCountProvider>
       <Router>
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
+        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
           <Header />
           <main className="flex-grow">
             <Suspense fallback={<RouteLoadingFallback />}>
@@ -379,6 +383,7 @@ function App() {
       </Router>
       </NotificationCountProvider>
     </AuthProvider>
+    </ThemeProvider>
   );
 }
 

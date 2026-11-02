@@ -38,6 +38,29 @@ namespace ShopAPI.Controllers
             return Ok(contract);
         }
 
+        public class SignContractDto
+        {
+            public string SignatureBase64 { get; set; } = string.Empty;
+        }
+
+        [Authorize(Roles = "Tenant")]
+        [HttpPost("{id}/sign")]
+        public IActionResult SignContract(int id, [FromBody] SignContractDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.SignatureBase64))
+            {
+                return BadRequest(new { message = "Chữ ký không được để trống." });
+            }
+
+            var contract = _contractService.SignContract(id, dto.SignatureBase64, GetUserId());
+            if (contract == null)
+            {
+                return BadRequest(new { message = "Không thể ký hợp đồng này hoặc bạn không có quyền ký." });
+            }
+
+            return Ok(contract);
+        }
+
         [Authorize(Roles = "Tenant")]
         [HttpGet("my")]
         public IActionResult GetMy()

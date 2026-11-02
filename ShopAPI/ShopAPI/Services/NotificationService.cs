@@ -112,8 +112,8 @@ namespace ShopAPI.Services
                 var notification = new Notification
                 {
                     UserId = userId.Value,
-                    Title = "Nháº¯c nhá»Ÿ thanh toĂ¡n hĂ³a Ä‘Æ¡n quĂ¡ háº¡n",
-                    Content = $"HĂ³a Ä‘Æ¡n #{invoice.Id} (thĂ¡ng {invoice.Month}/{invoice.Year}) Ä‘Ă£ quĂ¡ háº¡n thanh toĂ¡n {invoice.TotalAmount:N0}Ä‘. Vui lĂ²ng thanh toĂ¡n sá»›m.",
+                    Title = "Nhắc nhở thanh toán hóa đơn quá hạn",
+                    Content = $"Hóa đơn #{invoice.Id} (tháng {invoice.Month}/{invoice.Year}) đã quá hạn thanh toán {invoice.TotalAmount:N0}đ. Vui lòng thanh toán sớm.",
                     Type = "NhacNo",
                     RelatedInvoiceId = invoice.Id,
                     CreatedByUserId = actorUserId,
@@ -129,7 +129,7 @@ namespace ShopAPI.Services
 
             if (count > 0)
             {
-                _activityLogService.Log(actorUserId, "RemindOverdue", "Invoice", null, $"ÄĂ£ nháº¯c ná»£ {count} hĂ³a Ä‘Æ¡n quĂ¡ háº¡n");
+                _activityLogService.Log(actorUserId, "RemindOverdue", "Invoice", null, $"Đã nhắc nợ {count} hóa đơn quá hạn");
             }
 
             return count;
@@ -165,12 +165,12 @@ namespace ShopAPI.Services
 
                 var daysLeft = (invoice.DueDate.Date - today).Days;
                 var tenantName = invoice.Contract?.Tenant?.FullName;
-                var content = $"HĂ³a Ä‘Æ¡n #{invoice.Id} (thĂ¡ng {invoice.Month}/{invoice.Year}), sá»‘ tiá»n {invoice.TotalAmount:N0}Ä‘, sáº½ Ä‘áº¿n háº¡n thanh toĂ¡n trong {daysLeft} ngĂ y ({invoice.DueDate:dd/MM/yyyy}).";
+                var content = $"Hóa đơn #{invoice.Id} (tháng {invoice.Month}/{invoice.Year}), số tiền {invoice.TotalAmount:N0}đ, sẽ đến hạn thanh toán trong {daysLeft} ngày ({invoice.DueDate:dd/MM/yyyy}).";
 
                 _notificationRepository.Add(new Notification
                 {
                     UserId = tenantUserId.Value,
-                    Title = "Sáº¯p Ä‘áº¿n háº¡n thanh toĂ¡n hĂ³a Ä‘Æ¡n",
+                    Title = "Sắp đến hạn thanh toán hóa đơn",
                     Content = content,
                     Type = "NhacNo",
                     RelatedInvoiceId = invoice.Id,
@@ -179,15 +179,15 @@ namespace ShopAPI.Services
                     CreatedAt = DateTime.UtcNow
                 });
 
-                NotifyRole("Admin", "HĂ³a Ä‘Æ¡n sáº¯p Ä‘áº¿n háº¡n", $"KhĂ¡ch thuĂª {tenantName} - {content}", "NhacNo", invoice.Id);
-                NotifyRole("Staff", "HĂ³a Ä‘Æ¡n sáº¯p Ä‘áº¿n háº¡n", $"KhĂ¡ch thuĂª {tenantName} - {content}", "NhacNo", invoice.Id);
+                NotifyRole("Admin", "Hóa đơn sắp đến hạn", $"Khách thuê {tenantName} - {content}", "NhacNo", invoice.Id);
+                NotifyRole("Staff", "Hóa đơn sắp đến hạn", $"Khách thuê {tenantName} - {content}", "NhacNo", invoice.Id);
 
                 count++;
             }
 
             if (count > 0)
             {
-                _activityLogService.Log(actorUserId, "RemindUpcomingInvoices", "Invoice", null, $"ÄĂ£ nháº¯c {count} hĂ³a Ä‘Æ¡n sáº¯p Ä‘áº¿n háº¡n");
+                _activityLogService.Log(actorUserId, "RemindUpcomingInvoices", "Invoice", null, $"Đã nhắc {count} hóa đơn sắp đến hạn");
             }
 
             return count;
@@ -223,12 +223,12 @@ namespace ShopAPI.Services
 
                 var daysLeft = (contract.EndDate.Date - today).Days;
                 var tenantName = contract.Tenant?.FullName;
-                var content = $"Há»£p Ä‘á»“ng phĂ²ng {contract.Room?.RoomNumber} sáº½ háº¿t háº¡n trong {daysLeft} ngĂ y ({contract.EndDate:dd/MM/yyyy}). Vui lĂ²ng liĂªn há»‡ gia háº¡n náº¿u cĂ³ nhu cáº§u tiáº¿p tá»¥c thuĂª.";
+                var content = $"Hợp đồng phòng {contract.Room?.RoomNumber} sẽ hết hạn trong {daysLeft} ngày ({contract.EndDate:dd/MM/yyyy}). Vui lòng liên hệ gia hạn nếu có nhu cầu tiếp tục thuê.";
 
                 _notificationRepository.Add(new Notification
                 {
                     UserId = tenantUserId.Value,
-                    Title = "Há»£p Ä‘á»“ng sáº¯p háº¿t háº¡n",
+                    Title = "Hợp đồng sắp hết hạn",
                     Content = content,
                     Type = "HopDong",
                     RelatedContractId = contract.Id,
@@ -237,15 +237,15 @@ namespace ShopAPI.Services
                     CreatedAt = DateTime.UtcNow
                 });
 
-                NotifyRole("Admin", "Há»£p Ä‘á»“ng sáº¯p háº¿t háº¡n", $"KhĂ¡ch thuĂª {tenantName} - {content}", "HopDong", null, contract.Id);
-                NotifyRole("Staff", "Há»£p Ä‘á»“ng sáº¯p háº¿t háº¡n", $"KhĂ¡ch thuĂª {tenantName} - {content}", "HopDong", null, contract.Id);
+                NotifyRole("Admin", "Hợp đồng sắp hết hạn", $"Khách thuê {tenantName} - {content}", "HopDong", null, contract.Id);
+                NotifyRole("Staff", "Hợp đồng sắp hết hạn", $"Khách thuê {tenantName} - {content}", "HopDong", null, contract.Id);
 
                 count++;
             }
 
             if (count > 0)
             {
-                _activityLogService.Log(actorUserId, "RemindUpcomingContracts", "Contract", null, $"ÄĂ£ nháº¯c {count} há»£p Ä‘á»“ng sáº¯p háº¿t háº¡n");
+                _activityLogService.Log(actorUserId, "RemindUpcomingContracts", "Contract", null, $"Đã nhắc {count} hợp đồng sắp hết hạn");
             }
 
             return count;

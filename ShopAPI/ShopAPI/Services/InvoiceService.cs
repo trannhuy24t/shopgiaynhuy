@@ -74,7 +74,7 @@ namespace ShopAPI.Services
 
             if (contract == null || contract.Status != ContractStatus.DangHieuLuc)
             {
-                return (null, "Há»£p Ä‘á»“ng khĂ´ng tá»“n táº¡i hoáº·c chÆ°a cĂ³ hiá»‡u lá»±c.");
+                return (null, "Hợp đồng không tồn tại hoặc không ở trạng thái hiệu lực.");
             }
 
             var existingForPeriod = _invoiceRepository.GetAll().Any(invoice =>
@@ -86,12 +86,12 @@ namespace ShopAPI.Services
 
             if (dto.ElectricNewReading < dto.ElectricOldReading)
             {
-                return (null, "Sá»‘ Ä‘iá»‡n má»›i pháº£i lá»›n hÆ¡n hoáº·c báº±ng sá»‘ Ä‘iá»‡n cÅ©.");
+                return (null, "Số điện mới phải lớn hơn hoặc bằng số điện cũ.");
             }
 
             if (dto.WaterNewReading < dto.WaterOldReading)
             {
-                return (null, "Sá»‘ nÆ°á»›c má»›i pháº£i lá»›n hÆ¡n hoáº·c báº±ng sá»‘ nÆ°á»›c cÅ©.");
+                return (null, "Số nước mới phải lớn hơn hoặc bằng số nước cũ.");
             }
 
             var electricUsage = dto.ElectricNewReading - dto.ElectricOldReading;
@@ -118,31 +118,39 @@ namespace ShopAPI.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            invoice.Items.Add(new InvoiceItem { ItemName = "Tiá»n phĂ²ng", Amount = contract.MonthlyRent });
-            invoice.Items.Add(new InvoiceItem { ItemName = "Tiá»n Ä‘iá»‡n", Amount = electricUsage * electricRate });
-            invoice.Items.Add(new InvoiceItem { ItemName = "Tiá»n nÆ°á»›c", Amount = waterUsage * waterRate });
+            invoice.Items.Add(new InvoiceItem { ItemName = "Tiền phòng", Amount = contract.MonthlyRent });
+            invoice.Items.Add(new InvoiceItem { ItemName = "Tiền điện", Amount = electricUsage * electricRate });
+            invoice.Items.Add(new InvoiceItem { ItemName = "Tiền nước", Amount = waterUsage * waterRate });
 
-            // Tiá»n dá»‹ch vá»¥ = Ä‘Æ¡n giĂ¡ dá»‹ch vá»¥ (theo phĂ²ng, hoáº·c Staff tá»± nháº­p) x sá»‘ ngÆ°á»i Ä‘ang á»Ÿ
+            // Tiền dịch vụ = đơn giá dịch vụ (theo phòng, hoặc Staff tự nhập) x số người đang ở
             var occupantCount = Math.Max(1, contract.NumberOfOccupants);
             var serviceFeeRate = dto.ServiceFee ?? contract.Room?.ServiceFee ?? 0;
             var serviceFeeTotal = serviceFeeRate * occupantCount;
 
             if (serviceFeeTotal > 0)
             {
-                invoice.Items.Add(new InvoiceItem { ItemName = $"PhĂ­ dá»‹ch vá»¥ ({serviceFeeRate:N0}Ä‘ x {occupantCount} ngÆ°á»i)", Amount = serviceFeeTotal });
+                invoice.Items.Add(new InvoiceItem { ItemName = $"Phí dịch vụ ({serviceFeeRate:N0}đ x {occupantCount} người)", Amount = serviceFeeTotal });
             }
 
             invoice.TotalAmount = invoice.Items.Sum(i => i.Amount);
 
             _invoiceRepository.Add(invoice);
 
-            _activityLogService.Log(staffUserId, "CreateInvoice", "Invoice", invoice.Id, $"Há»£p Ä‘á»“ng #{contract.Id}, thĂ¡ng {dto.Month}/{dto.Year}");
+            _activityLogService.Log(staffUserId, "CreateInvoice", "Invoice", invoice.Id, $"Hợp đồng #{contract.Id}, tháng {dto.Month}/{dto.Year}");
 
             return (GetById(invoice.Id), null);
         }
 
         public Invoice CreateDepositInvoice(int contractId, DateTime startDate, decimal depositAmount)
         {
+            var contract = _contractRepository.GetById(contractId);
+            var monthlyRent = contract?.MonthlyRent ?? 0;
+            var occupants = contract?.NumberOfOccupants > 0 ? contract.NumberOfOccupants : 1;
+            var serviceFeePerPerson = contract?.Room?.ServiceFee ?? 0;
+            var totalServiceFee = serviceFeePerPerson * occupants;
+
+            var totalAmount = depositAmount + monthlyRent + totalServiceFee;
+
             var invoice = new Invoice
             {
                 ContractId = contractId,
@@ -150,14 +158,30 @@ namespace ShopAPI.Services
                 Year = startDate.Year,
                 ElectricUsage = 0,
                 WaterUsage = 0,
-                TotalAmount = depositAmount,
+                TotalAmount = totalAmount,
                 Type = InvoiceType.Coc,
                 Status = InvoiceStatus.ChuaThanhToan,
                 DueDate = DateTime.UtcNow.AddDays(3),
                 CreatedAt = DateTime.UtcNow
             };
 
-            invoice.Items.Add(new InvoiceItem { ItemName = "Tiá»n cá»c", Amount = depositAmount });
+            if (depositAmount > 0)
+            {
+                invoice.Items.Add(new InvoiceItem { ItemName = "Tiền đặt cọc", Amount = depositAmount });
+            }
+            if (monthlyRent > 0)
+            {
+                invoice.Items.Add(new InvoiceItem { ItemName = "Tiền phòng (tháng đầu)", Amount = monthlyRent });
+            }
+            if (totalServiceFee > 0)
+            {
+                invoice.Items.Add(new InvoiceItem { ItemName = $"Phí dịch vụ ({occupants} người)", Amount = totalServiceFee });
+            }
+
+            if (invoice.Items.Count == 0)
+            {
+                invoice.Items.Add(new InvoiceItem { ItemName = "Tiền cọc & nhận phòng", Amount = totalAmount });
+            }
 
             _invoiceRepository.Add(invoice);
 

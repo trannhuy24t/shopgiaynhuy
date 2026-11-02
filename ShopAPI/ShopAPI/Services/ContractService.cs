@@ -1,7 +1,9 @@
-﻿using ShopAPI.Data;
+using ShopAPI.Data;
 using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace ShopAPI.Services
 {
@@ -13,6 +15,7 @@ namespace ShopAPI.Services
         private readonly IInvoiceService _invoiceService;
         private readonly INotificationService _notificationService;
         private readonly IActivityLogService _activityLogService;
+        private readonly IStorageService _storageService;
         private readonly AppDbContext _context;
 
         public ContractService(
@@ -22,6 +25,7 @@ namespace ShopAPI.Services
             IInvoiceService invoiceService,
             INotificationService notificationService,
             IActivityLogService activityLogService,
+            IStorageService storageService,
             AppDbContext context)
         {
             _contractRepository = contractRepository;
@@ -30,7 +34,16 @@ namespace ShopAPI.Services
             _invoiceService = invoiceService;
             _notificationService = notificationService;
             _activityLogService = activityLogService;
+            _storageService = storageService;
             _context = context;
+        }
+
+        private static string ComputeSignatureHash(string payload)
+        {
+            using var sha = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(payload);
+            var hashBytes = sha.ComputeHash(bytes);
+            return Convert.ToHexString(hashBytes);
         }
 
         public List<ContractDto> GetAll(string? status)
@@ -82,6 +95,13 @@ namespace ShopAPI.Services
 
             var tenant = _tenantService.UpsertForUser(userId, dto.TenantProfile);
 
+            var totalOccupants = dto.NumberOfOccupants > 0 ? dto.NumberOfOccupants : 1;
+            var validOccupants = dto.Occupants?.Where(o => !string.IsNullOrWhiteSpace(o.FullName)).ToList();
+            if (validOccupants != null && validOccupants.Count > 0 && validOccupants.Count + 1 > totalOccupants)
+            {
+                totalOccupants = validOccupants.Count + 1;
+            }
+
             var contract = new Contract
             {
                 RoomId = dto.RoomId,
@@ -90,20 +110,100 @@ namespace ShopAPI.Services
                 EndDate = dto.EndDate,
                 MonthlyRent = room.Price,
                 Deposit = 0,
-                NumberOfOccupants = dto.NumberOfOccupants > 0 ? dto.NumberOfOccupants : 1,
+                NumberOfOccupants = totalOccupants,
                 Status = ContractStatus.ChoDuyet,
                 CreatedAt = DateTime.UtcNow
             };
 
+            // Lưu chữ ký số của khách thuê nếu có
+            if (!string.IsNullOrWhiteSpace(dto.TenantSignature))
+            {
+                contract.SignedAt = DateTime.UtcNow;
+                var rawPayload = $"TENANT:{tenant.FullName}|CCCD:{tenant.IdCardNumber}|ROOM:{room.RoomNumber}|TIME:{contract.SignedAt:O}";
+                contract.SignatureHash = ComputeSignatureHash(rawPayload);
+
+                try
+                {
+                    if (dto.TenantSignature.StartsWith("data:image/") || dto.TenantSignature.Length > 200)
+                    {
+                        var task = _storageService.UploadBase64ImageAsync(dto.TenantSignature, "signatures", $"sig_r{dto.RoomId}");
+                        contract.TenantSignatureUrl = task.GetAwaiter().GetResult();
+                    }
+                    else
+                    {
+                        contract.TenantSignatureUrl = dto.TenantSignature;
+                    }
+                }
+                catch
+                {
+                    // Fallback nếu MinIO chưa khả dụng
+                    contract.TenantSignatureUrl = dto.TenantSignature;
+                }
+            }
+
             _contractRepository.Add(contract);
+
+            if (validOccupants != null && validOccupants.Count > 0)
+            {
+                foreach (var occ in validOccupants)
+                {
+                    _contractRepository.AddOccupant(new Occupant
+                    {
+                        ContractId = contract.Id,
+                        FullName = occ.FullName.Trim(),
+                        Relationship = string.IsNullOrWhiteSpace(occ.Relationship) ? "Người ở cùng" : occ.Relationship.Trim(),
+                        IdCardNumber = string.IsNullOrWhiteSpace(occ.IdCardNumber) ? null : occ.IdCardNumber.Trim(),
+                        Phone = string.IsNullOrWhiteSpace(occ.Phone) ? null : occ.Phone.Trim(),
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
 
             _notificationService.NotifyRole(
                 "Admin",
-                "YĂªu cáº§u thuĂª phĂ²ng má»›i",
-                $"KhĂ¡ch thuĂª {tenant.FullName} vá»«a Ä‘Äƒng kĂ½ thuĂª phĂ²ng {room.RoomNumber}. VĂ o má»¥c Há»£p Ä‘á»“ng Ä‘á»ƒ duyá»‡t.",
+                "Yêu cầu thuê phòng mới",
+                $"Khách thuê {tenant.FullName} vừa đăng ký thuê phòng {room.RoomNumber}. Vào mục Hợp đồng để duyệt.",
                 "HopDong");
 
-            _activityLogService.Log(userId, "RequestContract", "Contract", contract.Id, $"ÄÄƒng kĂ½ thuĂª phĂ²ng {room.RoomNumber}");
+            _activityLogService.Log(userId, "RequestContract", "Contract", contract.Id, $"Đăng ký thuê phòng {room.RoomNumber}");
+
+            return GetById(contract.Id);
+        }
+
+        public ContractDto? SignContract(int contractId, string signatureBase64, int userId)
+        {
+            var contract = _contractRepository.GetById(contractId);
+            if (contract == null || contract.Tenant?.UserId != userId)
+            {
+                return null;
+            }
+
+            contract.SignedAt = DateTime.UtcNow;
+            var tenantName = contract.Tenant?.FullName ?? "Tenant";
+            var idCard = contract.Tenant?.IdCardNumber ?? "";
+            var roomNumber = contract.Room?.RoomNumber ?? "";
+            var rawPayload = $"TENANT:{tenantName}|CCCD:{idCard}|ROOM:{roomNumber}|TIME:{contract.SignedAt:O}";
+            contract.SignatureHash = ComputeSignatureHash(rawPayload);
+
+            try
+            {
+                if (signatureBase64.StartsWith("data:image/") || signatureBase64.Length > 200)
+                {
+                    var task = _storageService.UploadBase64ImageAsync(signatureBase64, "signatures", $"sig_c{contract.Id}");
+                    contract.TenantSignatureUrl = task.GetAwaiter().GetResult();
+                }
+                else
+                {
+                    contract.TenantSignatureUrl = signatureBase64;
+                }
+            }
+            catch
+            {
+                contract.TenantSignatureUrl = signatureBase64;
+            }
+
+            _contractRepository.Update(contract);
+            _activityLogService.Log(userId, "SignContract", "Contract", contract.Id, $"Khách thuê ký số hợp đồng phòng {roomNumber}");
 
             return GetById(contract.Id);
         }
@@ -146,6 +246,7 @@ namespace ShopAPI.Services
                 }
 
                 contract.Status = ContractStatus.ChoCoc;
+                contract.LandlordSignedAt = DateTime.UtcNow;
 
                 _contractRepository.Update(contract);
 
@@ -237,7 +338,7 @@ namespace ShopAPI.Services
 
             if (contract == null || contract.Status != ContractStatus.DangHieuLuc)
             {
-                return (false, "Há»£p Ä‘á»“ng khĂ´ng tá»“n táº¡i hoáº·c chÆ°a cĂ³ hiá»‡u lá»±c.");
+                return (false, "Hợp đồng không tồn tại hoặc chưa có hiệu lực.");
             }
 
             contract.ElectricUnitPrice = dto.ElectricUnitPrice;
@@ -250,8 +351,8 @@ namespace ShopAPI.Services
                 _notificationService.Create(new CreateNotificationDto
                 {
                     UserId = contract.Tenant.UserId,
-                    Title = "Cáº­p nháº­t Ä‘Æ¡n giĂ¡ Ä‘iá»‡n/nÆ°á»›c",
-                    Content = $"ÄÆ¡n giĂ¡ Ä‘iá»‡n/nÆ°á»›c Ă¡p dá»¥ng cho phĂ²ng {contract.Room?.RoomNumber} tá»« bĂ¢y giá»: {dto.ElectricUnitPrice:N0}Ä‘/kWh, {dto.WaterUnitPrice:N0}Ä‘/mÂ³.",
+                    Title = "Cập nhật đơn giá điện/nước",
+                    Content = $"Đơn giá điện/nước áp dụng cho phòng {contract.Room?.RoomNumber} từ bây giờ: {dto.ElectricUnitPrice:N0}đ/kWh, {dto.WaterUnitPrice:N0}đ/m³.",
                     Type = "HopDong"
                 }, actorUserId);
             }
@@ -274,13 +375,13 @@ namespace ShopAPI.Services
 
             if (contract == null || contract.Status != ContractStatus.DangHieuLuc)
             {
-                return (null, "Há»£p Ä‘á»“ng khĂ´ng tá»“n táº¡i hoáº·c chÆ°a cĂ³ hiá»‡u lá»±c.");
+                return (null, "Hợp đồng không tồn tại hoặc chưa có hiệu lực.");
             }
 
-            // NumberOfOccupants tĂ­nh cáº£ ngÆ°á»i thuĂª chĂ­nh, nĂªn chá»‰ khai bĂ¡o thĂªm Ä‘Æ°á»£c tá»‘i Ä‘a NumberOfOccupants - 1 ngÆ°á»i.
+            // NumberOfOccupants tính cả người thuê chính, nên chỉ khai báo thêm được tối đa NumberOfOccupants - 1 người.
             if (contract.Occupants.Count >= contract.NumberOfOccupants - 1)
             {
-                return (null, "ÄĂ£ khai bĂ¡o Ä‘á»§ sá»‘ ngÆ°á»i á»Ÿ theo há»£p Ä‘á»“ng (NumberOfOccupants). Náº¿u cáº§n thĂªm ngÆ°á»i, hĂ£y sá»­a láº¡i sá»‘ ngÆ°á»i á»Ÿ trong há»£p Ä‘á»“ng trÆ°á»›c.");
+                return (null, "Đã khai báo đủ số người ở theo hợp đồng (NumberOfOccupants). Nếu cần thêm người, hãy sửa lại số người ở trong hợp đồng trước.");
             }
 
             _contractRepository.AddOccupant(new Occupant
@@ -293,7 +394,7 @@ namespace ShopAPI.Services
                 CreatedAt = DateTime.UtcNow
             });
 
-            _activityLogService.Log(actorUserId, "AddOccupant", "Contract", contractId, $"ThĂªm ngÆ°á»i á»Ÿ cĂ¹ng: {dto.FullName} ({dto.Relationship})");
+            _activityLogService.Log(actorUserId, "AddOccupant", "Contract", contractId, $"Thêm người ở cùng: {dto.FullName} ({dto.Relationship})");
 
             var occupants = _contractRepository.GetById(contractId)!.Occupants.Select(MapOccupantToDto).ToList();
 
@@ -320,7 +421,7 @@ namespace ShopAPI.Services
 
             if (occupant == null)
             {
-                return (null, "KhĂ´ng tĂ¬m tháº¥y ngÆ°á»i á»Ÿ cĂ¹ng.");
+                return (null, "Không tìm thấy người ở cùng.");
             }
 
             occupant.FullName = dto.FullName;
@@ -330,7 +431,7 @@ namespace ShopAPI.Services
 
             _contractRepository.UpdateOccupant(occupant);
 
-            _activityLogService.Log(actorUserId, "UpdateOccupant", "Contract", occupant.ContractId, $"Sá»­a ngÆ°á»i á»Ÿ cĂ¹ng #{occupant.Id}: {dto.FullName} ({dto.Relationship})");
+            _activityLogService.Log(actorUserId, "UpdateOccupant", "Contract", occupant.ContractId, $"Sửa người ở cùng #{occupant.Id}: {dto.FullName} ({dto.Relationship})");
 
             return (MapOccupantToDto(occupant), null);
         }
@@ -348,7 +449,7 @@ namespace ShopAPI.Services
 
             _contractRepository.RemoveOccupant(occupant);
 
-            _activityLogService.Log(actorUserId, "RemoveOccupant", "Contract", contractId, $"XĂ³a ngÆ°á»i á»Ÿ cĂ¹ng: {occupant.FullName}");
+            _activityLogService.Log(actorUserId, "RemoveOccupant", "Contract", contractId, $"Xóa người ở cùng: {occupant.FullName}");
 
             return true;
         }
@@ -369,13 +470,31 @@ namespace ShopAPI.Services
 
         private static ContractDto MapToDto(Contract contract)
         {
+            var landlord = contract.Room?.Building?.Owner;
+            var tenant = contract.Tenant;
+
             return new ContractDto
             {
                 Id = contract.Id,
                 RoomId = contract.RoomId,
                 RoomNumber = contract.Room?.RoomNumber,
+                RoomPrice = contract.Room?.Price ?? contract.MonthlyRent,
+                RoomArea = contract.Room?.Area ?? 0,
+                RoomServiceFee = contract.Room?.ServiceFee ?? 0,
+                BuildingName = contract.Room?.Building?.Name,
+                BuildingAddress = contract.Room?.Building?.Address,
+                LandlordName = !string.IsNullOrWhiteSpace(landlord?.FullName) ? landlord.FullName : "Ban Quản lý Tòa nhà TroHub",
+                LandlordPhone = !string.IsNullOrWhiteSpace(landlord?.PhoneNumber) ? landlord.PhoneNumber : "0900.000.000",
+                RoomImageUrl = contract.Room?.ImageUrl,
+                Image = contract.Room?.ImageUrl ?? contract.Room?.Media?.FirstOrDefault(m => m.Type == "Image")?.Url,
+                RoomImages = contract.Room?.Media?.Where(m => m.Type == "Image").OrderBy(m => m.SortOrder).Select(m => m.Url).ToList() ?? new(),
+
                 TenantId = contract.TenantId,
-                TenantName = contract.Tenant?.FullName,
+                TenantName = tenant?.FullName ?? tenant?.User?.FullName,
+                TenantPhone = tenant?.Phone ?? tenant?.User?.PhoneNumber,
+                TenantIdCard = tenant?.IdCardNumber,
+                TenantEmail = tenant?.Email ?? tenant?.User?.Email,
+
                 StartDate = contract.StartDate,
                 EndDate = contract.EndDate,
                 Deposit = contract.Deposit,
@@ -385,7 +504,13 @@ namespace ShopAPI.Services
                 WaterUnitPrice = contract.WaterUnitPrice,
                 Status = contract.Status.ToString(),
                 CreatedAt = contract.CreatedAt,
-                Occupants = contract.Occupants.Select(MapOccupantToDto).ToList()
+                Occupants = contract.Occupants.Select(MapOccupantToDto).ToList(),
+
+                TenantSignatureUrl = contract.TenantSignatureUrl,
+                SignedAt = contract.SignedAt,
+                SignatureHash = contract.SignatureHash,
+                LandlordSignatureUrl = contract.LandlordSignatureUrl,
+                LandlordSignedAt = contract.LandlordSignedAt
             };
         }
     }

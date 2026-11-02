@@ -10,10 +10,12 @@ namespace ShopAPI.Controllers
     public class RoomController : ControllerBase
     {
         private readonly IRoomService _roomService;
+        private readonly IStorageService _storageService;
 
-        public RoomController(IRoomService roomService)
+        public RoomController(IRoomService roomService, IStorageService storageService)
         {
             _roomService = roomService;
+            _storageService = storageService;
         }
 
         // Khách thuê xem phòng trống, không cần đăng nhập
@@ -58,22 +60,57 @@ namespace ShopAPI.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpPost("upload")]
-        public IActionResult CreateWithImage([FromForm] CreateRoomWithImageDto dto)
+        public async Task<IActionResult> CreateWithImage([FromForm] CreateRoomWithImageDto dto)
         {
-            var imageUrl = SaveImage(dto.Image);
+            var allFiles = new List<IFormFile>();
+            if (dto.Files != null && dto.Files.Count > 0)
+            {
+                allFiles.AddRange(dto.Files.Where(f => f.Length > 0));
+            }
+            if (dto.Image != null && dto.Image.Length > 0 && !allFiles.Contains(dto.Image))
+            {
+                allFiles.Insert(0, dto.Image);
+            }
+
+            string? primaryImageUrl = null;
+            var mediaItems = new List<RoomMediaInputDto>();
+
+            foreach (var file in allFiles)
+            {
+                var (mediaItem, error) = await SaveMediaSafeAsync(file);
+                if (error != null)
+                {
+                    return BadRequest(new { message = error });
+                }
+                if (mediaItem != null)
+                {
+                    mediaItems.Add(mediaItem);
+                    if (primaryImageUrl == null && mediaItem.Type == "Image")
+                    {
+                        primaryImageUrl = mediaItem.Url;
+                    }
+                }
+            }
 
             var room = _roomService.Create(new CreateRoomDto
             {
                 BuildingId = dto.BuildingId,
                 RoomNumber = dto.RoomNumber,
+                RoomType = dto.RoomType,
                 Area = dto.Area,
                 Price = dto.Price,
                 ServiceFee = dto.ServiceFee,
+                Amenities = dto.Amenities,
                 Description = dto.Description,
-                ImageUrl = imageUrl
+                ImageUrl = primaryImageUrl
             });
 
-            return Ok(room);
+            if (mediaItems.Count > 0)
+            {
+                _roomService.AddMedia(room.Id, mediaItems);
+            }
+
+            return Ok(_roomService.GetById(room.Id));
         }
 
         [Authorize(Roles = "Admin")]
@@ -93,7 +130,7 @@ namespace ShopAPI.Controllers
         // Sửa phòng kèm đổi ảnh (multipart/form-data). Bỏ trống field Image để giữ ảnh cũ.
         [Authorize(Roles = "Admin")]
         [HttpPut("{id}/upload")]
-        public IActionResult UpdateWithImage(int id, [FromForm] UpdateRoomWithImageDto dto)
+        public async Task<IActionResult> UpdateWithImage(int id, [FromForm] UpdateRoomWithImageDto dto)
         {
             var existing = _roomService.GetById(id);
 
@@ -102,15 +139,23 @@ namespace ShopAPI.Controllers
                 return NotFound(new { message = "Không tìm thấy phòng." });
             }
 
-            var imageUrl = SaveImage(dto.Image) ?? existing.ImageUrl;
+            var (newImageUrl, error) = await SaveImageSafeAsync(dto.Image);
+            if (error != null)
+            {
+                return BadRequest(new { message = error });
+            }
+
+            var imageUrl = newImageUrl ?? existing.ImageUrl;
 
             var result = _roomService.Update(new UpdateRoomDto
             {
                 Id = id,
                 RoomNumber = dto.RoomNumber,
+                RoomType = dto.RoomType,
                 Area = dto.Area,
                 Price = dto.Price,
                 ServiceFee = dto.ServiceFee,
+                Amenities = dto.Amenities,
                 Description = dto.Description,
                 ImageUrl = imageUrl
             });
@@ -118,6 +163,21 @@ namespace ShopAPI.Controllers
             if (!result)
             {
                 return NotFound(new { message = "Không tìm thấy phòng." });
+            }
+
+            if (dto.Files != null && dto.Files.Count > 0)
+            {
+                var mediaItems = new List<RoomMediaInputDto>();
+                foreach (var file in dto.Files.Where(f => f.Length > 0))
+                {
+                    var (mediaItem, mediaError) = await SaveMediaSafeAsync(file);
+                    if (mediaError != null) return BadRequest(new { message = mediaError });
+                    if (mediaItem != null) mediaItems.Add(mediaItem);
+                }
+                if (mediaItems.Count > 0)
+                {
+                    _roomService.AddMedia(id, mediaItems);
+                }
             }
 
             return Ok(_roomService.GetById(id));
@@ -129,7 +189,7 @@ namespace ShopAPI.Controllers
         private static readonly string[] AllowedImageExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
         private static readonly string[] AllowedVideoExtensions = [".mp4", ".webm", ".ogg", ".mov", ".avi", ".mkv", ".m4v"];
 
-        private static (string? Url, string? Error) SaveImageSafe(IFormFile? image)
+        private async Task<(string? Url, string? Error)> SaveImageSafeAsync(IFormFile? image)
         {
             if (image == null || image.Length == 0) return (null, null);
 
@@ -140,21 +200,18 @@ namespace ShopAPI.Controllers
             if (image.Length > MaxImageSize)
                 return (null, "Ảnh không được vượt quá 5MB.");
 
-            var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "rooms");
-            Directory.CreateDirectory(folderPath);
-
-            var fileName = Guid.NewGuid() + ext;
-            using var stream = new FileStream(Path.Combine(folderPath, fileName), FileMode.Create);
-            image.CopyTo(stream);
-
-            return ("/images/rooms/" + fileName, null);
+            try
+            {
+                var url = await _storageService.UploadFileAsync(image, "rooms");
+                return (url, null);
+            }
+            catch (Exception ex)
+            {
+                return (null, ex.Message);
+            }
         }
 
-        private static string? SaveImage(IFormFile? image) => SaveImageSafe(image).Url;
-
-        private static readonly string[] VideoExtensions = [.. AllowedVideoExtensions];
-
-        private static (RoomMediaInputDto? Media, string? Error) SaveMediaSafe(IFormFile file)
+        private async Task<(RoomMediaInputDto? Media, string? Error)> SaveMediaSafeAsync(IFormFile file)
         {
             var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
             var isVideo = AllowedVideoExtensions.Contains(ext);
@@ -167,23 +224,22 @@ namespace ShopAPI.Controllers
             if (file.Length > sizeLimit)
                 return (null, isVideo ? "Video không được vượt quá 50MB." : "Ảnh không được vượt quá 5MB.");
 
-            var subFolder = isVideo ? "videos" : "images";
-            var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", subFolder, "rooms");
-            Directory.CreateDirectory(folderPath);
-
-            var fileName = Guid.NewGuid() + ext;
-            using var stream = new FileStream(Path.Combine(folderPath, fileName), FileMode.Create);
-            file.CopyTo(stream);
-
-            return (new RoomMediaInputDto { Url = $"/{subFolder}/rooms/{fileName}", Type = isVideo ? "Video" : "Image" }, null);
+            try
+            {
+                var subFolder = isVideo ? "videos/rooms" : "images/rooms";
+                var url = await _storageService.UploadFileAsync(file, subFolder);
+                return (new RoomMediaInputDto { Url = url, Type = isVideo ? "Video" : "Image" }, null);
+            }
+            catch (Exception ex)
+            {
+                return (null, ex.Message);
+            }
         }
-
-        private static RoomMediaInputDto SaveMedia(IFormFile file) => SaveMediaSafe(file).Media!;
 
         // Thêm nhiều ảnh/video vào thư viện của phòng (multipart/form-data, field "files" lặp lại nhiều lần)
         [Authorize(Roles = "Admin")]
         [HttpPost("{id}/media")]
-        public IActionResult AddMedia(int id, [FromForm] List<IFormFile> files)
+        public async Task<IActionResult> AddMedia(int id, [FromForm] List<IFormFile> files)
         {
             if (files == null || files.Count == 0)
             {
@@ -193,7 +249,7 @@ namespace ShopAPI.Controllers
             var items = new List<RoomMediaInputDto>();
             foreach (var file in files.Where(f => f.Length > 0))
             {
-                var (mediaItem, error) = SaveMediaSafe(file);
+                var (mediaItem, error) = await SaveMediaSafeAsync(file);
                 if (error != null) return BadRequest(new { message = error });
                 items.Add(mediaItem!);
             }
@@ -210,7 +266,7 @@ namespace ShopAPI.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpDelete("{id}/media/{mediaId}")]
-        public IActionResult RemoveMedia(int id, int mediaId)
+        public async Task<IActionResult> RemoveMedia(int id, int mediaId)
         {
             var url = _roomService.RemoveMedia(id, mediaId);
 
@@ -219,12 +275,7 @@ namespace ShopAPI.Controllers
                 return NotFound(new { message = "Không tìm thấy ảnh/video." });
             }
 
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-
-            if (System.IO.File.Exists(filePath))
-            {
-                System.IO.File.Delete(filePath);
-            }
+            await _storageService.DeleteFileAsync(url);
 
             return Ok(new { message = "Xóa thành công." });
         }
