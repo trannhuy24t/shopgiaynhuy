@@ -31,12 +31,27 @@ namespace ShopAPI.Services
                 rooms = rooms.Where(r => r.Status == roomStatus);
             }
 
+            rooms = rooms.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id);
+
             return rooms.Select(MapToDto).ToList();
         }
 
         public List<RoomDto> GetAvailable(int? buildingId)
         {
-            return GetAll(buildingId, nameof(RoomStatus.Trong));
+            var rooms = _roomRepository.GetAll().AsQueryable();
+
+            if (buildingId.HasValue)
+            {
+                rooms = rooms.Where(r => r.BuildingId == buildingId.Value);
+            }
+
+            // Chỉ khi bị thuê (DaThue) rồi mới không được hiện ở đây
+            rooms = rooms.Where(r => r.Status != RoomStatus.DaThue);
+
+            // Phòng nào mới thêm sẽ được ưu tiên đề xuất lên đầu (mới nhất)
+            rooms = rooms.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id);
+
+            return rooms.Select(MapToDto).ToList();
         }
 
         public RoomDto? GetById(int id)

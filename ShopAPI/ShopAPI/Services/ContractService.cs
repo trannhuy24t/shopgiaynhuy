@@ -478,6 +478,8 @@ namespace ShopAPI.Services
                 Id = contract.Id,
                 RoomId = contract.RoomId,
                 RoomNumber = contract.Room?.RoomNumber,
+                RoomType = contract.Room?.RoomType,
+                RoomAmenities = contract.Room?.Amenities,
                 RoomPrice = contract.Room?.Price ?? contract.MonthlyRent,
                 RoomArea = contract.Room?.Area ?? 0,
                 RoomServiceFee = contract.Room?.ServiceFee ?? 0,

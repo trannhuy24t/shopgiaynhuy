@@ -221,7 +221,7 @@ const BuildingManagerPage = () => {
               <div className="overflow-x-auto overflow-y-auto max-h-[560px] table-scroll-container">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead className="sticky top-0 z-10 shadow-md">
-                    <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider bg-slate-900/95 backdrop-blur-md">
+                    <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wide bg-slate-900/95 backdrop-blur-md">
                       <th className="p-5">Tên tòa nhà</th>
                       <th className="p-5">Địa chỉ</th>
                       <th className="p-5">Chủ sở hữu</th>
@@ -233,7 +233,7 @@ const BuildingManagerPage = () => {
                   <tbody className="divide-y divide-slate-850/50">
                     {paginatedBuildings.map((building) => (
                       <tr key={building.id} className="text-slate-300 hover:bg-slate-950/10 transition-colors">
-                        <td className="p-5 font-bold text-white">{building.name}</td>
+                        <td className="p-5 font-bold text-slate-100">{building.name}</td>
                         <td className="p-5 font-medium text-slate-400 max-w-[220px] truncate">{building.address}</td>
                         <td className="p-5 font-semibold text-slate-400">{building.ownerName || `#${building.ownerId}`}</td>
                         <td className="p-5 font-semibold text-orange-500">{building.roomCount}</td>

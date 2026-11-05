@@ -19,6 +19,8 @@ namespace ShopAPI.Models
         public string Role { get; set; } = "Tenant"; // Default role is "Tenant"
         [MaxLength(20)]
         public string? PhoneNumber { get; set; }
+        [MaxLength(50)]
+        public string? TelegramChatId { get; set; }
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -256,7 +256,9 @@ namespace ShopAPI.Services
                 _invoiceRepository.Update(invoice);
                 ActivateDepositContract(invoice);
 
-                _activityLogService.Log(1, "SePayWebhook", "Payment", invoice.Id, $"Auto-confirmed invoice #{invoice.Id} via SePay. Gateway={dto.Gateway}, Ref={dto.ReferenceCode}, Amount={dto.TransferAmount}");
+                var adminUserId = _context.Users.FirstOrDefault(u => u.Role == "Admin")?.Id;
+
+                _activityLogService.Log(adminUserId, "SePayWebhook", "Payment", invoice.Id, $"Auto-confirmed invoice #{invoice.Id} via SePay. Gateway={dto.Gateway}, Ref={dto.ReferenceCode}, Amount={dto.TransferAmount}");
 
                 if (invoice.Contract?.Tenant?.UserId != null)
                 {
@@ -267,7 +269,7 @@ namespace ShopAPI.Services
                         Content = $"Hóa đơn #{invoice.Id} kỳ {invoice.Month}/{invoice.Year} ({invoice.TotalAmount:N0} đ) đã được tự động xác nhận qua ngân hàng.",
                         Type = "HoaDon",
                         RelatedInvoiceId = invoice.Id
-                    }, 1);
+                    }, adminUserId);
                 }
 
                 _notificationService.NotifyRole(

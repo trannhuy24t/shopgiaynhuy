@@ -30,6 +30,8 @@ export interface ContractDto {
   id: number;
   roomId: number;
   roomNumber?: string | null;
+  roomType?: string | null;
+  roomAmenities?: string | null;
   roomArea?: number;
   roomServiceFee?: number;
   buildingName?: string | null;

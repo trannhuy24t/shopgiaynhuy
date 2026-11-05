@@ -127,3 +127,8 @@ export const removeRoomMedia = (roomId: number, mediaId: number) => {
 export const setPrimaryRoomMedia = (roomId: number, mediaId: number) => {
     return api.put<ApiMessageResponse>(`/Room/${roomId}/media/${mediaId}/primary`, {});
 };
+
+// Nạp dữ liệu phòng mẫu phong phú
+export const seedSampleRooms = () => {
+    return api.post<{ message: string; count: number }>("/Room/seed");
+};

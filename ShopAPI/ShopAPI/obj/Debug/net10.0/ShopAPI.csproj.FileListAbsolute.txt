@@ -208,3 +208,5 @@ C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\CommunityToolkit.HighPerformanc
 C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\Minio.dll
 C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\System.IO.Hashing.dll
 C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\System.Reactive.dll
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\BouncyCastle.Crypto.dll
+C:\hoc_reactjs\ShopAPI\ShopAPI\bin\Debug\net10.0\WebPush.dll

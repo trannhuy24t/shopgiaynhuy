@@ -35,7 +35,8 @@ builder.Host.UseSerilog((context, services, config) => config
 
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
 // Controllers
 builder.Services.AddControllers();
@@ -123,10 +124,14 @@ builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IVietQrService, VietQrService>();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<IZaloService, ZaloService>();
 builder.Services.AddScoped<IMaintenanceRequestRepository, MaintenanceRequestRepository>();
 builder.Services.AddScoped<IMaintenanceRequestService, MaintenanceRequestService>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IPushNotificationService, PushNotificationService>();
+builder.Services.AddHttpClient<ITelegramBotService, TelegramBotService>();
 builder.Services.AddScoped<ISystemConfigService, SystemConfigService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddSingleton<IStorageService, MinioStorageService>();
@@ -185,6 +190,47 @@ using (var scope = app.Services.CreateScope())
         Log.Warning(ex, "Could not automatically migrate database on startup.");
     }
 
+    // Đảm bảo bảng PushSubscriptions tồn tại cho tính năng Web Push Notification
+    try
+    {
+        context.Database.ExecuteSqlRaw(@"
+            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'PushSubscriptions')
+            BEGIN
+                CREATE TABLE PushSubscriptions (
+                    Id INT IDENTITY(1,1) PRIMARY KEY,
+                    UserId INT NOT NULL,
+                    Endpoint NVARCHAR(1000) NOT NULL,
+                    P256dh NVARCHAR(255) NOT NULL,
+                    Auth NVARCHAR(255) NOT NULL,
+                    DeviceDescription NVARCHAR(255) NULL,
+                    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                    CONSTRAINT FK_PushSubscriptions_Users_UserId FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
+                );
+                CREATE INDEX IX_PushSubscriptions_UserId ON PushSubscriptions(UserId);
+                CREATE UNIQUE INDEX IX_PushSubscriptions_Endpoint ON PushSubscriptions(Endpoint);
+            END
+        ");
+    }
+    catch (Exception ex)
+    {
+        Log.Warning(ex, "Could not automatically ensure PushSubscriptions table.");
+    }
+
+    // Đảm bảo cột TelegramChatId tồn tại trong bảng Users
+    try
+    {
+        context.Database.ExecuteSqlRaw(@"
+            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users' AND COLUMN_NAME = 'TelegramChatId')
+            BEGIN
+                ALTER TABLE Users ADD TelegramChatId NVARCHAR(50) NULL;
+            END
+        ");
+    }
+    catch (Exception ex)
+    {
+        Log.Warning(ex, "Could not automatically ensure Users.TelegramChatId column.");
+    }
+
     var defaults = new (string Key, string Value, string Description)[]
     {
         ("BankBin", builder.Configuration["VietQr:BankBin"] ?? "", "Mã BIN ngân hàng nhận thanh toán (VietQR)"),
@@ -229,6 +275,16 @@ using (var scope = app.Services.CreateScope())
     }
 
     context.SaveChanges();
+
+    // Tự động nạp dữ liệu phòng mẫu phong phú kèm đầy đủ tiện nghi, số lượng và hình ảnh
+    try
+    {
+        ShopAPI.Data.DataSeeder.SeedSampleData(context);
+    }
+    catch (Exception ex)
+    {
+        Log.Warning(ex, "Could not automatically seed sample rooms.");
+    }
 }
 
 // --- Middleware Pipeline ---

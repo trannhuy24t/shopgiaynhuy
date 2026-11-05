@@ -6,12 +6,14 @@ export interface UserDto {
   email: string;
   role: Role;
   phoneNumber?: string | null;
+  telegramChatId?: string | null;
   createdAt: string;
 }
 
 export interface StaffOptionDto {
   id: number;
   fullName: string;
+  phoneNumber?: string | null;
 }
 
 export interface CreateStaffPayload {
@@ -33,10 +35,12 @@ export interface UpdateUserRolePayload {
 export interface UpdateProfilePayload {
   fullName: string;
   phoneNumber?: string | null;
+  telegramChatId?: string | null;
 }
 
 export interface UpdateUserPayload {
   fullName: string;
   phoneNumber?: string | null;
+  telegramChatId?: string | null;
   role: Role;
 }

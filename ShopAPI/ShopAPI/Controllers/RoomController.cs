@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ShopAPI.Data;
 using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 
@@ -11,11 +12,21 @@ namespace ShopAPI.Controllers
     {
         private readonly IRoomService _roomService;
         private readonly IStorageService _storageService;
+        private readonly AppDbContext _context;
 
-        public RoomController(IRoomService roomService, IStorageService storageService)
+        public RoomController(IRoomService roomService, IStorageService storageService, AppDbContext context)
         {
             _roomService = roomService;
             _storageService = storageService;
+            _context = context;
+        }
+
+        // Nạp nhanh danh sách phòng mẫu vào hệ thống
+        [HttpPost("seed")]
+        public IActionResult SeedSampleRooms()
+        {
+            var addedCount = DataSeeder.SeedSampleData(_context);
+            return Ok(new { message = $"Đã nạp thành công {addedCount} phòng mẫu vào hệ thống.", count = addedCount });
         }
 
         // Khách thuê xem phòng trống, không cần đăng nhập

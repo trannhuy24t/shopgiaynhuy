@@ -10,5 +10,8 @@ namespace ShopAPI.DTOs
 
         [MaxLength(20)]
         public string? PhoneNumber { get; set; }
+
+        [MaxLength(50)]
+        public string? TelegramChatId { get; set; }
     }
 }

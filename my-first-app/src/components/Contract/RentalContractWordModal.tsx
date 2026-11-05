@@ -8,6 +8,7 @@ import {
   numberToVietnameseWords,
   parseDateDetails,
   calculateDurationMonths,
+  parseAmenitiesList,
 } from '../../utils/contractDocUtils';
 import {
   FileText,
@@ -64,8 +65,9 @@ export const RentalContractWordModal = ({
 
   const roomArea = contract.roomArea || room?.area || 25;
   const roomServiceFee = contract.roomServiceFee || room?.serviceFee || 150000;
-  const roomType = room?.roomType;
-  const roomAmenities = room?.amenities;
+  const roomType = contract.roomType || room?.roomType;
+  const roomAmenities = contract.roomAmenities || room?.amenities;
+  const amenitiesList = parseAmenitiesList(roomAmenities);
 
   const monthlyRentWords = numberToVietnameseWords(contract.monthlyRent);
   const depositWords = numberToVietnameseWords(contract.deposit);
@@ -419,13 +421,44 @@ export const RentalContractWordModal = ({
                     <p>
                       <strong>1.1.</strong> Bên A đồng ý cho Bên B thuê căn phòng số: <strong>{roomNumber}</strong>{roomType ? ` (Loại: ${roomType})` : ''}, diện tích sử dụng khoảng: <strong>{roomArea} m²</strong>, thuộc cơ sở <strong>{buildingName}</strong>, tại địa chỉ: {buildingAddress}.
                     </p>
-                    {roomAmenities && (
-                      <p>
-                        <strong>- Trang thiết bị & đồ đạc bàn giao kèm theo:</strong> {roomAmenities}. Bên B có nghĩa vụ sử dụng đúng công năng và bảo quản nguyên vẹn các tài sản trên trong suốt thời hạn hợp đồng.
+                    <div className="mt-3">
+                      <p className="font-bold text-slate-900 mb-1.5">
+                        <strong>1.2. Danh mục trang thiết bị, tài sản và đồ đạc bàn giao kèm theo phòng:</strong>
                       </p>
-                    )}
-                    <p>
-                      <strong>1.2.</strong> Mục đích thuê: Dùng làm nơi ở và sinh hoạt cá nhân / gia đình hợp pháp. Bên B cam kết không sử dụng căn phòng vào mục đích kinh doanh trái phép, không tổ chức các hoạt động vi phạm pháp luật, không sang nhượng hoặc cho bên thứ ba thuê lại nếu không được sự đồng ý bằng văn bản của Bên A.
+                      <div className="overflow-x-auto my-2 border border-slate-300 rounded-lg">
+                        <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                          <thead>
+                            <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-800 text-center">
+                              <th className="p-2 border-r border-slate-300 w-10">STT</th>
+                              <th className="p-2 border-r border-slate-300 text-left">Tên trang thiết bị / Tài sản</th>
+                              <th className="p-2 border-r border-slate-300 w-20">Số lượng</th>
+                              <th className="p-2 border-r border-slate-300 w-20">Đơn vị</th>
+                              <th className="p-2 border-r border-slate-300 text-left">Hiện trạng bàn giao</th>
+                              <th className="p-2 text-left">Ghi chú</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200">
+                            {amenitiesList.map((item) => (
+                              <tr key={item.stt} className="hover:bg-slate-50 transition-colors">
+                                <td className="p-2 text-center border-r border-slate-200 font-medium">{item.stt}</td>
+                                <td className="p-2 border-r border-slate-200 font-semibold text-slate-900">{item.name}</td>
+                                <td className="p-2 text-center border-r border-slate-200 font-bold text-slate-900">
+                                  {String(item.quantity).padStart(2, '0')}
+                                </td>
+                                <td className="p-2 text-center border-r border-slate-200 text-slate-700">{item.unit}</td>
+                                <td className="p-2 border-r border-slate-200 text-slate-800">{item.condition}</td>
+                                <td className="p-2 text-slate-500 italic text-xs">{item.note || '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <p className="italic text-xs text-slate-600 mt-1">
+                        * Hai bên đã cùng nhau kiểm tra, chạy thử và xác nhận toàn bộ trang thiết bị nêu trên hoạt động bình thường trước khi ký hợp đồng. Bên B có nghĩa vụ sử dụng đúng công năng và bảo quản nguyên vẹn các tài sản trên trong suốt thời hạn hợp đồng.
+                      </p>
+                    </div>
+                    <p className="mt-2">
+                      <strong>1.3.</strong> Mục đích thuê: Dùng làm nơi ở và sinh hoạt cá nhân / gia đình hợp pháp. Bên B cam kết không sử dụng căn phòng vào mục đích kinh doanh trái phép, không tổ chức các hoạt động vi phạm pháp luật, không sang nhượng hoặc cho bên thứ ba thuê lại nếu không được sự đồng ý bằng văn bản của Bên A.
                     </p>
                   </div>
                 </section>

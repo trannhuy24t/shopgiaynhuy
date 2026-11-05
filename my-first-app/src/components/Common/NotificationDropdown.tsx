@@ -197,6 +197,22 @@ const NotificationDropdown = () => {
               ))}
           </div>
 
+          <div className="px-4 py-2.5 bg-slate-950/60 border-t border-slate-850/80 flex items-center justify-between text-[11px]">
+            <span className="text-slate-400 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+              Nhận tin khi tắt web:
+            </span>
+            <button
+              onClick={() => {
+                setOpen(false);
+                navigate(isStaff ? '/admin/notifications' : '/thong-bao');
+              }}
+              className="text-orange-400 hover:text-orange-300 font-bold transition-colors cursor-pointer"
+            >
+              Cài đặt Push →
+            </button>
+          </div>
+
           <button
             onClick={handleViewAll}
             className="w-full text-center py-3 text-[11px] font-bold text-orange-500 hover:text-orange-400 hover:bg-slate-850/40 transition-colors border-t border-slate-850 cursor-pointer"

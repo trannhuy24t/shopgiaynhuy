@@ -7,6 +7,7 @@ import { useAuth } from '../../context/useAuth';
 import { getNotificationTarget } from '../../utils/notificationTarget';
 import { sanitizeVietnamese } from '../../utils/textUtils';
 import StatusBadge from '../../components/Common/StatusBadge';
+import WebPushSettingsCard from '../../components/Common/WebPushSettingsCard';
 import type { NotificationDto } from '../../types/notification';
 import { Bell, Check, CheckCheck } from 'lucide-react';
 
@@ -106,6 +107,8 @@ const NotificationsPage = () => {
           </button>
         )}
       </div>
+
+      <WebPushSettingsCard className="mb-6" />
 
       {loading && (
         <div className="min-h-[30vh] flex items-center justify-center">

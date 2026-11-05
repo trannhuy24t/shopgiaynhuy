@@ -229,9 +229,11 @@ const InvoiceBulkCreatePage = () => {
         };
         nextResults.push(result);
         setResults([...nextResults]);
+        const tName = contract.tenantName || 'Quý khách';
+        const rNum = contract.roomNumber || String(contract.roomId);
         void notifyTenantByContract(contract.id, {
           title: 'Hóa đơn mới',
-          content: `Hóa đơn kỳ ${targetMonth}/${targetYear} đã được tạo, hạn thanh toán ${new Date(dueDateIso).toLocaleDateString('vi-VN')}.`,
+          content: `Kính gửi khách thuê ${tName} (Phòng ${rNum}): Hóa đơn kỳ ${targetMonth}/${targetYear} đã được tạo, hạn thanh toán ${new Date(dueDateIso).toLocaleDateString('vi-VN')}.`,
           type: 'ThongBaoChung',
         });
       } catch (err) {

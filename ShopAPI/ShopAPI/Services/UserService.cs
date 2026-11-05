@@ -39,7 +39,8 @@ namespace ShopAPI.Services
                 .Select(user => new StaffOptionDto
                 {
                     Id = user.Id,
-                    FullName = user.FullName
+                    FullName = user.FullName,
+                    PhoneNumber = user.PhoneNumber
                 })
                 .ToList();
         }
@@ -157,6 +158,7 @@ namespace ShopAPI.Services
 
             user.FullName = dto.FullName;
             user.PhoneNumber = dto.PhoneNumber;
+            user.TelegramChatId = string.IsNullOrWhiteSpace(dto.TelegramChatId) ? null : dto.TelegramChatId.Trim();
 
             var tenant = _context.Tenants.FirstOrDefault(t => t.UserId == userId);
             if (tenant != null)
@@ -179,6 +181,7 @@ namespace ShopAPI.Services
                 Email = user.Email,
                 Role = user.Role,
                 PhoneNumber = user.PhoneNumber,
+                TelegramChatId = user.TelegramChatId,
                 CreatedAt = user.CreatedAt
             };
         }

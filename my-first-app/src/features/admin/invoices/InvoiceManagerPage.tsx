@@ -82,9 +82,11 @@ const InvoiceManagerPage = () => {
       if (approve) {
         await confirmTransfer(payment.id);
         if (historyTarget) {
+          const tenantName = historyTarget.tenantName || 'Quý khách';
+          const roomNumber = historyTarget.roomNumber || 'N/A';
           notifyTenantByContract(historyTarget.contractId, {
             title: 'Đã xác nhận chuyển khoản',
-            content: `Giao dịch ${payment.transactionRef || ''} cho hóa đơn kỳ ${historyTarget.month}/${historyTarget.year} đã được xác nhận.`,
+            content: `Kính gửi khách thuê ${tenantName} (Phòng ${roomNumber}): Giao dịch ${payment.transactionRef || ''} cho hóa đơn kỳ ${historyTarget.month}/${historyTarget.year} đã được xác nhận thành công.`,
             type: 'ThongBaoChung',
           });
         }
@@ -129,9 +131,11 @@ const InvoiceManagerPage = () => {
         method,
         transactionRef: transactionRef || null,
       });
+      const tenantName = confirmTarget.tenantName || 'Quý khách';
+      const roomNumber = confirmTarget.roomNumber || 'N/A';
       notifyTenantByContract(confirmTarget.contractId, {
         title: 'Đã xác nhận thanh toán',
-        content: `Hóa đơn kỳ ${confirmTarget.month}/${confirmTarget.year} (${formatPrice(confirmTarget.totalAmount)}) đã được xác nhận thanh toán.`,
+        content: `Kính gửi khách thuê ${tenantName} (Phòng ${roomNumber}): Hóa đơn kỳ ${confirmTarget.month}/${confirmTarget.year} (${formatPrice(confirmTarget.totalAmount)}) đã được xác nhận thanh toán hoàn tất.`,
         type: 'ThongBaoChung',
       });
       setConfirmTarget(null);

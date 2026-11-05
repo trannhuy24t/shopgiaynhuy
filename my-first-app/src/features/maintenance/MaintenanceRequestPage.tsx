@@ -5,8 +5,8 @@ import { createMaintenanceRequest, createMaintenanceRequestWithImage } from '../
 import { getApiErrorMessage } from '../../api/client';
 import { statusMaps } from '../../constants/statusLabels';
 import type { ContractDto } from '../../types/contract';
-import type { MaintenancePriority } from '../../types/maintenance';
-import { ArrowLeft, Wrench } from 'lucide-react';
+import type { MaintenancePriority, MaintenanceRequestDto } from '../../types/maintenance';
+import { ArrowLeft, Wrench, CheckCircle2, MessageSquare, ExternalLink, Check, Plus } from 'lucide-react';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
@@ -30,6 +30,8 @@ const MaintenanceRequestPage = () => {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [successResult, setSuccessResult] = useState<MaintenanceRequestDto | null>(null);
+  const [zaloCopied, setZaloCopied] = useState(false);
 
   useEffect(() => {
     setLoadingRooms(true);
@@ -89,29 +91,67 @@ const MaintenanceRequestPage = () => {
 
     try {
       setSubmitting(true);
+      let resData: MaintenanceRequestDto;
       if (imageFile) {
-        await createMaintenanceRequestWithImage({
+        const res = await createMaintenanceRequestWithImage({
           roomId: Number(roomId),
           title,
           description: description || null,
           priority,
           image: imageFile,
         });
+        resData = res.data;
       } else {
-        await createMaintenanceRequest({
+        const res = await createMaintenanceRequest({
           roomId: Number(roomId),
           title,
           description: description || null,
           imageUrl: imageUrl || null,
           priority,
         });
+        resData = res.data;
       }
-      navigate('/yeu-cau-cua-toi');
+      setSuccessResult(resData);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Không thể gửi yêu cầu bảo trì.'));
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const getZaloLandlordMessage = (req: MaintenanceRequestDto) => {
+    const priorityLabel = statusMaps.maintenancePriority[req.priority]?.label || req.priority;
+    return `🔧 [YÊU CẦU BẢO TRÌ PHÒNG ${req.roomNumber || req.roomId}]
+• Tòa nhà: ${req.buildingName || 'TroHub'}
+• Người thuê: ${req.tenantName || 'Khách thuê'}
+• Sự cố: ${req.title}
+• Mức độ ưu tiên: ${priorityLabel}
+${req.description ? `• Chi tiết: ${req.description}` : ''}
+👉 Nhờ chủ trọ / quản lý kiểm tra và hỗ trợ xử lý sớm giúp em với ạ! Em cảm ơn.`;
+  };
+
+  const handleOpenLandlordZalo = async (req: MaintenanceRequestDto) => {
+    const cleanPhone = (req.landlordPhone || '').replace(/\D/g, '');
+    const message = getZaloLandlordMessage(req);
+    try {
+      await navigator.clipboard.writeText(message);
+      setZaloCopied(true);
+    } catch {
+      // ignore
+    }
+    if (cleanPhone) {
+      window.open(`https://zalo.me/${cleanPhone}`, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const handleResetForm = () => {
+    setSuccessResult(null);
+    setZaloCopied(false);
+    setTitle('');
+    setDescription('');
+    setImageUrl('');
+    setImageFile(null);
+    setError('');
   };
 
   return (
@@ -141,6 +181,105 @@ const MaintenanceRequestPage = () => {
             >
               Thử tải lại
             </button>
+          </div>
+        ) : successResult ? (
+          <div className="space-y-6">
+            <div className="text-center py-4">
+              <div className="w-14 h-14 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <CheckCircle2 size={32} />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-1">Gửi yêu cầu bảo trì thành công!</h2>
+              <p className="text-xs text-slate-400">
+                Yêu cầu của bạn đã được ghi nhận trên hệ thống và gửi thông báo tới Ban Quản lý.
+              </p>
+            </div>
+
+            <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 text-xs space-y-2">
+              <div className="flex justify-between border-b border-slate-850 pb-2">
+                <span className="text-slate-400">Phòng:</span>
+                <span className="font-bold text-white">
+                  Phòng {successResult.roomNumber || successResult.roomId} {successResult.buildingName ? `— ${successResult.buildingName}` : ''}
+                </span>
+              </div>
+              <div className="flex justify-between border-b border-slate-850 pb-2">
+                <span className="text-slate-400">Tiêu đề:</span>
+                <span className="font-bold text-slate-200">{successResult.title}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-850 pb-2">
+                <span className="text-slate-400">Mức độ ưu tiên:</span>
+                <span className="font-bold text-orange-400">
+                  {statusMaps.maintenancePriority[successResult.priority]?.label || successResult.priority}
+                </span>
+              </div>
+              {successResult.description && (
+                <div className="pt-1">
+                  <span className="text-slate-400 block mb-1">Mô tả chi tiết:</span>
+                  <p className="text-slate-300 bg-slate-900 p-2.5 rounded-xl text-[11px] leading-relaxed">
+                    {successResult.description}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* KHỐI THÔNG BÁO SANG ZALO CHỦ TRỌ */}
+            <div className="bg-gradient-to-r from-blue-950/40 via-blue-900/20 to-slate-900 border border-blue-500/30 rounded-2xl p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 rounded-xl bg-[#0068FF] text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-blue-500/20 shrink-0">
+                  Zalo
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                    Thông báo trực tiếp sang Zalo Chủ trọ
+                  </h3>
+                  <p className="text-[11px] text-blue-200/80">
+                    Chủ trọ: <strong className="text-white">{successResult.landlordName || 'Chủ trọ / Ban Quản lý'}</strong>
+                    {successResult.landlordPhone ? ` — SĐT: ${successResult.landlordPhone}` : ''}
+                  </p>
+                </div>
+              </div>
+
+              {successResult.landlordPhone ? (
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenLandlordZalo(successResult)}
+                    className="w-full bg-[#0068FF] hover:bg-[#0052cc] text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 transition-all cursor-pointer"
+                  >
+                    <MessageSquare size={16} />
+                    <span>Mở Zalo nhắn tin cho Chủ trọ ngay</span>
+                    <ExternalLink size={14} />
+                  </button>
+
+                  {zaloCopied && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] p-2.5 rounded-xl flex items-center gap-2">
+                      <Check size={14} className="shrink-0 text-emerald-400" />
+                      <span>Đã tự động sao chép nội dung sự cố! Bạn chỉ cần nhấn <strong>Ctrl + V</strong> (Dán) và Gửi trên Zalo.</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 italic">
+                  Chủ trọ chưa cập nhật số điện thoại Zalo. Hệ thống đã tự động gửi chuông thông báo trên phần mềm.
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => navigate('/yeu-cau-cua-toi')}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl text-xs text-center transition-colors cursor-pointer"
+              >
+                Xem danh sách yêu cầu của tôi
+              </button>
+              <button
+                type="button"
+                onClick={handleResetForm}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold py-3 px-4 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Plus size={15} /> Gửi thêm yêu cầu
+              </button>
+            </div>
           </div>
         ) : contracts.length === 0 ? (
           <div className="text-center py-8">

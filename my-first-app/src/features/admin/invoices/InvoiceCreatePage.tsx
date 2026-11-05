@@ -183,9 +183,11 @@ const InvoiceCreatePage = () => {
         serviceFee: form.serviceFee.trim() === '' ? undefined : Number(form.serviceFee),
         dueDate: new Date(`${form.dueDate}T00:00:00`).toISOString(),
       });
+      const tenantName = selectedContract?.tenantName || 'Quý khách';
+      const roomNumber = selectedContract?.roomNumber || 'N/A';
       notifyTenantByContract(contractIdNum, {
         title: 'Hóa đơn mới',
-        content: `Hóa đơn kỳ ${form.month}/${form.year} (${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(res.data.totalAmount)}) đã được tạo, hạn thanh toán ${new Date(`${form.dueDate}T00:00:00`).toLocaleDateString('vi-VN')}.`,
+        content: `Kính gửi khách thuê ${tenantName} (Phòng ${roomNumber}): Hóa đơn kỳ ${form.month}/${form.year} (${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(res.data.totalAmount)}) đã được tạo, hạn thanh toán ${new Date(`${form.dueDate}T00:00:00`).toLocaleDateString('vi-VN')}.`,
         type: 'ThongBaoChung',
       });
       navigate('/admin/invoices');

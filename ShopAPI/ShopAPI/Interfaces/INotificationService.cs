@@ -8,7 +8,7 @@ namespace ShopAPI.Interfaces
 
         bool MarkRead(int id, int userId);
 
-        NotificationDto Create(CreateNotificationDto dto, int createdByUserId);
+        NotificationDto Create(CreateNotificationDto dto, int? createdByUserId = null);
 
         int CreateForAllTenants(BroadcastNotificationDto dto, int createdByUserId);
 

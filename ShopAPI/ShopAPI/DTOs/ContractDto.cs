@@ -5,6 +5,8 @@ namespace ShopAPI.DTOs
         public int Id { get; set; }
         public int RoomId { get; set; }
         public string? RoomNumber { get; set; }
+        public string? RoomType { get; set; }
+        public string? RoomAmenities { get; set; }
         public decimal RoomPrice { get; set; }
         public decimal RoomArea { get; set; }
         public decimal RoomServiceFee { get; set; }

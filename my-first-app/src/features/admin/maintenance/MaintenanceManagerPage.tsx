@@ -128,11 +128,18 @@ const MaintenanceManagerPage = () => {
     try {
       setSaving(true);
       await assignMaintenanceRequest(modal.request.id, { assignedToUserId: idNum });
+
+      const selectedStaff = staffUsers?.find((u) => u.id === idNum);
+      const staffName = selectedStaff?.fullName || 'Kỹ thuật viên';
+      const tenantName = modal.request.tenantName || 'Quý khách';
+      const roomNumber = modal.request.roomNumber || modal.request.roomId;
+
       notifyTenant(modal.request.tenantId, {
         title: 'Yêu cầu bảo trì đã được phân công',
-        content: `Yêu cầu "${modal.request.title}" (phòng ${modal.request.roomNumber || modal.request.roomId}) đang được xử lý.`,
+        content: `Kính gửi khách thuê ${tenantName}, yêu cầu bảo trì "${modal.request.title}" tại phòng ${roomNumber} đã được phân công cho kỹ thuật viên ${staffName} tiếp nhận xử lý.`,
         type: 'BaoTri',
       });
+
       setModal(null);
       await loadRequests();
     } catch (err) {
@@ -150,11 +157,6 @@ const MaintenanceManagerPage = () => {
     try {
       setSaving(true);
       await updateMaintenanceStatus(modal.request.id, { status: statusValue, note: note || null });
-      notifyTenant(modal.request.tenantId, {
-        title: 'Cập nhật yêu cầu bảo trì',
-        content: `Yêu cầu "${modal.request.title}": ${statusMaps.maintenanceStatus[statusValue].label}.${note ? ` Ghi chú: ${note}` : ''}`,
-        type: 'BaoTri',
-      });
       setModal(null);
       await loadRequests();
     } catch (err) {
@@ -249,11 +251,25 @@ const MaintenanceManagerPage = () => {
                     {paginatedRequests.map((r) => (
                       <tr key={r.id} className="text-slate-300 hover:bg-slate-950/10 transition-colors">
                         <td className="p-5 font-bold text-white">{r.roomNumber || `#${r.roomId}`}</td>
-                        <td className="p-5 font-semibold text-slate-400">{r.tenantName || `#${r.tenantId}`}</td>
+                        <td className="p-5">
+                          <div>
+                            <span className="font-semibold text-slate-300 block">{r.tenantName || `#${r.tenantId}`}</span>
+                            {r.tenantPhone && (
+                              <span className="text-[11px] text-slate-500 font-mono">{r.tenantPhone}</span>
+                            )}
+                          </div>
+                        </td>
                         <td className="p-5 font-medium text-slate-300 max-w-[220px] truncate">{r.title}</td>
                         <td className="p-5"><StatusBadge entity="maintenancePriority" value={r.priority} /></td>
                         <td className="p-5"><StatusBadge entity="maintenanceStatus" value={r.status} /></td>
-                        <td className="p-5 font-medium text-slate-500">{r.assignedToUserName || '—'}</td>
+                        <td className="p-5">
+                          <div>
+                            <span className="font-medium text-slate-300 block">{r.assignedToUserName || '—'}</span>
+                            {r.assignedToUserPhone && (
+                              <span className="text-[11px] text-slate-500 font-mono">{r.assignedToUserPhone}</span>
+                            )}
+                          </div>
+                        </td>
                         <td className="p-5 text-center">
                           <div className="flex justify-center gap-2 flex-wrap">
                             <button
@@ -327,11 +343,17 @@ const MaintenanceManagerPage = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-slate-800/50 rounded-xl p-3">
                     <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Khách thuê</p>
-                    <p className="text-white font-semibold">{detailTarget.tenantName || `#${detailTarget.tenantId}`}</p>
+                    <p className="text-white font-semibold truncate">{detailTarget.tenantName || `#${detailTarget.tenantId}`}</p>
+                    {detailTarget.tenantPhone && (
+                      <p className="text-xs text-slate-400 font-mono mt-0.5">{detailTarget.tenantPhone}</p>
+                    )}
                   </div>
                   <div className="bg-slate-800/50 rounded-xl p-3">
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Phụ trách</p>
-                    <p className="text-white font-semibold">{detailTarget.assignedToUserName || '—'}</p>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Phụ trách kỹ thuật</p>
+                    <p className="text-white font-semibold truncate">{detailTarget.assignedToUserName || 'Chưa phân công'}</p>
+                    {detailTarget.assignedToUserPhone && (
+                      <p className="text-xs text-slate-400 font-mono mt-0.5">{detailTarget.assignedToUserPhone}</p>
+                    )}
                   </div>
                   <div className="bg-slate-800/50 rounded-xl p-3">
                     <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Ngày tạo</p>
@@ -385,17 +407,44 @@ const MaintenanceManagerPage = () => {
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Nhân viên phụ trách *</label>
                 {staffUsers && staffUsers.length > 0 ? (
-                  <select
-                    required
-                    value={assigneeId}
-                    onChange={(e) => setAssigneeId(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-3 py-3 text-sm text-white outline-none cursor-pointer"
-                  >
-                    <option value="">-- Chọn nhân viên --</option>
-                    {staffUsers.map((u) => (
-                      <option key={u.id} value={u.id}>{u.fullName} (#{u.id})</option>
-                    ))}
-                  </select>
+                  <div className="space-y-3">
+                    <select
+                      required
+                      value={assigneeId}
+                      onChange={(e) => setAssigneeId(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-850 focus:border-orange-500 rounded-xl px-3 py-3 text-sm text-white outline-none cursor-pointer"
+                    >
+                      <option value="">-- Chọn nhân viên --</option>
+                      {staffUsers.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.fullName} {u.phoneNumber ? `(SĐT: ${u.phoneNumber})` : `(#${u.id})`}
+                        </option>
+                      ))}
+                    </select>
+
+                    {(() => {
+                      const sel = staffUsers.find((u) => String(u.id) === assigneeId);
+                      if (!sel) return null;
+                      return (
+                        <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-xs flex items-center justify-between">
+                          <span className="text-slate-400">Số điện thoại nhân viên:</span>
+                          <span className="font-mono font-bold text-white">
+                            {sel.phoneNumber || 'Chưa cập nhật SĐT'}
+                          </span>
+                        </div>
+                      );
+                    })()}
+
+                    <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-200 space-y-1">
+                      <div className="flex items-center gap-2 font-bold text-white">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>Tự động đẩy thông báo qua Telegram & Web Push</span>
+                      </div>
+                      <p className="text-[11px] text-blue-300/80 leading-relaxed">
+                        Hệ thống sẽ gửi thông báo chuông web, thông báo đẩy và tự động bắn tin nhắn vào nhóm Telegram Ban Quản Lý & gửi riêng cho nhân viên được gán.
+                      </p>
+                    </div>
+                  </div>
                 ) : staffUsers ? (
                   <p role="status" className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-200">
                     Chưa có tài khoản nhân viên để phân công.

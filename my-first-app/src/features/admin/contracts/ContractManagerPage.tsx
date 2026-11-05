@@ -228,9 +228,12 @@ const ContractManagerPage = () => {
       const totalServiceFee = serviceFeePerPerson * occupantsNum;
       const totalFirstPayment = depositNum + rentNum + totalServiceFee;
 
+      const tenantName = modal.contract.tenantName || 'Quý khách';
+      const roomNumber = modal.contract.roomNumber || modal.contract.roomId;
+
       notifyTenant(modal.contract.tenantId, {
         title: 'Hợp đồng đã được duyệt',
-        content: `Hợp đồng phòng ${modal.contract.roomNumber || modal.contract.roomId} đã được duyệt. Vui lòng thanh toán hóa đơn nhận phòng (${formatPrice(totalFirstPayment)} gồm cọc, tiền phòng tháng đầu & phí dịch vụ) để kích hoạt hợp đồng.`,
+        content: `Kính gửi khách thuê ${tenantName}, hợp đồng thuê phòng ${roomNumber} đã được Ban Quản Lý phê duyệt. Vui lòng thanh toán hóa đơn nhận phòng (${formatPrice(totalFirstPayment)} gồm cọc, tiền phòng tháng đầu & phí dịch vụ) để kích hoạt hợp đồng.`,
         type: 'HopDong',
       });
       setModal(null);
@@ -250,9 +253,11 @@ const ContractManagerPage = () => {
     try {
       setSaving(true);
       await rejectContract(modal.contract.id, { reason: reason || null });
+      const tenantName = modal.contract.tenantName || 'Quý khách';
+      const roomNumber = modal.contract.roomNumber || modal.contract.roomId;
       notifyTenant(modal.contract.tenantId, {
         title: 'Hợp đồng bị từ chối',
-        content: `Yêu cầu thuê phòng ${modal.contract.roomNumber || modal.contract.roomId} đã bị từ chối.${reason ? ` Lý do: ${reason}` : ''}`,
+        content: `Kính gửi khách thuê ${tenantName}, yêu cầu thuê phòng ${roomNumber} đã bị từ chối.${reason ? ` Lý do: ${reason}` : ''}`,
         type: 'HopDong',
       });
       setModal(null);
@@ -319,9 +324,11 @@ const ContractManagerPage = () => {
 
     try {
       await terminateContract(contract.id);
+      const tenantName = contract.tenantName || 'Quý khách';
+      const roomNumber = contract.roomNumber || contract.roomId;
       notifyTenant(contract.tenantId, {
         title: 'Hợp đồng đã kết thúc',
-        content: `Hợp đồng phòng ${contract.roomNumber || contract.roomId} đã được kết thúc.`,
+        content: `Kính gửi khách thuê ${tenantName}, hợp đồng thuê phòng ${roomNumber} đã được kết thúc hoàn tất.`,
         type: 'HopDong',
       });
       await loadContracts();

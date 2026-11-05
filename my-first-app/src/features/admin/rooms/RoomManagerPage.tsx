@@ -58,6 +58,7 @@ interface RoomFormData {
   price: string;
   serviceFee: string;
   selectedAmenities: string[];
+  amenityQuantities?: Record<string, number>;
   otherAmenities: string;
   description: string;
 }
@@ -71,6 +72,12 @@ const emptyFormData: RoomFormData = {
   price: '',
   serviceFee: '',
   selectedAmenities: ['Điều hòa', 'Bình nóng lạnh', 'Giường nệm', 'Tủ quần áo'],
+  amenityQuantities: {
+    'Điều hòa': 1,
+    'Bình nóng lạnh': 1,
+    'Giường nệm': 1,
+    'Tủ quần áo': 1,
+  },
   otherAmenities: '',
   description: '',
 };
@@ -199,10 +206,37 @@ const RoomManagerPage = () => {
     const roomType = isPreset ? (room.roomType || 'Phòng đơn') : (room.roomType ? 'Khác (tự nhập)' : 'Phòng đơn');
     const customRoomType = isPreset ? '' : (room.roomType || '');
 
-    // Parse Amenities
+    // Parse Amenities & Quantities
     const rawAmenities = room.amenities ? room.amenities.split(',').map((s) => s.trim()).filter(Boolean) : [];
-    const selectedAmenities = rawAmenities.filter((item) => POPULAR_AMENITIES.includes(item));
-    const otherAmenities = rawAmenities.filter((item) => !POPULAR_AMENITIES.includes(item)).join(', ');
+    const selectedAmenities: string[] = [];
+    const amenityQuantities: Record<string, number> = {};
+    const otherAmenitiesList: string[] = [];
+
+    for (const raw of rawAmenities) {
+      let matchedPreset: string | undefined;
+      let qty = 1;
+
+      for (const preset of POPULAR_AMENITIES) {
+        if (raw.toLowerCase().startsWith(preset.toLowerCase())) {
+          matchedPreset = preset;
+          break;
+        }
+      }
+
+      const matchQty = raw.match(/[\(\[]\s*(\d+)/i) || raw.match(/[:\-–xX]\s*(\d+)/i);
+      if (matchQty) {
+        qty = parseInt(matchQty[1], 10) || 1;
+      }
+
+      if (matchedPreset) {
+        if (!selectedAmenities.includes(matchedPreset)) {
+          selectedAmenities.push(matchedPreset);
+          amenityQuantities[matchedPreset] = qty;
+        }
+      } else {
+        otherAmenitiesList.push(raw);
+      }
+    }
 
     setFormData({
       buildingId: String(room.buildingId),
@@ -213,7 +247,8 @@ const RoomManagerPage = () => {
       price: String(room.price),
       serviceFee: room.serviceFee ? String(room.serviceFee) : '',
       selectedAmenities,
-      otherAmenities,
+      amenityQuantities,
+      otherAmenities: otherAmenitiesList.join(', '),
       description: room.description || '',
     });
     setIsModalOpen(true);
@@ -321,7 +356,11 @@ const RoomManagerPage = () => {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
-    const allAmenities = Array.from(new Set([...formData.selectedAmenities, ...otherList])).join(', ');
+    const selectedWithQty = formData.selectedAmenities.map((amenity) => {
+      const qty = formData.amenityQuantities?.[amenity] || 1;
+      return qty > 1 ? `${amenity} (${qty} cái)` : amenity;
+    });
+    const allAmenities = Array.from(new Set([...selectedWithQty, ...otherList])).join(', ');
 
     try {
       setSaving(true);
@@ -439,16 +478,18 @@ const RoomManagerPage = () => {
           </select>
         </div>
 
-        {/* Nút thêm phòng mới nằm cùng hàng bên phải */}
+        {/* Các nút hành động quản lý phòng */}
         {isAdmin && (
-          <button
-            onClick={handleOpenAddModal}
-            disabled={!buildings.length || Boolean(buildingsError)}
-            title={buildingsError ? 'Tải danh sách tòa nhà thành công rồi thử lại.' : !buildings.length ? 'Cần tạo tòa nhà trước khi thêm phòng.' : undefined}
-            className="bg-orange-500 hover:bg-orange-600 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold px-4 sm:px-5 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-orange-500/20 cursor-pointer shrink-0 ml-auto xl:ml-0"
-          >
-            <Plus size={16} /> Thêm phòng mới
-          </button>
+          <div className="flex items-center gap-2 shrink-0 ml-auto xl:ml-0">
+            <button
+              onClick={handleOpenAddModal}
+              disabled={!buildings.length || Boolean(buildingsError)}
+              title={buildingsError ? 'Tải danh sách tòa nhà thành công rồi thử lại.' : !buildings.length ? 'Cần tạo tòa nhà trước khi thêm phòng.' : undefined}
+              className="bg-orange-500 hover:bg-orange-600 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold px-4 sm:px-5 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-orange-500/20 cursor-pointer"
+            >
+              <Plus size={16} /> Thêm phòng mới
+            </button>
+          </div>
         )}
       </div>
 
@@ -558,7 +599,7 @@ const RoomManagerPage = () => {
             <div className="overflow-x-auto overflow-y-auto max-h-[560px] table-scroll-container">
               <table className="w-full text-left border-collapse text-xs">
                 <thead className="sticky top-0 z-10 shadow-md">
-                  <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider bg-slate-900/95 backdrop-blur-md">
+                  <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wide bg-slate-900/95 backdrop-blur-md">
                     <th className="p-5">Ảnh</th>
                     <th className="p-5">Phòng & Loại</th>
                     <th className="p-5">Tòa nhà</th>
@@ -581,7 +622,7 @@ const RoomManagerPage = () => {
                       </td>
                       <td className="p-5">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-sm">{room.roomNumber}</span>
+                          <span className="font-bold text-slate-100 text-sm">{room.roomNumber}</span>
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 whitespace-nowrap">
                             {room.roomType || 'Phòng đơn'}
                           </span>
@@ -592,7 +633,7 @@ const RoomManagerPage = () => {
                           </div>
                         )}
                       </td>
-                      <td className="p-5 font-semibold text-slate-400">{room.buildingName || `#${room.buildingId}`}</td>
+                      <td className="p-5 font-semibold text-slate-300">{room.buildingName || `#${room.buildingId}`}</td>
                       <td className="p-5 font-medium text-slate-500">{room.area ? `${room.area} m²` : '—'}</td>
                       <td className="p-5 font-extrabold text-orange-500">{formatPrice(room.price)}</td>
                       <td className="p-5 font-medium text-slate-400">
@@ -850,36 +891,85 @@ const RoomManagerPage = () => {
                   Chọn nhanh các đồ đạc có sẵn trang bị cho khách thuê:
                 </p>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                   {POPULAR_AMENITIES.map((amenity) => {
                     const isSelected = formData.selectedAmenities.includes(amenity);
+                    const qty = formData.amenityQuantities?.[amenity] || 1;
                     return (
-                      <button
-                        type="button"
+                      <div
                         key={amenity}
                         onClick={() => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            selectedAmenities: isSelected
+                          setFormData((prev) => {
+                            const nextSelected = isSelected
                               ? prev.selectedAmenities.filter((a) => a !== amenity)
-                              : [...prev.selectedAmenities, amenity],
-                          }));
+                              : [...prev.selectedAmenities, amenity];
+                            const nextQuantities = { ...prev.amenityQuantities };
+                            if (!isSelected && !nextQuantities[amenity]) {
+                              nextQuantities[amenity] = 1;
+                            }
+                            return {
+                              ...prev,
+                              selectedAmenities: nextSelected,
+                              amenityQuantities: nextQuantities,
+                            };
+                          });
                         }}
-                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-left border transition-all cursor-pointer ${
+                        className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-orange-500/15 border-orange-500/50 text-orange-300 shadow-sm'
                             : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-300'
                         }`}
                       >
-                        <span
-                          className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 border ${
-                            isSelected ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-700 bg-slate-900'
-                          }`}
-                        >
-                          {isSelected && <Check size={11} strokeWidth={3} />}
-                        </span>
-                        <span className="truncate">{amenity}</span>
-                      </button>
+                        <div className="flex items-center gap-2 truncate">
+                          <span
+                            className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 border ${
+                              isSelected ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-700 bg-slate-900'
+                            }`}
+                          >
+                            {isSelected && <Check size={11} strokeWidth={3} />}
+                          </span>
+                          <span className="truncate">{amenity}</span>
+                        </div>
+
+                        {isSelected && (
+                          <div
+                            className="flex items-center gap-1 shrink-0 ml-2 bg-slate-900/80 border border-slate-800 rounded-lg p-0.5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (qty > 1) {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    amenityQuantities: { ...prev.amenityQuantities, [amenity]: qty - 1 },
+                                  }));
+                                }
+                              }}
+                              className="w-5 h-5 rounded hover:bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs cursor-pointer"
+                              title="Giảm số lượng"
+                            >
+                              -
+                            </button>
+                            <span className="w-5 text-center text-[11px] font-bold text-orange-400 font-mono">
+                              {qty}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  amenityQuantities: { ...prev.amenityQuantities, [amenity]: qty + 1 },
+                                }));
+                              }}
+                              className="w-5 h-5 rounded hover:bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs cursor-pointer"
+                              title="Tăng số lượng"
+                            >
+                              +
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

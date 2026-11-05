@@ -5,8 +5,13 @@ export interface MaintenanceRequestDto {
   id: number;
   roomId: number;
   roomNumber?: string | null;
+  buildingName?: string | null;
+  buildingAddress?: string | null;
+  landlordName?: string | null;
+  landlordPhone?: string | null;
   tenantId: number;
   tenantName?: string | null;
+  tenantPhone?: string | null;
   title: string;
   description?: string | null;
   imageUrl?: string | null;
@@ -14,6 +19,7 @@ export interface MaintenanceRequestDto {
   status: MaintenanceStatus;
   assignedToUserId?: number | null;
   assignedToUserName?: string | null;
+  assignedToUserPhone?: string | null;
   createdAt: string;
   resolvedAt?: string | null;
   note?: string | null;

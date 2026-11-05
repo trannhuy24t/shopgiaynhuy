@@ -7,6 +7,7 @@ export interface TenantDto {
   phone?: string | null;
   email?: string | null;
   emergencyContact?: string | null;
+  telegramChatId?: string | null;
   createdAt: string;
 }
 

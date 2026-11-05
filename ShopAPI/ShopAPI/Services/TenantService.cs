@@ -89,6 +89,7 @@ namespace ShopAPI.Services
                 Phone = tenant.Phone ?? tenant.User?.PhoneNumber,
                 Email = tenant.Email,
                 EmergencyContact = tenant.EmergencyContact,
+                TelegramChatId = tenant.User?.TelegramChatId,
                 CreatedAt = tenant.CreatedAt
             };
         }

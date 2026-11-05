@@ -6,4 +6,5 @@ export interface AuthUser {
   email: string;
   role: Role;
   phoneNumber?: string | null;
+  telegramChatId?: string | null;
 }

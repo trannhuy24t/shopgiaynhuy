@@ -403,7 +403,7 @@ const RoomListPage = () => {
                     <SlidersHorizontal size={20} />
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-white uppercase tracking-wider">
+                    <h2 className="text-base font-bold text-slate-100 uppercase tracking-wide">
                       Bộ lọc nâng cao
                     </h2>
                     <p className="text-xs text-slate-400">Chọn loại phòng & tiện nghi mong muốn</p>
@@ -427,7 +427,7 @@ const RoomListPage = () => {
                   <div>
                     <div className="flex items-center gap-2 mb-2.5">
                       <Building2 size={15} className="text-orange-400" />
-                      <span className="text-xs font-bold text-white uppercase tracking-wider">
+                      <span className="text-xs font-bold text-slate-100 uppercase tracking-wide">
                         Tòa nhà
                       </span>
                     </div>
@@ -466,7 +466,7 @@ const RoomListPage = () => {
                   <div className="flex items-center justify-between mb-2.5">
                     <div className="flex items-center gap-2">
                       <Sparkles size={15} className="text-blue-400" />
-                      <span className="text-xs font-bold text-white uppercase tracking-wider">
+                      <span className="text-xs font-bold text-slate-100 uppercase tracking-wide">
                         Loại phòng
                       </span>
                     </div>
@@ -506,7 +506,7 @@ const RoomListPage = () => {
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <Armchair size={16} className="text-orange-400" />
-                      <span className="text-xs font-bold text-white uppercase tracking-wider">
+                      <span className="text-xs font-bold text-slate-100 uppercase tracking-wide">
                         Đồ dùng & Tiện nghi phòng
                       </span>
                     </div>
@@ -723,12 +723,12 @@ const RoomListPage = () => {
               </div>
               <div className="p-5 flex-grow flex flex-col justify-between">
                 <div className="text-left">
-                  <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black block mb-1 flex items-center gap-1">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wide font-bold block mb-1 flex items-center gap-1">
                     <Building2 size={11} /> {room.buildingName || `Tòa nhà #${room.buildingId}`}
                   </span>
                   {room.buildingAddress && <p className="text-xs text-slate-500 line-clamp-2 mb-1">{room.buildingAddress}</p>}
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-bold text-white group-hover:text-orange-500 text-base leading-snug transition-colors">
+                    <h3 className="font-bold text-slate-100 group-hover:text-orange-500 text-base leading-snug transition-colors">
                       Phòng {room.roomNumber}
                     </h3>
                     <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/25">

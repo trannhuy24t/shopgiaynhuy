@@ -103,6 +103,164 @@ export function calculateDurationMonths(startDateIso: string, endDateIso: string
   return Math.max(1, months);
 }
 
+export interface RoomAmenityItem {
+  stt: number;
+  name: string;
+  quantity: number;
+  unit: string;
+  condition: string;
+  note: string;
+}
+
+// Hàm chuẩn hóa và bóc tách danh mục trang thiết bị kèm số lượng
+export function parseAmenitiesList(rawAmenities?: string | null): RoomAmenityItem[] {
+  const items: RoomAmenityItem[] = [];
+
+  const rawList = (rawAmenities || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  let stt = 1;
+
+  for (const raw of rawList) {
+    let name = raw;
+    let quantity = 1;
+    let unit = 'Chiếc';
+    let condition = 'Hoạt động tốt, nguyên vẹn';
+    let note = '';
+
+    // Bóc tách số lượng từ các định dạng:
+    // "Điều hòa (2 chiếc)", "Điều hòa (2 cái)", "Điều hòa: 2", "Điều hòa x2", "2 cái Điều hòa"
+    const parenMatch = name.match(/[\(\[]\s*(?:số lượng[:\s]*)?(\d+)\s*([a-zA-Zà-ỹÀ-Ỹ\s]*?)[\)\]]/i);
+    const colonMatch = name.match(/[:\-–xX]\s*(\d+)\s*([a-zA-Zà-ỹÀ-Ỹ\s]*)$/i);
+    const prefixMatch = name.match(/^(\d+)\s*([a-zA-Zà-ỹÀ-Ỹ]+)\s+(.+)$/i);
+
+    if (parenMatch) {
+      quantity = parseInt(parenMatch[1], 10) || 1;
+      if (parenMatch[2]?.trim()) unit = parenMatch[2].trim();
+      name = name.replace(parenMatch[0], '').trim();
+    } else if (colonMatch) {
+      quantity = parseInt(colonMatch[1], 10) || 1;
+      if (colonMatch[2]?.trim()) unit = colonMatch[2].trim();
+      name = name.substring(0, colonMatch.index).trim();
+    } else if (prefixMatch) {
+      quantity = parseInt(prefixMatch[1], 10) || 1;
+      if (prefixMatch[2]?.trim()) unit = prefixMatch[2].trim();
+      name = prefixMatch[3].trim();
+    }
+
+    // Gán đơn vị tính và tình trạng tiêu chuẩn dựa theo tên thiết bị
+    const lower = name.toLowerCase();
+    if (lower.includes('điều hòa') || lower.includes('máy lạnh')) {
+      if (!unit || unit === 'Chiếc') unit = 'Chiếc';
+      condition = 'Hoạt động tốt, làm mát nhanh';
+      note = 'Kèm 01 điều khiển từ xa';
+    } else if (lower.includes('nóng lạnh')) {
+      if (!unit || unit === 'Chiếc') unit = 'Bình';
+      condition = 'Hoạt động tốt, role chống giật an toàn';
+    } else if (lower.includes('tủ lạnh')) {
+      if (!unit || unit === 'Chiếc') unit = 'Chiếc';
+      condition = 'Làm đá & làm mát tốt, khay kính đủ';
+    } else if (lower.includes('máy giặt')) {
+      if (!unit || unit === 'Chiếc') unit = 'Chiếc';
+      condition = 'Giặt vắt êm, cấp thoát nước tốt';
+    } else if (lower.includes('giường')) {
+      if (!unit || unit === 'Chiếc') unit = 'Bộ';
+      condition = 'Chắc chắn, sạch sẽ, nguyên vẹn';
+      note = 'Kèm đệm nệm';
+    } else if (lower.includes('tủ quần áo') || lower.includes('tủ áo')) {
+      if (!unit || unit === 'Chiếc') unit = 'Chiếc';
+      condition = 'Cánh tủ và ray kéo trơn tru';
+    } else if (lower.includes('bếp')) {
+      if (!unit || unit === 'Chiếc') unit = 'Bộ';
+      condition = 'Mặt bếp nguyên vẹn, bắt từ tốt';
+      note = 'Kèm chậu rửa bát inox';
+    } else if (lower.includes('bàn') || lower.includes('ghế')) {
+      if (!unit || unit === 'Chiếc') unit = 'Bộ';
+      condition = 'Chắc chắn, sạch đẹp, nguyên vẹn';
+    } else if (lower.includes('sofa')) {
+      if (!unit || unit === 'Chiếc') unit = 'Bộ';
+      condition = 'Đệm êm, bọc sạch sẽ';
+    } else if (lower.includes('khóa vân tay') || lower.includes('khóa điện tử')) {
+      if (!unit || unit === 'Chiếc') unit = 'Bộ';
+      condition = 'Cảm biến vân tay nhạy, pin tốt';
+      note = 'Đã bàn giao mã bảo mật';
+    } else if (lower.includes('wifi') || lower.includes('router')) {
+      if (!unit || unit === 'Chiếc') unit = 'Thiết bị';
+      condition = 'Tín hiệu sóng mạnh, kết nối ổn định';
+      note = 'Kèm adapter nguồn';
+    } else if (lower.includes('ban công') || lower.includes('cửa sổ')) {
+      if (!unit || unit === 'Chiếc') unit = 'Khu vực';
+      condition = 'Chốt khóa an toàn, thoáng mát';
+      note = 'Kèm rèm che';
+    } else if (lower.includes('quạt')) {
+      if (!unit || unit === 'Chiếc') unit = 'Chiếc';
+      condition = 'Quay êm, các số hoạt động bình thường';
+    }
+
+    if (name) {
+      items.push({
+        stt: stt++,
+        name,
+        quantity,
+        unit,
+        condition,
+        note,
+      });
+    }
+  }
+
+  // Luôn bổ sung các trang thiết bị bàn giao phòng cơ bản thiết yếu
+  const existingNames = items.map((i) => i.name.toLowerCase());
+
+  if (!existingNames.some((n) => n.includes('chìa khóa') || n.includes('thẻ từ'))) {
+    items.push({
+      stt: stt++,
+      name: 'Chìa khóa phòng & Thẻ từ thang máy/ra vào',
+      quantity: 2,
+      unit: 'Chiếc',
+      condition: 'Mới, đóng mở tốt',
+      note: '01 chìa khóa + 01 thẻ từ',
+    });
+  }
+
+  if (!existingNames.some((n) => n.includes('công tơ') || n.includes('đồng hồ điện'))) {
+    items.push({
+      stt: stt++,
+      name: 'Công tơ điện riêng phòng',
+      quantity: 1,
+      unit: 'Chiếc',
+      condition: 'Chuẩn kiểm định, hoạt động bình thường',
+      note: 'Chỉ số chốt khi nhận phòng',
+    });
+  }
+
+  if (!existingNames.some((n) => n.includes('đồng hồ nước'))) {
+    items.push({
+      stt: stt++,
+      name: 'Đồng hồ đo nước riêng phòng',
+      quantity: 1,
+      unit: 'Chiếc',
+      condition: 'Hoạt động bình thường, không rò rỉ',
+      note: 'Chỉ số chốt khi nhận phòng',
+    });
+  }
+
+  if (!existingNames.some((n) => n.includes('vệ sinh') || n.includes('bồn cầu'))) {
+    items.push({
+      stt: stt++,
+      name: 'Thiết bị vệ sinh (Bồn cầu, lavabo, vòi sen, gương)',
+      quantity: 1,
+      unit: 'Bộ',
+      condition: 'Mới, cấp thoát nước tốt, sạch sẽ',
+      note: '',
+    });
+  }
+
+  return items;
+}
+
 // Xuất file Word (.doc) với markup chuẩn Microsoft Word Office HTML
 export function exportContractToWordDoc(contract: ContractDto, room?: RoomDto | null) {
   const roomNumber = contract.roomNumber || (room?.roomNumber ?? String(contract.roomId));
@@ -123,8 +281,9 @@ export function exportContractToWordDoc(contract: ContractDto, room?: RoomDto | 
 
   const roomArea = contract.roomArea || room?.area || 25;
   const roomServiceFee = contract.roomServiceFee || room?.serviceFee || 150000;
-  const roomType = room?.roomType || 'Phòng trọ';
-  const roomAmenities = room?.amenities || '';
+  const roomType = contract.roomType || room?.roomType || 'Phòng trọ';
+  const rawAmenities = contract.roomAmenities || room?.amenities || '';
+  const amenitiesList = parseAmenitiesList(rawAmenities);
 
   const monthlyRentFormatted = new Intl.NumberFormat('vi-VN').format(contract.monthlyRent);
   const monthlyRentWords = numberToVietnameseWords(contract.monthlyRent);
@@ -166,6 +325,34 @@ export function exportContractToWordDoc(contract: ContractDto, room?: RoomDto | 
   } else {
     occupantsTableHtml = `<p style="font-style:italic;color:#555;margin:6px 0;">(Chưa đăng ký thêm người ở cùng. Chỉ người thuê đứng tên đại diện cư trú).</p>`;
   }
+
+  // Tạo danh mục trang thiết bị và đồ đạc bàn giao dạng bảng HTML cho Word
+  const amenitiesTableHtml = `
+    <table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;width:100%;font-size:11pt;margin:6pt 0 8pt 0;">
+      <tr style="background-color:#f2f2f2;font-weight:bold;text-align:center;">
+        <th style="width:36px;">STT</th>
+        <th>Tên trang thiết bị / Tài sản</th>
+        <th style="width:75px;">Số lượng</th>
+        <th style="width:70px;">Đơn vị</th>
+        <th>Hiện trạng bàn giao</th>
+        <th>Ghi chú</th>
+      </tr>
+      ${amenitiesList
+        .map(
+          (item) => `
+        <tr>
+          <td style="text-align:center;">${item.stt}</td>
+          <td><strong>${item.name}</strong></td>
+          <td style="text-align:center;"><strong>${String(item.quantity).padStart(2, '0')}</strong></td>
+          <td style="text-align:center;">${item.unit}</td>
+          <td>${item.condition}</td>
+          <td>${item.note || '—'}</td>
+        </tr>
+      `
+        )
+        .join('')}
+    </table>
+  `;
 
   const wordHtml = `
     <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
@@ -253,8 +440,10 @@ export function exportContractToWordDoc(contract: ContractDto, room?: RoomDto | 
 
         <p class="clause-title">ĐIỀU 1: ĐỐI TƯỢNG VÀ MỤC ĐÍCH HỢP ĐỒNG</p>
         <p>1.1. Bên A đồng ý cho Bên B thuê phòng số: <strong>${roomNumber}</strong>${roomType ? ` (Loại: <strong>${roomType}</strong>)` : ''}, diện tích sử dụng: <strong>${roomArea} m²</strong> thuộc cơ sở <strong>${buildingName}</strong>, tại địa chỉ: <strong>${buildingAddress}</strong>.</p>
-        ${roomAmenities ? `<p style="margin-left:14pt;">- <strong>Trang thiết bị & đồ đạc bàn giao kèm theo:</strong> ${roomAmenities}. Bên B có nghĩa vụ sử dụng đúng công năng và bảo quản nguyên vẹn các tài sản trên trong suốt thời hạn hợp đồng.</p>` : ''}
-        <p>1.2. Mục đích thuê: Sử dụng làm nơi ở sinh hoạt cá nhân / gia đình hợp pháp. Bên B không được sử dụng phòng vào mục đích kinh doanh trái phép, không tàng trữ hàng cấm, không tự ý chuyển nhượng hoặc cho bên thứ ba thuê lại nếu chưa có văn bản chấp thuận của Bên A.</p>
+        <p style="margin-top:6pt;"><strong>1.2. Danh mục trang thiết bị, tài sản và đồ đạc bàn giao kèm theo phòng:</strong></p>
+        ${amenitiesTableHtml}
+        <p style="font-size:10.5pt;font-style:italic;margin-bottom:6pt;">* Hai bên đã cùng nhau kiểm tra, chạy thử và xác nhận toàn bộ trang thiết bị trên hoạt động bình thường trước khi ký kết. Bên B có nghĩa vụ sử dụng đúng công năng và bảo quản nguyên vẹn các tài sản trên trong suốt thời hạn hợp đồng.</p>
+        <p>1.3. Mục đích thuê: Sử dụng làm nơi ở sinh hoạt cá nhân / gia đình hợp pháp. Bên B không được sử dụng phòng vào mục đích kinh doanh trái phép, không tàng trữ hàng cấm, không tự ý chuyển nhượng hoặc cho bên thứ ba thuê lại nếu chưa có văn bản chấp thuận của Bên A.</p>
 
         <p class="clause-title">ĐIỀU 2: THỜI HẠN THUÊ</p>
         <p>2.1. Thời hạn thuê là: <strong>${durationMonths} tháng</strong>, bắt đầu từ ngày <strong>${startDate.full}</strong> đến hết ngày <strong>${endDate.full}</strong>.</p>

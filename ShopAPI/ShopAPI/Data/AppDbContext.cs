@@ -22,6 +22,7 @@ namespace ShopAPI.Data
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<SystemConfig> SystemConfigs { get; set; }
         public DbSet<ActivityLog> ActivityLogs { get; set; }
+        public DbSet<PushSubscription> PushSubscriptions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -154,6 +155,16 @@ namespace ShopAPI.Data
                 .WithMany()
                 .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PushSubscription>()
+                .HasOne(p => p.User)
+                .WithMany()
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PushSubscription>()
+                .HasIndex(p => p.Endpoint)
+                .IsUnique();
         }
     }
 }

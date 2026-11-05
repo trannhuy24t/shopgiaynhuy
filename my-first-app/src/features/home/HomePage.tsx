@@ -24,7 +24,16 @@ const HomePage = () => {
         setLoading(true);
         setError('');
         const res = await getAvailableRooms();
-        setRooms(res.data.slice(0, 4));
+        // Chỉ phòng chưa bị thuê mới được hiện; phòng nào mới thêm nhất sẽ được ưu tiên đề xuất lên đầu
+        const availableRooms = (res.data || [])
+          .filter((r) => r.status !== 'DaThue')
+          .sort((a, b) => {
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            if (timeB !== timeA) return timeB - timeA;
+            return b.id - a.id;
+          });
+        setRooms(availableRooms.slice(0, 4));
       } catch (err) {
         setError(getApiErrorMessage(err, 'Không tải được danh sách phòng.'));
       } finally {

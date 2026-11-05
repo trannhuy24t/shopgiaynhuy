@@ -17,9 +17,16 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
   pageSize,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = [5, 10, 20, 50],
+  pageSizeOptions = [5, 10, 15, 20, 25, 50],
   itemLabel = 'mục',
 }) => {
+  const effectiveOptions = React.useMemo(() => {
+    if (pageSizeOptions.includes(pageSize)) {
+      return pageSizeOptions;
+    }
+    return [...pageSizeOptions, pageSize].sort((a, b) => a - b);
+  }, [pageSizeOptions, pageSize]);
+
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
   const startIndex = totalItems > 0 ? (safeCurrentPage - 1) * pageSize : 0;
@@ -44,7 +51,7 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
             }}
             className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white outline-none cursor-pointer hover:border-slate-700 transition-colors"
           >
-            {pageSizeOptions.map((opt) => (
+            {effectiveOptions.map((opt) => (
               <option key={opt} value={opt}>
                 {opt} / trang
               </option>

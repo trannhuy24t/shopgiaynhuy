@@ -1,4 +1,4 @@
-﻿using ShopAPI.DTOs;
+using ShopAPI.DTOs;
 using ShopAPI.Interfaces;
 using ShopAPI.Models;
 
@@ -11,19 +11,22 @@ namespace ShopAPI.Services
         private readonly ITenantService _tenantService;
         private readonly INotificationService _notificationService;
         private readonly IActivityLogService _activityLogService;
+        private readonly ILogger<MaintenanceRequestService> _logger;
 
         public MaintenanceRequestService(
             IMaintenanceRequestRepository requestRepository,
             IContractRepository contractRepository,
             ITenantService tenantService,
             INotificationService notificationService,
-            IActivityLogService activityLogService)
+            IActivityLogService activityLogService,
+            ILogger<MaintenanceRequestService> logger)
         {
             _requestRepository = requestRepository;
             _contractRepository = contractRepository;
             _tenantService = tenantService;
             _notificationService = notificationService;
             _activityLogService = activityLogService;
+            _logger = logger;
         }
 
         public List<MaintenanceRequestDto> GetAll(string? status)
@@ -124,6 +127,29 @@ namespace ShopAPI.Services
 
             _activityLogService.Log(actorUserId, "AssignMaintenanceRequest", "MaintenanceRequest", request.Id, $"AssignedToUserId={dto.AssignedToUserId}");
 
+            var updated = GetById(request.Id);
+
+            var staffName = updated?.AssignedToUserName ?? "Kỹ thuật viên";
+            var tenantName = updated?.TenantName ?? "Khách thuê";
+            var roomNumber = updated?.RoomNumber ?? request.RoomId.ToString();
+            var buildingName = !string.IsNullOrWhiteSpace(updated?.BuildingName) ? $" ({updated.BuildingName})" : "";
+            var priorityName = request.Priority switch
+            {
+                MaintenancePriority.Cao => "Cao (Khẩn cấp)",
+                MaintenancePriority.TrungBinh => "Trung bình",
+                MaintenancePriority.Thap => "Thấp (Bình thường)",
+                _ => request.Priority.ToString()
+            };
+
+            // 1. Tự động tạo thông báo trên Web & Push & Telegram cho nhân viên được phân công
+            _notificationService.Create(new CreateNotificationDto
+            {
+                UserId = dto.AssignedToUserId,
+                Title = "Phân công xử lý sự cố",
+                Content = $"Kỹ thuật viên {staffName} được phân công tiếp nhận sự cố #{request.Id} tại phòng {roomNumber}{buildingName} của khách thuê {tenantName}. Nội dung sự cố: {request.Title} (Mức ưu tiên: {priorityName}).",
+                Type = "BaoTri"
+            }, actorUserId);
+
             return true;
         }
 
@@ -155,6 +181,41 @@ namespace ShopAPI.Services
             _requestRepository.Update(request);
 
             _activityLogService.Log(actorUserId, "UpdateMaintenanceStatus", "MaintenanceRequest", request.Id, dto.Status);
+
+            // Tự động tạo thông báo trên Web & Push & Telegram cho khách thuê
+            var tenantUserId = request.Tenant?.UserId;
+            if (tenantUserId == null && request.TenantId > 0)
+            {
+                tenantUserId = _tenantService.GetById(request.TenantId)?.UserId;
+            }
+
+            if (tenantUserId != null)
+            {
+                var tenantName = request.Tenant?.FullName;
+                if (string.IsNullOrEmpty(tenantName) && request.TenantId > 0)
+                {
+                    tenantName = _tenantService.GetById(request.TenantId)?.FullName;
+                }
+                tenantName ??= "Khách thuê";
+
+                var roomStr = request.Room?.RoomNumber ?? request.RoomId.ToString();
+                var noteDetail = !string.IsNullOrWhiteSpace(dto.Note) ? $" Ghi chú: {dto.Note.Trim()}" : "";
+                var statusText = dto.Status switch
+                {
+                    "DangXuLy" => "Đang xử lý",
+                    "HoanThanh" => "Đã hoàn thành",
+                    "DaHuy" => "Đã hủy",
+                    _ => dto.Status
+                };
+
+                _notificationService.Create(new CreateNotificationDto
+                {
+                    UserId = tenantUserId.Value,
+                    Title = "Cập nhật tiến độ bảo trì",
+                    Content = $"Kính gửi khách thuê {tenantName} (Phòng {roomStr}): Yêu cầu sửa chữa #{request.Id} ({request.Title}) đã chuyển sang trạng thái '{statusText}'.{noteDetail}",
+                    Type = "BaoTri"
+                }, actorUserId);
+            }
 
             return true;
         }
@@ -205,8 +266,13 @@ namespace ShopAPI.Services
                 Id = request.Id,
                 RoomId = request.RoomId,
                 RoomNumber = request.Room?.RoomNumber,
+                BuildingName = request.Room?.Building?.Name,
+                BuildingAddress = request.Room?.Building?.Address,
+                LandlordName = request.Room?.Building?.Owner?.FullName,
+                LandlordPhone = request.Room?.Building?.Owner?.PhoneNumber,
                 TenantId = request.TenantId,
                 TenantName = request.Tenant?.FullName,
+                TenantPhone = request.Tenant?.Phone,
                 Title = request.Title,
                 Description = request.Description,
                 ImageUrl = request.ImageUrl,
@@ -214,6 +280,7 @@ namespace ShopAPI.Services
                 Status = request.Status.ToString(),
                 AssignedToUserId = request.AssignedToUserId,
                 AssignedToUserName = request.AssignedToUser?.FullName,
+                AssignedToUserPhone = request.AssignedToUser?.PhoneNumber,
                 CreatedAt = request.CreatedAt,
                 ResolvedAt = request.ResolvedAt,
                 Note = request.Note

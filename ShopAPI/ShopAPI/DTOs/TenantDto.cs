@@ -10,6 +10,7 @@ namespace ShopAPI.DTOs
         public string? Phone { get; set; }
         public string? Email { get; set; }
         public string? EmergencyContact { get; set; }
+        public string? TelegramChatId { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

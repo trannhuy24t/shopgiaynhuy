@@ -17,7 +17,7 @@ namespace ShopAPI.Repositories
         private IQueryable<MaintenanceRequest> Query()
         {
             return _context.MaintenanceRequests
-                .Include(x => x.Room)
+                .Include(x => x.Room)!.ThenInclude(r => r!.Building)!.ThenInclude(b => b!.Owner)
                 .Include(x => x.Tenant)
                 .Include(x => x.AssignedToUser);
         }
